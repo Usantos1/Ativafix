@@ -2648,18 +2648,32 @@ app.post('/api/delete/:table', async (req, res) => {
     // os_config_status DELETE por id apenas: não adicionar filtro company_id para o delete funcionar
     const isOsConfigStatusDeleteById = tableNameOnly.toLowerCase() === 'os_config_status' && where && typeof where === 'object' && Object.keys(where).length === 1 && 'id' in where;
 
-    // CRÍTICO: Adicionar filtro de company_id automaticamente
+    // CRÍTICO: Adicionar filtro de company_id automaticamente (só se a tabela tiver a coluna)
     if (needsCompanyFilter && req.user && req.companyId && !isOsConfigStatusDeleteById) {
       const hasCompanyFilter = where && (typeof where === 'object' && 'company_id' in where);
       
       if (!hasCompanyFilter) {
-        if (finalWhereClause) {
-          finalWhereClause += ` AND company_id = $${finalParams.length + 1}`;
-        } else {
-          finalWhereClause = `WHERE company_id = $${finalParams.length + 1}`;
+        let tableHasCompanyId = false;
+        try {
+          const colCheck = await pool.query(`
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'company_id'
+          `, [tableNameOnly]);
+          tableHasCompanyId = colCheck.rows && colCheck.rows.length > 0;
+        } catch (e) {
+          console.warn('[Delete] Erro ao verificar coluna company_id:', e.message);
         }
-        finalParams.push(req.companyId);
-        console.log(`[Delete] Adicionando filtro company_id=${req.companyId} para tabela ${tableNameOnly}`);
+        if (tableHasCompanyId) {
+          if (finalWhereClause) {
+            finalWhereClause += ` AND company_id = $${finalParams.length + 1}`;
+          } else {
+            finalWhereClause = `WHERE company_id = $${finalParams.length + 1}`;
+          }
+          finalParams.push(req.companyId);
+          console.log(`[Delete] Adicionando filtro company_id=${req.companyId} para tabela ${tableNameOnly}`);
+        } else {
+          console.log(`[Delete] Tabela ${tableNameOnly} sem coluna company_id, delete sem filtro de empresa`);
+        }
       }
     }
 

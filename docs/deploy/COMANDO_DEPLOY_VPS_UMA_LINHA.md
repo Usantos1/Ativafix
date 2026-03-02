@@ -1,10 +1,36 @@
 # Deploy VPS – Comando em uma linha (sempre com cd)
 
-**Use este comando na VPS.** O `cd /root/primecamp-ofc &&` no início é obrigatório para funcionar de qualquer diretório.
+**Use estes comandos na VPS** (SSH no servidor). O `cd` no início é obrigatório para funcionar de qualquer diretório.
+
+## Uma linha (copiar inteiro, incluindo a aspas final do echo)
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && cd server && npm install --production && pm2 restart primecamp-api && cd .. && echo "✅ Deploy concluído!"
+cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* 2>/dev/null; sudo systemctl reload nginx && cd server && npm install --production && pm2 restart primecamp-api && cd .. && echo "Deploy concluido!"
 ```
+
+**Atenção:** não corte o comando no meio; a última parte é `echo "Deploy concluido!"` (com aspas fechando).
+
+## Em vários passos (se a uma linha falhar ou para ver em qual passo deu erro)
+
+```bash
+cd /root/primecamp-ofc
+git pull origin main
+npm install
+npm run build
+sudo rm -rf /var/www/primecamp.cloud/*
+sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo chown -R www-data:www-data /var/www/primecamp.cloud
+sudo chmod -R 755 /var/www/primecamp.cloud
+sudo rm -rf /var/cache/nginx/* 2>/dev/null
+sudo systemctl reload nginx
+cd server
+npm install --production
+pm2 restart primecamp-api
+cd ..
+echo "Deploy concluido!"
+```
+
+Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd` para o caminho correto. Se o nome do app no PM2 for outro, use `pm2 list` para ver o nome e troque `primecamp-api` no `pm2 restart`.
 
 ## Ordem dos passos
 
