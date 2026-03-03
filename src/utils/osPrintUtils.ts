@@ -26,6 +26,17 @@ export async function printOSTermicaDirect(
     const imagemReferenciaUrl = osImageReferenceUrl || null;
     const areasDefeito = os.areas_defeito || [];
     
+    const clienteCpf = cliente?.cpf_cnpj || null;
+    const clienteEnderecoParts = cliente ? [
+      cliente.logradouro,
+      cliente.numero,
+      cliente.complemento,
+      cliente.bairro,
+      [cliente.cidade, cliente.estado || cliente.uf].filter(Boolean).join('/'),
+      cliente.cep,
+    ].filter(Boolean) : [];
+    const clienteEnderecoStr = clienteEnderecoParts.length > 0 ? clienteEnderecoParts.join(', ') : null;
+
     // Parse checklist entrada
     const checklistEntradaMarcados = Array.isArray(os.checklist_entrada) 
       ? os.checklist_entrada 
@@ -35,6 +46,8 @@ export async function printOSTermicaDirect(
     const htmlCliente = await generateOSTermica({
       os,
       clienteNome: cliente?.nome || os.cliente_nome || 'Cliente',
+      clienteCpf,
+      clienteEndereco: clienteEnderecoStr,
       marcaNome: marca?.nome || os.marca_nome,
       modeloNome: modelo?.nome || os.modelo_nome,
       checklistEntrada: checklistEntradaConfig,
@@ -50,6 +63,8 @@ export async function printOSTermicaDirect(
     const htmlLoja = await generateOSTermica({
       os,
       clienteNome: cliente?.nome || os.cliente_nome || 'Cliente',
+      clienteCpf,
+      clienteEndereco: clienteEnderecoStr,
       marcaNome: marca?.nome || os.marca_nome,
       modeloNome: modelo?.nome || os.modelo_nome,
       checklistEntrada: checklistEntradaConfig,

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ModernLayout } from '@/components/ModernLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -208,7 +208,7 @@ export default function Clientes() {
       complemento: cliente.complemento || '',
       bairro: cliente.bairro || '',
       cidade: cliente.cidade || '',
-      estado: cliente.estado || '',
+      estado: cliente.estado || cliente.uf || '',
     });
     setShowForm(true);
   };
@@ -247,7 +247,9 @@ export default function Clientes() {
     setIsLoading(true);
     try {
       if (editingCliente) {
-        await updateCliente(editingCliente.id, formData as any);
+        const payload: Record<string, unknown> = { ...formData };
+        if (payload.estado !== undefined) payload.uf = payload.estado;
+        await updateCliente(editingCliente.id, payload as any);
         toast({ title: 'Cliente atualizado!' });
       } else {
         await createCliente(formData as any);
@@ -870,18 +872,52 @@ export default function Clientes() {
                 </div>
               </div>
 
-              {/* Histórico (apenas na edição) */}
-              {editingCliente && (clienteOSs.length > 0 || clienteVendas.length > 0) && (
+              {/* Histórico (apenas na edição) - links e dados das OS e Vendas */}
+              {editingCliente && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Histórico</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                      <div className="font-medium">Ordens de Serviço</div>
-                      <div className="text-2xl font-bold text-blue-600">{clienteOSs.length}</div>
+                      <div className="font-medium flex items-center gap-1">
+                        <Wrench className="h-4 w-4" />
+                        Ordens de Serviço
+                      </div>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">{loadingOSs ? '...' : clienteOSs.length}</div>
+                      <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                        {clienteOSs.length === 0 && !loadingOSs && <span className="text-muted-foreground text-xs">Nenhuma OS</span>}
+                        {clienteOSs.slice(0, 10).map((os: any) => (
+                          <Link
+                            key={os.id}
+                            to={`/os/${os.id}`}
+                            className="block text-xs text-blue-700 dark:text-blue-300 hover:underline truncate"
+                            onClick={() => setShowForm(false)}
+                          >
+                            OS #{os.numero ?? os.id?.slice(0, 8)} · {os.data_entrada ? dateFormatters.short(os.data_entrada) : '-'} · {STATUS_OS_LABELS[os.status as keyof typeof STATUS_OS_LABELS] ?? os.status ?? '-'}
+                          </Link>
+                        ))}
+                        {clienteOSs.length > 10 && <span className="text-xs text-muted-foreground">+{clienteOSs.length - 10} mais</span>}
+                      </div>
                     </div>
                     <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                      <div className="font-medium">Vendas</div>
-                      <div className="text-2xl font-bold text-green-600">{clienteVendas.length}</div>
+                      <div className="font-medium flex items-center gap-1">
+                        <ShoppingCart className="h-4 w-4" />
+                        Vendas
+                      </div>
+                      <div className="text-2xl font-bold text-green-600 mt-1">{loadingVendas ? '...' : clienteVendas.length}</div>
+                      <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                        {clienteVendas.length === 0 && !loadingVendas && <span className="text-muted-foreground text-xs">Nenhuma venda</span>}
+                        {clienteVendas.slice(0, 10).map((v: any) => (
+                          <Link
+                            key={v.id}
+                            to={`/pdv/venda/${v.id}`}
+                            className="block text-xs text-green-700 dark:text-green-300 hover:underline truncate"
+                            onClick={() => setShowForm(false)}
+                          >
+                            {v.created_at ? dateFormatters.short(v.created_at) : '-'} · {(v.total ?? v.valor_total) != null ? currencyFormatters.brl(Number(v.total ?? v.valor_total)) : '-'}
+                          </Link>
+                        ))}
+                        {clienteVendas.length > 10 && <span className="text-xs text-muted-foreground">+{clienteVendas.length - 10} mais</span>}
+                      </div>
                     </div>
                   </div>
                 </div>

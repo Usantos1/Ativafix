@@ -67,6 +67,7 @@ export function useClientesSupabase(pageSize: number = 50) {
         bairro: data.bairro || null,
         cidade: data.cidade || null,
         estado: data.estado || null,
+        uf: data.uf ?? data.estado ?? null,
         telefone: data.telefone || null,
         telefone2: data.telefone2 || null,
         email: data.email || null,

@@ -7,6 +7,10 @@ import { patternToSvg, POSSUI_SENHA_LABELS } from '@/utils/osPatternLockSvg';
 export interface OSTermicaData {
   os: OrdemServico;
   clienteNome: string;
+  /** CPF/CNPJ do cliente para impressão */
+  clienteCpf?: string | null;
+  /** Endereço completo do cliente para impressão */
+  clienteEndereco?: string | null;
   marcaNome?: string;
   modeloNome?: string;
   checklistEntrada: ChecklistConfigItem[];
@@ -20,7 +24,7 @@ export interface OSTermicaData {
 }
 
 export async function generateOSTermica(data: OSTermicaData): Promise<string> {
-  const { os, clienteNome, marcaNome, modeloNome, checklistEntrada, checklistEntradaMarcados, imagemReferenciaUrl, areasDefeito, via, omitirChecklist } = data;
+  const { os, clienteNome, clienteCpf, clienteEndereco, marcaNome, modeloNome, checklistEntrada, checklistEntradaMarcados, imagemReferenciaUrl, areasDefeito, via, omitirChecklist } = data;
 
   // Gerar QR Code com URL da OS
   let qrCodeImg = '';
@@ -285,6 +289,8 @@ export async function generateOSTermica(data: OSTermicaData): Promise<string> {
       <div class="section-title">DADOS DO CLIENTE</div>
       <div style="font-size: 11px; font-weight: 900; margin: 2px 0; line-height: 1.35;">Cliente: ${clienteNome}</div>
       <div style="font-size: 11px; font-weight: 900; margin: 2px 0; line-height: 1.35;">Contato: ${os.telefone_contato || '-'}</div>
+      <div style="font-size: 10px; font-weight: 700; margin: 2px 0; line-height: 1.35;">CPF/CNPJ: ${clienteCpf || '—'}</div>
+      <div style="font-size: 9px; font-weight: 700; margin: 2px 0; line-height: 1.3;">Endereço: ${clienteEndereco || '—'}</div>
       <div class="divider-dashed"></div>
       
       <div class="section-title">EQUIPAMENTO</div>

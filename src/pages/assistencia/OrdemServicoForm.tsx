@@ -21,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Save, X, Plus, Search, Phone, Printer, Send, Trash2, Edit,
   User, Smartphone, FileText, Check, AlertTriangle, Package, DollarSign, Download, ArrowLeft, Image, Upload, Settings, ChevronDown, ChevronUp,
-  CreditCard, Wallet, QrCode, Banknote, History
+  CreditCard, Wallet, QrCode, Banknote, History, MessageCircle
 } from 'lucide-react';
 import { 
   useOrdensServico, useClientes, useMarcasModelos, 
@@ -2096,10 +2096,19 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
       ? { ...os, padrao_desbloqueio: padraoParaImpressao, possui_senha: formData.possui_senha ?? os.possui_senha, possui_senha_tipo: formData.possui_senha_tipo ?? os.possui_senha_tipo, senha_numerica: formData.senha_numerica ?? os.senha_numerica, senha_aparelho: formData.senha_aparelho ?? os.senha_aparelho }
       : { ...os, padrao_desbloqueio: padraoParaImpressao };
 
+    // Garantir dados do cliente para CPF/endereço na impressão (buscar por ID se não estiver em cache)
+    let clienteParaImpressao = getClienteById(osToPrint.cliente_id);
+    if (!clienteParaImpressao && osToPrint.cliente_id) {
+      try {
+        const res = await from('clientes').select('*').eq('id', osToPrint.cliente_id).limit(1).execute();
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) clienteParaImpressao = res.data[0] as any;
+      } catch (_e) { /* usar só nome/contato se falhar */ }
+    }
+
     if (tipo === 'pdf' || tipo === 'a4') {
       // Usar a mesma função para PDF e A4 (baseada na térmica)
       try {
-        const cliente = getClienteById(osToPrint.cliente_id);
+        const cliente = clienteParaImpressao;
         const marca = marcas.find(m => m.id === osToPrint.marca_id);
         const modelo = modelos.find(m => m.id === osToPrint.modelo_id);
         
@@ -2112,11 +2121,23 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
         // Buscar imagem de referência do aparelho
         const imagemReferenciaUrl = osImageReferenceUrl || null;
         const areasDefeito = osToPrint.areas_defeito || [];
+        const clienteCpfPdf = cliente?.cpf_cnpj || null;
+        const clienteEnderecoPdfParts = cliente ? [
+          cliente.logradouro,
+          cliente.numero,
+          cliente.complemento,
+          cliente.bairro,
+          [cliente.cidade, cliente.estado || cliente.uf].filter(Boolean).join('/'),
+          cliente.cep,
+        ].filter(Boolean) : [];
+        const clienteEnderecoPdfStr = clienteEnderecoPdfParts.length > 0 ? clienteEnderecoPdfParts.join(', ') : null;
 
         // Gerar uma única página com ambas as vias lado a lado
         const htmlCompleto = await generateOSPDF({
           os: osToPrint,
           clienteNome: cliente?.nome || osToPrint.cliente_nome || 'Cliente',
+          clienteCpf: clienteCpfPdf,
+          clienteEndereco: clienteEnderecoPdfStr,
           marcaNome: marca?.nome || osToPrint.marca_nome,
           modeloNome: modelo?.nome || osToPrint.modelo_nome,
           checklistEntrada: checklistEntradaConfig,
@@ -2164,7 +2185,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
     } else if (tipo === 'termica') {
       // Impressão térmica com 2 vias
       try {
-        const cliente = getClienteById(osToPrint.cliente_id);
+        const cliente = clienteParaImpressao;
         const marca = marcas.find(m => m.id === osToPrint.marca_id);
         const modelo = modelos.find(m => m.id === osToPrint.modelo_id);
         
@@ -2178,10 +2199,23 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
         const imagemReferenciaUrl = osImageReferenceUrl || null;
         const areasDefeito = osToPrint.areas_defeito || [];
 
+        const clienteCpf = cliente?.cpf_cnpj || null;
+        const clienteEnderecoParts = cliente ? [
+          cliente.logradouro,
+          cliente.numero,
+          cliente.complemento,
+          cliente.bairro,
+          [cliente.cidade, cliente.estado || cliente.uf].filter(Boolean).join('/'),
+          cliente.cep,
+        ].filter(Boolean) : [];
+        const clienteEnderecoStr = clienteEnderecoParts.length > 0 ? clienteEnderecoParts.join(', ') : null;
+
         // Gerar via do cliente (com checklist nas duas vias)
         const htmlCliente = await generateOSTermica({
           os: osToPrint,
           clienteNome: cliente?.nome || osToPrint.cliente_nome || 'Cliente',
+          clienteCpf,
+          clienteEndereco: clienteEnderecoStr,
           marcaNome: marca?.nome || osToPrint.marca_nome,
           modeloNome: modelo?.nome || osToPrint.modelo_nome,
           checklistEntrada: checklistEntradaConfig,
@@ -2197,6 +2231,8 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
         const htmlLoja = await generateOSTermica({
           os: osToPrint,
           clienteNome: cliente?.nome || osToPrint.cliente_nome || 'Cliente',
+          clienteCpf,
+          clienteEndereco: clienteEnderecoStr,
           marcaNome: marca?.nome || osToPrint.marca_nome,
           modeloNome: modelo?.nome || osToPrint.modelo_nome,
           checklistEntrada: checklistEntradaConfig,
@@ -2855,6 +2891,32 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                       />
                     </div>
                   </div>
+                  {/* CPF e Endereço do cliente (somente quando houver cliente selecionado) */}
+                  {(() => {
+                    const clienteDados = selectedCliente || (formData.cliente_id ? getClienteById(formData.cliente_id) : null);
+                    if (!clienteDados) return null;
+                    const enderecoPartes = [
+                      clienteDados.logradouro,
+                      clienteDados.numero,
+                      clienteDados.complemento,
+                      clienteDados.bairro,
+                      [clienteDados.cidade, clienteDados.estado || clienteDados.uf].filter(Boolean).join('/'),
+                      clienteDados.cep,
+                    ].filter(Boolean);
+                    const enderecoCompleto = enderecoPartes.length > 0 ? enderecoPartes.join(', ') : null;
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-gray-100">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-gray-500">CPF/CNPJ</Label>
+                          <p className="text-sm text-gray-800 min-h-[1.25rem]">{clienteDados.cpf_cnpj || '—'}</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-gray-500">Endereço completo</Label>
+                          <p className="text-sm text-gray-800 min-h-[1.25rem]">{enderecoCompleto || '—'}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   
                   {/* Aparelho - Linha 1 */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -5235,12 +5297,17 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     
                     <Button 
                       variant="outline" 
-                      size="icon"
+                      size="sm"
                       onClick={() => handleWhatsApp()}
                       disabled={whatsappLoading}
-                      className="h-7 w-7 sm:h-8 sm:w-8 rounded text-green-600 border-green-200"
+                      className="h-7 sm:h-8 rounded text-green-600 border-green-200 hover:bg-green-50 flex items-center gap-1.5 px-2"
+                      title="WhatsApp"
                     >
-                      <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="inline-flex h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 items-center justify-center">
+                        <img src="/whatsapp-logo.png" alt="" className="h-full w-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden'); }} />
+                        <span className="hidden" aria-hidden><MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></span>
+                      </span>
+                      <span className="text-[10px] sm:text-xs font-medium">WhatsApp</span>
                     </Button>
                     
                     <Select onValueChange={(v) => handlePrint(v as 'termica' | 'a4' | 'pdf')}>

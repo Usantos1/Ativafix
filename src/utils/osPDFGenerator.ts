@@ -8,6 +8,8 @@ import { patternToSvg, POSSUI_SENHA_LABELS } from '@/utils/osPatternLockSvg';
 export interface OSPDFData {
   os: OrdemServico;
   clienteNome: string;
+  clienteCpf?: string | null;
+  clienteEndereco?: string | null;
   marcaNome?: string;
   modeloNome?: string;
   checklistEntrada: ChecklistConfigItem[];
@@ -20,7 +22,7 @@ export interface OSPDFData {
 }
 
 export async function generateOSPDF(data: OSPDFData): Promise<string> {
-  const { os, clienteNome, marcaNome, modeloNome, checklistEntrada, checklistEntradaMarcados, imagemReferenciaUrl, areasDefeito } = data;
+  const { os, clienteNome, clienteCpf, clienteEndereco, marcaNome, modeloNome, checklistEntrada, checklistEntradaMarcados, imagemReferenciaUrl, areasDefeito } = data;
 
   // Gerar QR Code
   let qrCodeImg = '';
@@ -161,6 +163,8 @@ export async function generateOSPDF(data: OSPDFData): Promise<string> {
             <div style="font-weight: bold; font-size: 10px; margin-bottom: 1px;">CLIENTE</div>
             <div style="font-size: 9px;">${clienteNome}</div>
             <div style="font-size: 8px;">Tel: ${os.telefone_contato || '-'}</div>
+            <div style="font-size: 8px;">CPF/CNPJ: ${clienteCpf || '—'}</div>
+            <div style="font-size: 7px;">End: ${clienteEndereco || '—'}</div>
           </td>
           <td style="padding: 2px 3px; border: 1px solid #000; width: 50%; vertical-align: top;">
             <div style="font-weight: bold; font-size: 10px; margin-bottom: 1px;">EQUIPAMENTO</div>
