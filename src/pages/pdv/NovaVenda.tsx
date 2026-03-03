@@ -544,11 +544,20 @@ export default function NovaVenda() {
         refreshPayments();
 
         // Sincronizar adiantamento da OS quando a venda foi criada sem ele (ex.: vendas antigas ou race)
+        // Consultar payments direto para evitar race: getSaleById pode ter sido chamado antes do insert do faturamento
+        const { data: paymentsAtual } = await from('payments')
+          .select('id, forma_pagamento, valor, status')
+          .eq('sale_id', id)
+          .execute();
         const totalPagoNaVenda = Number(loadedSale.total_pago ?? 0);
-        const jaTemAdiantamento = (loadedSale.payments || []).some(
-          (p: { forma_pagamento?: string }) => p.forma_pagamento === 'Adiantamento OS'
+        const jaTemAdiantamento = (paymentsAtual || []).some(
+          (p: { forma_pagamento?: string; status?: string }) =>
+            p.forma_pagamento === 'Adiantamento OS' && p.status === 'confirmed'
         );
-        if (totalPagoNaVenda === 0 && !jaTemAdiantamento) {
+        const totalJaEmPayments = (paymentsAtual || [])
+          .filter((p: { status?: string }) => p.status === 'confirmed')
+          .reduce((s: number, p: { valor?: number }) => s + Number(p.valor || 0), 0);
+        if (totalPagoNaVenda === 0 && !jaTemAdiantamento && totalJaEmPayments === 0) {
           try {
             const { data: pagamentosOS } = await from('os_pagamentos')
               .select('valor, cancelled_at')
@@ -863,26 +872,35 @@ export default function NovaVenda() {
         const valorCreditar = Math.min(totalPagoOS, totalVenda);
 
         if (valorCreditar > 0) {
-          const now = new Date().toISOString();
-          await from('payments')
-            .insert({
-              sale_id: novaVenda.id,
-              forma_pagamento: 'Adiantamento OS',
-              valor: valorCreditar,
-              valor_parcela: valorCreditar,
-              troco: 0,
-              parcelas: 1,
-              status: 'confirmed',
-              confirmed_at: now,
-              confirmed_by: user?.id || null,
-            })
+          // Evitar duplicar: só inserir se ainda não existir pagamento "Adiantamento OS" para esta venda
+          const { data: pagamentosExistentes } = await from('payments')
+            .select('id')
+            .eq('sale_id', novaVenda.id)
+            .eq('forma_pagamento', 'Adiantamento OS')
+            .eq('status', 'confirmed')
             .execute();
+          if (!pagamentosExistentes?.length) {
+            const now = new Date().toISOString();
+            await from('payments')
+              .insert({
+                sale_id: novaVenda.id,
+                forma_pagamento: 'Adiantamento OS',
+                valor: valorCreditar,
+                valor_parcela: valorCreditar,
+                troco: 0,
+                parcelas: 1,
+                status: 'confirmed',
+                confirmed_at: now,
+                confirmed_by: user?.id || null,
+              })
+              .execute();
 
-          const novoStatus = valorCreditar >= totalVenda ? 'paid' : 'partial';
-          await from('sales')
-            .update({ total_pago: valorCreditar, status: novoStatus })
-            .eq('id', novaVenda.id)
-            .execute();
+            const novoStatus = valorCreditar >= totalVenda ? 'paid' : 'partial';
+            await from('sales')
+              .update({ total_pago: valorCreditar, status: novoStatus })
+              .eq('id', novaVenda.id)
+              .execute();
+          }
 
           // Vincular adiantamentos (sem venda) a esta venda de faturamento
           await from('os_pagamentos')
