@@ -41,8 +41,31 @@ interface ThemeConfigContextType {
 
 const ThemeConfigContext = createContext<ThemeConfigContextType | undefined>(undefined);
 
+function loadSystemNameFromStorage(): string | undefined {
+  try {
+    const saved = localStorage.getItem('systemSettings');
+    if (saved) {
+      const parsed = JSON.parse(saved) as { systemName?: string };
+      return typeof parsed.systemName === 'string' && parsed.systemName.trim() ? parsed.systemName.trim() : undefined;
+    }
+  } catch (_) {}
+  return undefined;
+}
+
 export function ThemeConfigProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState<ThemeConfig>(defaultConfig);
+  const savedName = loadSystemNameFromStorage();
+  const [config, setConfig] = useState<ThemeConfig>({
+    ...defaultConfig,
+    ...(savedName ? { companyName: savedName } : {}),
+  });
+
+  // Aplicar nome do sistema e título da aba ao carregar (quando foi salvo nas configurações)
+  useEffect(() => {
+    const name = loadSystemNameFromStorage();
+    if (name) {
+      document.title = name;
+    }
+  }, []);
 
   const updateConfig = (newConfig: Partial<ThemeConfig>) => {
     setConfig(prev => ({ ...prev, ...newConfig }));

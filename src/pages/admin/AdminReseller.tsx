@@ -31,7 +31,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { useReseller, Company, Plan } from '@/hooks/useReseller';
 import { useAuth } from '@/contexts/AuthContext';
-import { Building2, Plus, Search, Edit, Eye, DollarSign, Users, Calendar, AlertCircle } from 'lucide-react';
+import { Building2, Plus, Search, Edit, DollarSign, Users, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -185,9 +185,26 @@ export default function AdminReseller() {
   };
 
   const handleCreateCompany = async () => {
+    const name = (formData.name || '').trim();
+    const email = (formData.email || '').trim();
+    if (!name) {
+      toast.error('Informe o nome da empresa.');
+      return;
+    }
+    if (!email) {
+      toast.error('Informe o e-mail da empresa.');
+      return;
+    }
     try {
-      await createCompany(formData);
-      toast.success('Empresa criada com sucesso!');
+      const payload = {
+        ...formData,
+        name,
+        email,
+        plan_id: formData.plan_id || undefined,
+        billing_cycle: formData.billing_cycle || 'monthly',
+      };
+      await createCompany(payload);
+      toast.success(formData.plan_id ? 'Empresa e assinatura criadas com sucesso!' : 'Empresa criada com sucesso!');
       setDialogOpen(false);
       resetForm();
       loadCompanies();
@@ -243,7 +260,9 @@ export default function AdminReseller() {
 
   const openCreateDialog = () => {
     resetForm();
+    setFormData(prev => ({ ...prev, plan_id: '', billing_cycle: 'monthly' }));
     setDialogOpen(true);
+    loadPlans();
   };
 
   const openEditDialog = async (company: Company) => {
@@ -400,6 +419,22 @@ export default function AdminReseller() {
       subtitle="Gerencie empresas, assinaturas e pagamentos"
     >
       <div className="space-y-4">
+        {plans.length === 0 && !loading && (
+          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardContent className="flex items-start gap-3 pt-6">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-200">Nenhum plano cadastrado</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  Para vender para novos clientes, crie pelo menos um plano em <strong>Gerenciar Planos</strong>.
+                  Você também pode cadastrar apenas a empresa e vincular o plano depois pelo ícone de assinatura.
+                  Se as tabelas de revenda ainda não existirem no banco, execute o script{' '}
+                  <code className="text-xs bg-amber-100 dark:bg-amber-900/40 px-1 rounded">db/migrations/manual/INSTALAR_SISTEMA_REVENDA_COMPLETO.sql</code> no PostgreSQL.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {/* Filtros e ações */}
         <Card>
           <CardHeader>
@@ -648,6 +683,46 @@ export default function AdminReseller() {
                   />
                 </div>
               </div>
+              {!selectedCompany && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="plan_id">Plano (opcional — venda em 1 passo)</Label>
+                    <Select
+                      value={formData.plan_id || 'none'}
+                      onValueChange={(value) => setFormData({ ...formData, plan_id: value === 'none' ? '' : value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Nenhum plano (só cadastrar empresa)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum plano (só cadastrar empresa)</SelectItem>
+                        {plans.filter(p => p.active !== false).map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            {plan.name} — {formatCurrency(plan.price_monthly)}/mês
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formData.plan_id && (
+                    <div className="space-y-2">
+                      <Label htmlFor="billing_cycle">Período de cobrança</Label>
+                      <Select
+                        value={formData.billing_cycle || 'monthly'}
+                        onValueChange={(value: 'monthly' | 'yearly') => setFormData({ ...formData, billing_cycle: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="yearly">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
+              )}
               {selectedCompany && (
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>

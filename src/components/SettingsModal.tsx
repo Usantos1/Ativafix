@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [autoSave, setAutoSave] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
+
+  // Carregar configurações salvas ao abrir o modal (para o nome do sistema refletir o que foi salvo)
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        const saved = localStorage.getItem('systemSettings');
+        if (saved) {
+          const parsed = JSON.parse(saved) as { systemName?: string; autoSave?: boolean; notifications?: boolean; compactMode?: boolean };
+          if (parsed.systemName != null) setSystemName(parsed.systemName);
+          if (parsed.autoSave != null) setAutoSave(parsed.autoSave);
+          if (parsed.notifications != null) setNotifications(parsed.notifications);
+          if (parsed.compactMode != null) setCompactMode(parsed.compactMode);
+        }
+      } catch (_) {}
+    }
+  }, [isOpen]);
   
   // Cores do tema
   const [primaryColor, setPrimaryColor] = useState(config.colors.primary);
@@ -34,16 +50,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleSave = () => {
     try {
+      const nameToSave = (systemName || '').trim() || 'Prime Camp | Gestão de Processos';
       // Save settings to localStorage
       localStorage.setItem('systemSettings', JSON.stringify({
-        systemName,
+        systemName: nameToSave,
         autoSave,
         notifications,
         compactMode
       }));
       
-      // Update theme colors
+      // Update theme colors and nome do sistema no contexto (para refletir na aplicação)
       updateConfig({
+        companyName: nameToSave,
         colors: {
           primary: primaryColor,
           primaryForeground: config.colors.primaryForeground,
@@ -55,8 +73,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         logo: logoPreview || config.logo,
       });
       
-      // Update document title
-      document.title = systemName || 'Prime Camp | Gestão de Processos';
+      // Atualizar título da aba
+      document.title = nameToSave;
       
       toast.success('Configurações salvas com sucesso!');
       onClose();
@@ -424,32 +442,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </CardContent>
           </Card>
 
-          {/* System Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Informações do Sistema</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">Versão</Label>
-                  <p>1.0.0</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Última Atualização</Label>
-                  <p>25/01/2025</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Tema Atual</Label>
-                  <p className="capitalize">{theme}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Navegador</Label>
-                  <p>{navigator.userAgent.split(' ')[0]}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <Separator />

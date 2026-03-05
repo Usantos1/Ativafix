@@ -59,12 +59,26 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
+// Retorna mensagem amigável para erros de schema (tabela/coluna inexistente)
+function isSchemaError(err) {
+  const msg = (err.message || '').toLowerCase();
+  const code = err.code || '';
+  return (
+    code === '42P01' || // undefined_table
+    code === '42703' || // undefined_column
+    msg.includes('does not exist') ||
+    msg.includes('não existe') ||
+    msg.includes('column ') && msg.includes(' does not exist')
+  );
+}
+
 // Listar todas as empresas
 router.get('/companies', async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', status = '' } = req.query;
     const offset = (page - 1) * limit;
 
+    // Query sem user_count para funcionar mesmo se users.company_id não existir ainda
     let query = `
       SELECT 
         c.*,
@@ -72,18 +86,17 @@ router.get('/companies', async (req, res) => {
         s.expires_at as subscription_expires_at,
         p.name as plan_name,
         p.code as plan_code,
-        (SELECT COUNT(*) FROM users WHERE company_id = c.id) as user_count
+        0 as user_count
       FROM companies c
       LEFT JOIN subscriptions s ON s.company_id = c.id AND s.status = 'active'
       LEFT JOIN plans p ON p.id = s.plan_id
-      WHERE c.deleted_at IS NULL
+      WHERE (c.deleted_at IS NULL)
     `;
-    
     const params = [];
     let paramCount = 1;
 
     if (search) {
-      query += ` AND (c.name ILIKE $${paramCount} OR c.email ILIKE $${paramCount} OR c.cnpj ILIKE $${paramCount})`;
+      query += ` AND (c.name ILIKE $${paramCount} OR c.email ILIKE $${paramCount} OR c.cnpj::text ILIKE $${paramCount})`;
       params.push(`%${search}%`);
       paramCount++;
     }
@@ -95,26 +108,46 @@ router.get('/companies', async (req, res) => {
     }
 
     query += ` ORDER BY c.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    params.push(limit, offset);
+    params.push(parseInt(limit) || 20, offset);
 
-    const result = await pool.query(query, params);
-    const countResult = await pool.query(
-      `SELECT COUNT(*) FROM companies WHERE deleted_at IS NULL`
-    );
+    let result;
+    let countResult;
+    try {
+      result = await pool.query(query, params);
+      countResult = await pool.query(
+        `SELECT COUNT(*) FROM companies WHERE deleted_at IS NULL`
+      );
+    } catch (queryErr) {
+      if (isSchemaError(queryErr)) {
+        return res.status(503).json({
+          success: false,
+          error: 'Estrutura do banco incompleta para revenda. Execute no PostgreSQL o script: db/migrations/manual/INSTALAR_SISTEMA_REVENDA_COMPLETO.sql',
+          detail: queryErr.message
+        });
+      }
+      throw queryErr;
+    }
+
+    const total = countResult?.rows?.[0]?.count ? parseInt(countResult.rows[0].count, 10) : (result.rows || []).length;
+    const totalPages = Math.ceil(total / (parseInt(limit) || 20));
 
     res.json({
       success: true,
-      data: result.rows,
+      data: result.rows || [],
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: parseInt(countResult.rows[0].count),
-        totalPages: Math.ceil(countResult.rows[0].count / limit)
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 20,
+        total,
+        totalPages
       }
     });
   } catch (error) {
     console.error('Erro ao listar empresas:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erro ao listar empresas',
+      detail: process.env.NODE_ENV !== 'production' ? error.detail : undefined
+    });
   }
 });
 
@@ -133,7 +166,7 @@ router.get('/companies/:id', async (req, res) => {
         p.id as plan_id,
         p.name as plan_name,
         p.code as plan_code,
-        (SELECT COUNT(*) FROM users WHERE company_id = c.id) as user_count
+        0 as user_count
       FROM companies c
       LEFT JOIN subscriptions s ON s.company_id = c.id AND s.status = 'active'
       LEFT JOIN plans p ON p.id = s.plan_id
@@ -147,6 +180,13 @@ router.get('/companies/:id', async (req, res) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
+    if (isSchemaError(error)) {
+      return res.status(503).json({
+        success: false,
+        error: 'Estrutura do banco incompleta para revenda. Execute: db/migrations/manual/INSTALAR_SISTEMA_REVENDA_COMPLETO.sql',
+        detail: error.message
+      });
+    }
     console.error('Erro ao obter empresa:', error);
     res.status(500).json({ success: false, error: error.message });
   }
@@ -168,41 +208,66 @@ router.post('/companies', async (req, res) => {
       billing_cycle = 'monthly'
     } = req.body;
 
-    await pool.query('BEGIN');
-
-    // Criar empresa
-    const companyResult = await pool.query(
-      `INSERT INTO companies (name, cnpj, email, phone, address, city, state, zip_code, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'trial')
-       RETURNING *`,
-      [name, cnpj, email, phone, address, city, state, zip_code]
-    );
-
-    const company = companyResult.rows[0];
-
-    // Criar assinatura se plan_id fornecido
-    if (plan_id) {
-      const planResult = await pool.query('SELECT * FROM plans WHERE id = $1', [plan_id]);
-      if (planResult.rows.length > 0) {
-        const plan = planResult.rows[0];
-        const amount = billing_cycle === 'yearly' ? plan.price_yearly : plan.price_monthly;
-        const expiresAt = new Date();
-        expiresAt.setMonth(expiresAt.getMonth() + (billing_cycle === 'yearly' ? 12 : 1));
-
-        await pool.query(
-          `INSERT INTO subscriptions (company_id, plan_id, billing_cycle, expires_at, amount, status)
-           VALUES ($1, $2, $3, $4, $5, 'active')`,
-          [company.id, plan_id, billing_cycle, expiresAt, amount]
-        );
-      }
+    const nameTrim = typeof name === 'string' ? name.trim() : '';
+    const emailTrim = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!nameTrim) {
+      return res.status(400).json({ success: false, error: 'Nome da empresa é obrigatório.' });
+    }
+    if (!emailTrim) {
+      return res.status(400).json({ success: false, error: 'E-mail da empresa é obrigatório.' });
     }
 
-    await pool.query('COMMIT');
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    res.json({ success: true, data: company });
+      // Criar empresa
+      const companyResult = await client.query(
+        `INSERT INTO companies (name, cnpj, email, phone, address, city, state, zip_code, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'trial')
+         RETURNING *`,
+        [nameTrim, cnpj || null, emailTrim, phone || null, address || null, city || null, state || null, zip_code || null]
+      );
+
+      const company = companyResult.rows[0];
+
+      // Criar assinatura se plan_id fornecido
+      if (plan_id) {
+        const planResult = await client.query('SELECT * FROM plans WHERE id = $1', [plan_id]);
+        if (planResult.rows.length > 0) {
+          const plan = planResult.rows[0];
+          const priceMonthly = Number(plan.price_monthly) || 0;
+          const priceYearly = plan.price_yearly != null ? Number(plan.price_yearly) : null;
+          const amount = billing_cycle === 'yearly'
+            ? (priceYearly ?? priceMonthly * 12)
+            : priceMonthly;
+          const expiresAt = new Date();
+          expiresAt.setMonth(expiresAt.getMonth() + (billing_cycle === 'yearly' ? 12 : 1));
+
+          await client.query(
+            `INSERT INTO subscriptions (company_id, plan_id, billing_cycle, expires_at, amount, status)
+             VALUES ($1, $2, $3, $4, $5, 'active')`,
+            [company.id, plan_id, billing_cycle, expiresAt, amount]
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+      res.json({ success: true, data: company });
+    } catch (txError) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('Erro ao criar empresa:', txError);
+      res.status(500).json({
+        success: false,
+        error: txError.message || 'Erro ao criar empresa',
+        code: txError.code,
+        detail: process.env.NODE_ENV !== 'production' ? txError.detail : undefined
+      });
+    } finally {
+      client.release();
+    }
   } catch (error) {
-    await pool.query('ROLLBACK');
-    console.error('Erro ao criar empresa:', error);
+    console.error('Erro ao criar empresa (conexão):', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -271,7 +336,11 @@ router.get('/plans', async (req, res) => {
   } catch (error) {
     console.error('[Revenda] Erro ao listar planos:', error);
     console.error('[Revenda] Stack trace:', error.stack);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erro ao listar planos',
+      detail: process.env.NODE_ENV !== 'production' ? (error.detail || error.code) : undefined
+    });
   }
 });
 

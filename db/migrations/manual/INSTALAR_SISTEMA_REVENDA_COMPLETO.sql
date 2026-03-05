@@ -228,19 +228,19 @@ DROP TRIGGER IF EXISTS set_updated_at_companies ON public.companies;
 CREATE TRIGGER set_updated_at_companies
     BEFORE UPDATE ON public.companies
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE PROCEDURE update_updated_at_column();
 
 DROP TRIGGER IF EXISTS set_updated_at_subscriptions ON public.subscriptions;
 CREATE TRIGGER set_updated_at_subscriptions
     BEFORE UPDATE ON public.subscriptions
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE PROCEDURE update_updated_at_column();
 
 DROP TRIGGER IF EXISTS set_updated_at_payments ON public.payments;
 CREATE TRIGGER set_updated_at_payments
     BEFORE UPDATE ON public.payments
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE PROCEDURE update_updated_at_column();
 
 -- Função para verificar se empresa está ativa e pagando
 CREATE OR REPLACE FUNCTION check_company_active(company_uuid UUID)

@@ -167,6 +167,15 @@ export const requireAdminCompany = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Erro no middleware de admin company:', error);
+    const msg = (error.message || '').toLowerCase();
+    const code = error.code || '';
+    const schemaError = code === '42703' || code === '42P01' || msg.includes('does not exist') || msg.includes('não existe');
+    if (schemaError) {
+      return res.status(503).json({
+        error: 'Estrutura do banco incompleta. Execute no PostgreSQL o script: db/migrations/manual/INSTALAR_SISTEMA_REVENDA_COMPLETO.sql (a parte que adiciona company_id na tabela users deve rodar sem erro).',
+        detail: error.message
+      });
+    }
     res.status(500).json({ error: 'Erro ao verificar permissões' });
   }
 };
