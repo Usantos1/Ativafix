@@ -443,6 +443,9 @@ export default function AdminReseller() {
                 <div className="relative flex-1">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="revenda-busca-empresas"
+                    type="search"
+                    autoComplete="off"
                     placeholder="Buscar por nome, email ou CNPJ..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -608,6 +611,7 @@ export default function AdminReseller() {
                   <Label htmlFor="name">Nome da Empresa *</Label>
                   <Input
                     id="name"
+                    autoComplete="organization"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Nome da empresa"
@@ -617,6 +621,7 @@ export default function AdminReseller() {
                   <Label htmlFor="cnpj">CNPJ</Label>
                   <Input
                     id="cnpj"
+                    autoComplete="off"
                     value={formData.cnpj}
                     onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                     placeholder="00.000.000/0000-00"
@@ -629,6 +634,7 @@ export default function AdminReseller() {
                   <Input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="contato@empresa.com"
@@ -638,6 +644,7 @@ export default function AdminReseller() {
                   <Label htmlFor="phone">Telefone</Label>
                   <Input
                     id="phone"
+                    autoComplete="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(00) 00000-0000"
@@ -648,6 +655,7 @@ export default function AdminReseller() {
                 <Label htmlFor="address">Endereço</Label>
                 <Input
                   id="address"
+                  autoComplete="street-address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="Rua, número"
@@ -846,64 +854,72 @@ export default function AdminReseller() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              {/* Formulário de criar usuário */}
+              {/* Formulário de criar usuário — dentro de <form> para evitar aviso do navegador e autofill em outros campos */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Novo Usuário</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="user_email">Email *</Label>
-                      <Input
-                        id="user_email"
-                        type="email"
-                        value={userFormData.email}
-                        onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
-                        placeholder="usuario@empresa.com"
-                      />
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}
+                    className="space-y-4"
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="user_email">Email *</Label>
+                        <Input
+                          id="user_email"
+                          type="email"
+                          autoComplete="off"
+                          value={userFormData.email}
+                          onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
+                          placeholder="usuario@empresa.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="user_password">Senha *</Label>
+                        <Input
+                          id="user_password"
+                          type="password"
+                          autoComplete="new-password"
+                          value={userFormData.password}
+                          onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
+                          placeholder="Mínimo 6 caracteres"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="user_password">Senha *</Label>
-                      <Input
-                        id="user_password"
-                        type="password"
-                        value={userFormData.password}
-                        onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
-                        placeholder="Mínimo 6 caracteres"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="user_display_name">Nome</Label>
+                        <Input
+                          id="user_display_name"
+                          autoComplete="off"
+                          value={userFormData.display_name}
+                          onChange={(e) => setUserFormData({ ...userFormData, display_name: e.target.value })}
+                          placeholder="Nome completo"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="user_role">Função</Label>
+                        <Select
+                          value={userFormData.role}
+                          onValueChange={(value) => setUserFormData({ ...userFormData, role: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="member">Membro</SelectItem>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="user_display_name">Nome</Label>
-                      <Input
-                        id="user_display_name"
-                        value={userFormData.display_name}
-                        onChange={(e) => setUserFormData({ ...userFormData, display_name: e.target.value })}
-                        placeholder="Nome completo"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="user_role">Função</Label>
-                      <Select
-                        value={userFormData.role}
-                        onValueChange={(value) => setUserFormData({ ...userFormData, role: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="member">Membro</SelectItem>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button onClick={handleCreateUser} className="w-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Criar Usuário
-                  </Button>
+                    <Button type="submit" className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar Usuário
+                    </Button>
+                  </form>
                 </CardContent>
               </Card>
 

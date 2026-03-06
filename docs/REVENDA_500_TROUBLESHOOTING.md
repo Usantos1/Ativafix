@@ -26,7 +26,31 @@ psql -U seu_usuario -d seu_banco -f db/migrations/manual/REVENDA_FIX_users_compa
 
 Ou no DBeaver/pgAdmin: abra e execute o arquivo `db/migrations/manual/REVENDA_FIX_users_company_id.sql`.
 
-### 3. Reexecutar o script completo (após a correção dos triggers)
+### 3. Falta coluna `deleted_at` em `companies` (503 com detail "column c.deleted_at does not exist")
+
+Execute no PostgreSQL (pgAdmin/DBeaver ou psql):
+
+```bash
+psql -U postgres -d banco_gestao -f db/migrations/manual/REVENDA_FIX_companies_deleted_at.sql
+```
+
+Se na **VPS** der **Peer authentication failed** ao rodar como `root`, use uma das opções:
+
+- **Opção A — Conexão TCP com senha:**
+  ```bash
+  PGPASSWORD='sua_senha_postgres' psql -h localhost -U postgres -d banco_gestao -f db/migrations/manual/REVENDA_FIX_companies_deleted_at.sql
+  ```
+
+- **Opção B — Entrar como usuário do sistema postgres e depois rodar o script:**
+  ```bash
+  su - postgres
+  psql -d banco_gestao -f /caminho/para/primecamp-ofc/db/migrations/manual/REVENDA_FIX_companies_deleted_at.sql
+  exit
+  ```
+
+- **Opção C — Executar no pgAdmin/DBeaver** conectado ao mesmo banco que a API usa (banco_gestao), abrindo e executando o arquivo `REVENDA_FIX_companies_deleted_at.sql`.
+
+### 4. Reexecutar o script completo (após a correção dos triggers)
 
 Se ainda não rodou o script principal ou quiser garantir tudo:
 
@@ -36,7 +60,7 @@ psql -U seu_usuario -d seu_banco -f db/migrations/manual/INSTALAR_SISTEMA_REVEND
 
 Ou abra o arquivo no DBeaver/pgAdmin e execute.
 
-### 4. Conferir se as tabelas e o admin existem
+### 5. Conferir se as tabelas e o admin existem
 
 No PostgreSQL:
 
@@ -62,7 +86,7 @@ WHERE u.email = 'seu_email_admin';
 
 O `company_id` deve ser `00000000-0000-0000-0000-000000000001` e o `role` deve ser `admin`.
 
-### 5. Erros comuns
+### 6. Erros comuns
 
 | Mensagem / Sintoma | O que fazer |
 |--------------------|-------------|
