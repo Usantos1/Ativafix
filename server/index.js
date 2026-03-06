@@ -1399,44 +1399,13 @@ app.post('/api/query/:table', async (req, res) => {
     
     const tableNameOnly = table.includes('.') ? table.split('.')[1] : table;
     const needsCompanyFilter = tablesWithCompanyId.includes(tableNameOnly.toLowerCase());
-    
-    const ZERO_UUID_QUERY = '00000000-0000-0000-0000-000000000000';
-    const isValidCompanyIdQuery = (id) => id && id !== ZERO_UUID_QUERY && String(id).toLowerCase() !== ZERO_UUID_QUERY;
+
+    // CRÍTICO: Nunca usar "empresa padrão" — isolamento entre empresas. Usuário SEM company_id não pode ver dados de ninguém.
     if (needsCompanyFilter && req.user && !req.companyId) {
-      if (tableNameOnly.toLowerCase() === 'os_config_status') {
-        try {
-          let defaultCompanyId = null;
-          const fromCompanies = await pool.query('SELECT id FROM public.companies WHERE id != $1::uuid LIMIT 1', [ZERO_UUID_QUERY]).catch(() => ({ rows: [] }));
-          if (fromCompanies.rows && fromCompanies.rows.length > 0 && isValidCompanyIdQuery(fromCompanies.rows[0].id)) {
-            defaultCompanyId = fromCompanies.rows[0].id;
-          }
-          if (!defaultCompanyId) {
-            const fromUsers = await pool.query('SELECT company_id FROM public.users WHERE company_id IS NOT NULL AND company_id != $1::uuid LIMIT 1', [ZERO_UUID_QUERY]).catch(() => ({ rows: [] }));
-            if (fromUsers.rows && fromUsers.rows.length > 0 && isValidCompanyIdQuery(fromUsers.rows[0].company_id)) {
-              defaultCompanyId = fromUsers.rows[0].company_id;
-            }
-          }
-          if (defaultCompanyId) {
-            req.companyId = defaultCompanyId;
-            console.log('[Query] os_config_status: usando empresa padrão', req.companyId);
-          } else {
-            return res.status(400).json({
-              error: 'Nenhuma empresa cadastrada e nenhum usuário com empresa. Cadastre uma empresa e vincule ao usuário.',
-              codigo: 'COMPANY_ID_REQUIRED'
-            });
-          }
-        } catch (e) {
-          return res.status(400).json({
-            error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa.',
-            codigo: 'COMPANY_ID_REQUIRED'
-          });
-        }
-      } else {
-        return res.status(400).json({
-          error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa.',
-          codigo: 'COMPANY_ID_REQUIRED'
-        });
-      }
+      return res.status(403).json({
+        error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa em Configurações para acessar dados.',
+        codigo: 'COMPANY_ID_REQUIRED'
+      });
     }
     
     // Se a tabela precisa de filtro por company_id e o usuário está autenticado
@@ -1537,27 +1506,14 @@ app.post('/api/insert/:table', async (req, res) => {
     // Suportar INSERT em lote: body pode ser array de objetos
     const rowsToInsert = Array.isArray(data) ? data : [data];
 
-    // os_config_status: SEMPRE resolver company_id logo no início (evita 500 por NOT NULL)
+    // os_config_status: usar APENAS company_id do usuário autenticado — nunca empresa de outro usuário
     const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
     const isValidCompanyId = (id) => id && id !== ZERO_UUID && String(id).toLowerCase() !== ZERO_UUID;
     if (tableNameOnly.toLowerCase() === 'os_config_status') {
-      console.log('[Insert] os_config_status: req.user?', !!req.user, 'req.companyId?', req.companyId);
-      let companyId = (req.user && isValidCompanyId(req.companyId)) ? req.companyId : null;
+      const companyId = (req.user && isValidCompanyId(req.companyId)) ? req.companyId : null;
       if (!companyId) {
-        try {
-          const fromCompanies = await pool.query('SELECT id FROM public.companies WHERE id != $1::uuid LIMIT 1', [ZERO_UUID]).catch(() => ({ rows: [] }));
-          if (fromCompanies.rows && fromCompanies.rows.length > 0 && isValidCompanyId(fromCompanies.rows[0].id)) companyId = fromCompanies.rows[0].id;
-          if (!companyId) {
-            const fromUsers = await pool.query('SELECT company_id FROM public.users WHERE company_id IS NOT NULL AND company_id != $1::uuid LIMIT 1', [ZERO_UUID]).catch(() => ({ rows: [] }));
-            if (fromUsers.rows && fromUsers.rows.length > 0 && isValidCompanyId(fromUsers.rows[0].company_id)) companyId = fromUsers.rows[0].company_id;
-          }
-        } catch (e) {
-          console.warn('[Insert] os_config_status resolve company_id:', e.message);
-        }
-      }
-      if (!companyId) {
-        return res.status(400).json({
-          error: 'Nenhuma empresa no sistema. Cadastre uma empresa em Configurações e vincule seu usuário a ela (company_id não pode ser vazio/nulo).',
+        return res.status(403).json({
+          error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa em Configurações.',
           codigo: 'COMPANY_ID_REQUIRED'
         });
       }
@@ -1593,73 +1549,27 @@ app.post('/api/insert/:table', async (req, res) => {
       });
       console.log(`[Insert] Adicionando company_id=${req.companyId} para tabela ${tableNameOnly}`);
     } else if (needsCompanyId && req.user && !req.companyId) {
-      if (tableNameOnly.toLowerCase() === 'os_config_status') {
-        try {
-          const zeroUuid = '00000000-0000-0000-0000-000000000000';
-          const valid = (id) => id && id !== zeroUuid && String(id).toLowerCase() !== zeroUuid;
-          let defaultCompanyId = null;
-          const fromCompanies = await pool.query('SELECT id FROM public.companies WHERE id != $1::uuid LIMIT 1', [zeroUuid]).catch(() => ({ rows: [] }));
-          if (fromCompanies.rows && fromCompanies.rows.length > 0 && valid(fromCompanies.rows[0].id)) {
-            defaultCompanyId = fromCompanies.rows[0].id;
-          }
-          if (!defaultCompanyId) {
-            const fromUsers = await pool.query('SELECT company_id FROM public.users WHERE company_id IS NOT NULL AND company_id != $1::uuid LIMIT 1', [zeroUuid]).catch(() => ({ rows: [] }));
-            if (fromUsers.rows && fromUsers.rows.length > 0 && valid(fromUsers.rows[0].company_id)) {
-              defaultCompanyId = fromUsers.rows[0].company_id;
-            }
-          }
-          if (defaultCompanyId) {
-            rowsToInsert.forEach(row => {
-              if (!row.company_id || !valid(row.company_id)) row.company_id = defaultCompanyId;
-            });
-            console.log('[Insert] os_config_status: usando empresa padrão', defaultCompanyId);
-          } else {
-            return res.status(400).json({
-              error: 'Nenhuma empresa cadastrada e nenhum usuário com empresa. Cadastre uma empresa e vincule ao usuário.',
-              codigo: 'COMPANY_ID_REQUIRED'
-            });
-          }
-        } catch (e) {
-          return res.status(400).json({
-            error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa para usar esta função.',
-            codigo: 'COMPANY_ID_REQUIRED'
-          });
-        }
-      } else {
-        return res.status(400).json({
-          error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa para usar esta função.',
-          codigo: 'COMPANY_ID_REQUIRED'
-        });
-      }
+      return res.status(403).json({
+        error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa em Configurações.',
+        codigo: 'COMPANY_ID_REQUIRED'
+      });
     }
 
-    // Rede de segurança: os_config_status nunca pode ir ao INSERT sem company_id
+    // Rede de segurança: os_config_status nunca pode ir ao INSERT sem company_id (apenas do usuário, nunca de outra empresa)
     const ZERO_UUID_SAFETY = '00000000-0000-0000-0000-000000000000';
     const validCompanyIdSafety = (id) => id && id !== ZERO_UUID_SAFETY && String(id).toLowerCase() !== ZERO_UUID_SAFETY;
     if (tableNameOnly.toLowerCase() === 'os_config_status' && needsCompanyId) {
       const missing = rowsToInsert.some(row => row == null || !validCompanyIdSafety(row.company_id));
       if (missing) {
-        let fallbackId = validCompanyIdSafety(req.companyId) ? req.companyId : null;
-        if (!fallbackId) {
-          try {
-            const fromCompanies = await pool.query('SELECT id FROM public.companies WHERE id != $1::uuid LIMIT 1', [ZERO_UUID_SAFETY]).catch(() => ({ rows: [] }));
-            if (fromCompanies.rows && fromCompanies.rows.length > 0 && validCompanyIdSafety(fromCompanies.rows[0].id)) fallbackId = fromCompanies.rows[0].id;
-            if (!fallbackId) {
-              const fromUsers = await pool.query('SELECT company_id FROM public.users WHERE company_id IS NOT NULL AND company_id != $1::uuid LIMIT 1', [ZERO_UUID_SAFETY]).catch(() => ({ rows: [] }));
-              if (fromUsers.rows && fromUsers.rows.length > 0 && validCompanyIdSafety(fromUsers.rows[0].company_id)) fallbackId = fromUsers.rows[0].company_id;
-            }
-          } catch (e) {
-            console.warn('[Insert] os_config_status fallback company_id:', e.message);
-          }
-        }
+        const fallbackId = validCompanyIdSafety(req.companyId) ? req.companyId : null;
         if (fallbackId) {
           rowsToInsert.forEach(row => {
             if (row && !validCompanyIdSafety(row.company_id)) row.company_id = fallbackId;
           });
-          console.log('[Insert] os_config_status: company_id aplicado (fallback)', fallbackId);
+          console.log('[Insert] os_config_status: company_id aplicado', fallbackId);
         } else {
-          return res.status(400).json({
-            error: 'Nenhuma empresa cadastrada. Cadastre uma empresa ou vincule o usuário a uma empresa.',
+          return res.status(403).json({
+            error: 'Usuário sem empresa vinculada. Vincule o usuário a uma empresa em Configurações.',
             codigo: 'COMPANY_ID_REQUIRED'
           });
         }
@@ -2049,25 +1959,12 @@ app.post('/api/update/:table', async (req, res) => {
     
     const needsCompanyFilter = tablesWithCompanyId.includes(tableNameOnly.toLowerCase());
 
-    // os_config_status: fallback company_id quando usuário não tem (para UPDATE funcionar)
-    if (needsCompanyFilter && req.user && !req.companyId && tableNameOnly.toLowerCase() === 'os_config_status') {
-      const zeroUuidUpdate = '00000000-0000-0000-0000-000000000000';
-      const valid = (id) => id && id !== zeroUuidUpdate && String(id).toLowerCase() !== zeroUuidUpdate;
-      try {
-        let fallback = null;
-        const fromCo = await pool.query('SELECT id FROM public.companies WHERE id != $1::uuid LIMIT 1', [zeroUuidUpdate]).catch(() => ({ rows: [] }));
-        if (fromCo.rows && fromCo.rows.length > 0 && valid(fromCo.rows[0].id)) fallback = fromCo.rows[0].id;
-        if (!fallback) {
-          const fromUs = await pool.query('SELECT company_id FROM public.users WHERE company_id IS NOT NULL AND company_id != $1::uuid LIMIT 1', [zeroUuidUpdate]).catch(() => ({ rows: [] }));
-          if (fromUs.rows && fromUs.rows.length > 0 && valid(fromUs.rows[0].company_id)) fallback = fromUs.rows[0].company_id;
-        }
-        if (fallback) {
-          req.companyId = fallback;
-          console.log('[Update] os_config_status: usando empresa padrão', fallback);
-        }
-      } catch (e) {
-        console.warn('[Update] os_config_status fallback company_id:', e.message);
-      }
+    // CRÍTICO: Usuário sem company_id não pode alterar dados de ninguém (isolamento entre empresas)
+    if (needsCompanyFilter && req.user && !req.companyId) {
+      return res.status(403).json({
+        error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa em Configurações.',
+        codigo: 'COMPANY_ID_REQUIRED'
+      });
     }
 
     if (!where || Object.keys(where).length === 0) {
@@ -2360,13 +2257,8 @@ app.post('/api/update/:table', async (req, res) => {
       params.push(req.companyId);
     }
     
-    // os_config_status: UPDATE por id apenas — não adicionar filtro company_id para o update sempre persistir
-    // (o registro já foi listado pela query que filtra por company; o id é UUID único)
-    const isOsConfigStatusUpdateById = tableNameOnly.toLowerCase() === 'os_config_status' && where && typeof where === 'object' && Object.keys(where).length === 1 && 'id' in where;
-    
-    // Adicionar filtro de company_id se necessário
-    // IMPORTANTE: Só adicionar se a coluna company_id existe na tabela
-    if (needsCompanyFilter && req.user && req.companyId && !isOsItemsUpdateById && !isOsConfigStatusUpdateById) {
+    // Adicionar filtro de company_id sempre que a tabela for multi-empresa (isolamento: uma empresa não altera dados de outra)
+    if (needsCompanyFilter && req.user && req.companyId && !isOsItemsUpdateById) {
       const hasCompanyFilter = where && (
         (typeof where === 'object' && 'company_id' in where) ||
         (Array.isArray(where) && where.some((w) => w.field === 'company_id' || w.company_id))
@@ -2611,20 +2503,12 @@ app.post('/api/delete/:table', async (req, res) => {
     
     const needsCompanyFilter = tablesWithCompanyId.includes(tableNameOnly.toLowerCase());
 
-    // os_config_status: fallback company_id quando usuário não tem
-    if (needsCompanyFilter && req.user && !req.companyId && tableNameOnly.toLowerCase() === 'os_config_status') {
-      const zeroUuidDel = '00000000-0000-0000-0000-000000000000';
-      const valid = (id) => id && id !== zeroUuidDel && String(id).toLowerCase() !== zeroUuidDel;
-      try {
-        let fb = null;
-        const fromCo = await pool.query('SELECT id FROM public.companies WHERE id != $1::uuid LIMIT 1', [zeroUuidDel]).catch(() => ({ rows: [] }));
-        if (fromCo.rows && fromCo.rows.length > 0 && valid(fromCo.rows[0].id)) fb = fromCo.rows[0].id;
-        if (!fb) {
-          const fromUs = await pool.query('SELECT company_id FROM public.users WHERE company_id IS NOT NULL AND company_id != $1::uuid LIMIT 1', [zeroUuidDel]).catch(() => ({ rows: [] }));
-          if (fromUs.rows && fromUs.rows.length > 0 && valid(fromUs.rows[0].company_id)) fb = fromUs.rows[0].company_id;
-        }
-        if (fb) req.companyId = fb;
-      } catch (e) { console.warn('[Delete] os_config_status fallback:', e.message); }
+    // CRÍTICO: Usuário sem company_id não pode excluir dados de ninguém (isolamento entre empresas)
+    if (needsCompanyFilter && req.user && !req.companyId) {
+      return res.status(403).json({
+        error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa em Configurações.',
+        codigo: 'COMPANY_ID_REQUIRED'
+      });
     }
 
     const { clause: whereClause, params } = buildWhereClause(where);
@@ -2645,11 +2529,8 @@ app.post('/api/delete/:table', async (req, res) => {
       }
     }
 
-    // os_config_status DELETE por id apenas: não adicionar filtro company_id para o delete funcionar
-    const isOsConfigStatusDeleteById = tableNameOnly.toLowerCase() === 'os_config_status' && where && typeof where === 'object' && Object.keys(where).length === 1 && 'id' in where;
-
-    // CRÍTICO: Adicionar filtro de company_id automaticamente (só se a tabela tiver a coluna)
-    if (needsCompanyFilter && req.user && req.companyId && !isOsConfigStatusDeleteById) {
+    // CRÍTICO: Adicionar filtro de company_id sempre (isolamento: uma empresa não exclui dados de outra)
+    if (needsCompanyFilter && req.user && req.companyId) {
       const hasCompanyFilter = where && (typeof where === 'object' && 'company_id' in where);
       
       if (!hasCompanyFilter) {
