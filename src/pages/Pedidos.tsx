@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -35,8 +36,6 @@ import {
   Pencil,
   User,
 } from 'lucide-react';
-
-const STORAGE_KEY = 'primecamp_pedidos';
 
 type PedidoItem = {
   produto_id: string;
@@ -59,16 +58,17 @@ type Pedido = {
   receivedAt?: string;
 };
 
+const PEDIDOS_STORAGE_KEY = 'primecamp_pedidos';
+
 function loadPedidosFromStorage(): Pedido[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(PEDIDOS_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     const list = Array.isArray(parsed) ? parsed : [];
-    // Garantir campos de rastreabilidade em pedidos antigos
     return list.map((p: any) => ({
       ...p,
-      createdBy: p.createdBy || '—',
+      createdBy: p.createdBy ?? '—',
       receivedBy: p.receivedBy,
       receivedAt: p.receivedAt,
       itens: (p.itens || []).map((i: any) => ({
@@ -83,15 +83,43 @@ function loadPedidosFromStorage(): Pedido[] {
 }
 
 function savePedidosToStorage(pedidos: Pedido[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pedidos));
+  try {
+    localStorage.setItem(PEDIDOS_STORAGE_KEY, JSON.stringify(pedidos));
+  } catch {
+    // ignore
+  }
+}
+
+function mapDbToPedido(row: any, itens: any[]): Pedido {
+  const itensMap = (itens || []).map((i: any) => ({
+    produto_id: i.produto_id,
+    produto_nome: i.produto_nome ?? '',
+    codigo: i.codigo,
+    referencia: i.referencia,
+    quantidade: Number(i.quantidade ?? 1),
+    valor_compra: i.valor_compra != null ? Number(i.valor_compra) : undefined,
+    valor_venda: i.valor_venda != null ? Number(i.valor_venda) : undefined,
+  }));
+  return {
+    id: row.id,
+    nome: row.nome ?? '',
+    itens: itensMap,
+    createdAt: row.created_at ?? new Date().toISOString(),
+    createdBy: row.created_by_nome ?? '—',
+    recebido: row.recebido ?? false,
+    receivedBy: row.received_by_nome,
+    receivedAt: row.received_at,
+  };
 }
 
 export default function Pedidos() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const userNome = profile?.display_name || user?.email || 'Usuário';
+  const companyId = user?.company_id;
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [loadingPedidos, setLoadingPedidos] = useState(true);
   const [showNovo, setShowNovo] = useState(false);
   const [editingPedido, setEditingPedido] = useState<Pedido | null>(null);
 
@@ -101,14 +129,105 @@ export default function Pedidos() {
   const [produtosBusca, setProdutosBusca] = useState<{ id: string; nome: string; codigo?: number; referencia?: string }[]>([]);
   const [loadingBusca, setLoadingBusca] = useState(false);
   const [darEntradaId, setDarEntradaId] = useState<string | null>(null);
+  const [pedidosFromStorage, setPedidosFromStorage] = useState(false);
+
+  const loadFromDb = useCallback(async () => {
+    setLoadingPedidos(true);
+    try {
+      const fields = 'id,nome,created_at,created_by,created_by_nome,recebido,received_at,received_by,received_by_nome';
+      const byId = new Map<string, any>();
+
+      // 1) Se tiver company_id, busca por empresa
+      if (companyId) {
+        const resCompany = await from('pedidos')
+          .select(fields)
+          .eq('company_id', companyId)
+          .order('created_at', { ascending: false })
+          .execute();
+        if (resCompany.error) throw resCompany.error;
+        for (const r of (resCompany.data || []) as any[]) byId.set(r.id, r);
+      }
+
+      // 2) Se ainda vazio, tenta pedidos legados (company_id NULL)
+      if (byId.size === 0) {
+        try {
+          const resNull = await from('pedidos')
+            .select(fields)
+            .is('company_id', null)
+            .order('created_at', { ascending: false })
+            .execute();
+          if (!resNull.error && resNull.data?.length) {
+            for (const r of (resNull.data || []) as any[]) byId.set(r.id, r);
+          }
+        } catch {
+          // API pode não suportar IS NULL
+        }
+      }
+
+      // 3) Se ainda vazio, fallback: busca sem filtro de empresa (API pode já filtrar por tenant)
+      if (byId.size === 0) {
+        const resAll = await from('pedidos')
+          .select(fields)
+          .order('created_at', { ascending: false })
+          .limit(500)
+          .execute();
+        if (!resAll.error && resAll.data?.length) {
+          for (const r of (resAll.data || []) as any[]) byId.set(r.id, r);
+        }
+      }
+
+      const list = Array.from(byId.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      if (list.length === 0) {
+        // API não retornou nada: fallback para localStorage (ex.: tabela pedidos ainda não na API)
+        const fromStorage = loadPedidosFromStorage();
+        setPedidos(fromStorage);
+        setPedidosFromStorage(fromStorage.length > 0);
+        setLoadingPedidos(false);
+        return;
+      }
+      setPedidosFromStorage(false);
+      const ids = list.map((r: any) => r.id);
+      const { data: itensRows, error: errItens } = await from('pedido_itens')
+        .select('pedido_id,produto_id,produto_nome,codigo,referencia,quantidade,valor_compra,valor_venda')
+        .in('pedido_id', ids)
+        .execute();
+      if (errItens) throw errItens;
+      const itensByPedido = (itensRows || []).reduce((acc: Record<string, any[]>, i: any) => {
+        const pid = i.pedido_id;
+        if (!acc[pid]) acc[pid] = [];
+        acc[pid].push(i);
+        return acc;
+      }, {});
+      const mapped = list.map((r: any) => mapDbToPedido(r, itensByPedido[r.id] ?? []));
+      setPedidos(mapped);
+    } catch (e: any) {
+      // Erro na API: tenta mostrar pedidos do localStorage
+      const fromStorage = loadPedidosFromStorage();
+      if (fromStorage.length > 0) {
+        setPedidos(fromStorage);
+        setPedidosFromStorage(true);
+      } else {
+        setPedidosFromStorage(false);
+        toast({
+          title: 'Erro ao carregar pedidos',
+          description: e?.message || 'Não foi possível carregar os pedidos.',
+          variant: 'destructive',
+        });
+        setPedidos([]);
+      }
+    } finally {
+      setLoadingPedidos(false);
+    }
+  }, [companyId, toast]);
 
   useEffect(() => {
-    setPedidos(loadPedidosFromStorage());
-  }, []);
+    loadFromDb();
+  }, [loadFromDb]);
 
-  const persistPedidos = useCallback((next: Pedido[]) => {
+  const setPedidosState = useCallback((next: Pedido[]) => {
     setPedidos(next);
-    savePedidosToStorage(next);
   }, []);
 
   const buscarProdutos = useCallback(async () => {
@@ -198,7 +317,7 @@ export default function Pedidos() {
     setShowNovo(true);
   };
 
-  const salvarPedido = () => {
+  const salvarPedido = async () => {
     const nome = nomePedido.trim();
     if (!nome) {
       toast({ title: 'Nome obrigatório', description: 'Informe o nome do pedido.', variant: 'destructive' });
@@ -208,49 +327,126 @@ export default function Pedidos() {
       toast({ title: 'Itens obrigatórios', description: 'Adicione pelo menos um item.', variant: 'destructive' });
       return;
     }
-    if (editingPedido) {
-      persistPedidos(
-        pedidos.map((p) =>
-          p.id === editingPedido.id
-            ? {
-                ...p,
-                nome,
-                itens: itensNovo.map((i) => ({
-                  produto_id: i.produto_id,
-                  produto_nome: i.produto_nome,
-                  codigo: i.codigo,
-                  referencia: i.referencia,
-                  quantidade: i.quantidade,
-                  valor_compra: i.valor_compra,
-                  valor_venda: i.valor_venda,
-                })),
-              }
-            : p
-        )
-      );
-      toast({ title: 'Pedido atualizado', description: `"${nome}" foi alterado.` });
-    } else {
-      const novo: Pedido = {
-        id: crypto.randomUUID(),
-        nome,
-        itens: itensNovo.map((i) => ({
-          produto_id: i.produto_id,
-          produto_nome: i.produto_nome,
-          codigo: i.codigo,
-          referencia: i.referencia,
-          quantidade: i.quantidade,
-          valor_compra: i.valor_compra,
-          valor_venda: i.valor_venda,
-        })),
-        createdAt: new Date().toISOString(),
-        createdBy: userNome,
-        recebido: false,
-      };
-      persistPedidos([...pedidos, novo]);
-      toast({ title: 'Pedido criado', description: `"${nome}" foi adicionado à lista.` });
+    const itensPayload = itensNovo.map((i) => ({
+      produto_id: i.produto_id,
+      produto_nome: i.produto_nome,
+      codigo: i.codigo,
+      referencia: i.referencia,
+      quantidade: i.quantidade,
+      valor_compra: i.valor_compra,
+      valor_venda: i.valor_venda,
+    }));
+    try {
+      if (editingPedido) {
+        const { error: errUpd } = await from('pedidos')
+          .update({ nome })
+          .eq('id', editingPedido.id)
+          .execute();
+        if (errUpd) throw errUpd;
+        await from('pedido_itens').eq('pedido_id', editingPedido.id).delete().execute();
+        for (const item of itensPayload) {
+          const { error: errItem } = await from('pedido_itens')
+            .insert({
+              pedido_id: editingPedido.id,
+              produto_id: item.produto_id,
+              produto_nome: item.produto_nome,
+              codigo: item.codigo,
+              referencia: item.referencia,
+              quantidade: item.quantidade,
+              valor_compra: item.valor_compra,
+              valor_venda: item.valor_venda,
+            })
+            .execute();
+          if (errItem) throw errItem;
+        }
+        toast({ title: 'Pedido atualizado', description: `"${nome}" foi alterado.` });
+      } else {
+        if (!companyId) {
+          toast({ title: 'Erro', description: 'Empresa não identificada. Faça login novamente.', variant: 'destructive' });
+          return;
+        }
+        const { data: inserted, error: errIns } = await from('pedidos')
+          .insert({
+            nome,
+            company_id: companyId,
+            created_by: user?.id ?? null,
+            created_by_nome: userNome,
+            recebido: false,
+          })
+          .select('id,created_at,created_by_nome')
+          .execute();
+        if (errIns || !inserted) throw errIns || new Error('Inserção falhou');
+        const row = Array.isArray(inserted) ? inserted[0] : inserted;
+        const pedidoId = row?.id;
+        if (!pedidoId) throw new Error('ID do pedido não retornado');
+        for (const item of itensPayload) {
+          const { error: errItem } = await from('pedido_itens')
+            .insert({
+              pedido_id: pedidoId,
+              produto_id: item.produto_id,
+              produto_nome: item.produto_nome,
+              codigo: item.codigo,
+              referencia: item.referencia,
+              quantidade: item.quantidade,
+              valor_compra: item.valor_compra,
+              valor_venda: item.valor_venda,
+            })
+            .execute();
+          if (errItem) throw errItem;
+        }
+        toast({ title: 'Pedido criado', description: `"${nome}" foi adicionado à lista.` });
+      }
+      setShowNovo(false);
+      setEditingPedido(null);
+      await loadFromDb();
+    } catch (e: any) {
+      // Fallback: salva só no localStorage quando a API falha (ex.: tabela pedidos não existe na API)
+      try {
+        if (editingPedido) {
+          const next = pedidos.map((p) =>
+            p.id === editingPedido.id
+              ? {
+                  ...p,
+                  nome,
+                  itens: itensPayload.map((i) => ({
+                    produto_id: i.produto_id,
+                    produto_nome: i.produto_nome,
+                    codigo: i.codigo,
+                    referencia: i.referencia,
+                    quantidade: i.quantidade,
+                    valor_compra: i.valor_compra,
+                    valor_venda: i.valor_venda,
+                  })),
+                }
+              : p
+          );
+          savePedidosToStorage(next);
+          setPedidos(next);
+          toast({ title: 'Pedido atualizado', description: `"${nome}" foi alterado (salvo localmente).` });
+        } else {
+          const novo: Pedido = {
+            id: crypto.randomUUID(),
+            nome,
+            itens: itensPayload,
+            createdAt: new Date().toISOString(),
+            createdBy: userNome,
+            recebido: false,
+          };
+          const next = [...pedidos, novo];
+          savePedidosToStorage(next);
+          setPedidos(next);
+          toast({ title: 'Pedido criado', description: `"${nome}" foi adicionado (salvo localmente).` });
+        }
+        setShowNovo(false);
+        setEditingPedido(null);
+      } catch {
+        toast({
+          title: editingPedido ? 'Erro ao atualizar' : 'Erro ao criar pedido',
+          description: e?.message || 'Tente novamente.',
+          variant: 'destructive',
+        });
+      }
     }
-    setShowNovo(false);
-    setEditingPedido(null);
   };
 
   const darEntrada = async (pedido: Pedido) => {
@@ -283,7 +479,8 @@ export default function Pedidos() {
             ...(item.valor_compra != null && { valor_compra: item.valor_compra, vi_custo: item.valor_compra }),
             ...(item.valor_venda != null && { valor_venda: item.valor_venda, valor_dinheiro_pix: item.valor_venda }),
           })
-          .eq('id', item.produto_id);
+          .eq('id', item.produto_id)
+          .execute();
         if (errUpdate) {
           toast({
             title: 'Erro ao atualizar estoque',
@@ -318,30 +515,53 @@ export default function Pedidos() {
         }
       }
 
-      persistPedidos(
-        pedidos.map((p) =>
-          p.id === pedido.id
-            ? {
-                ...p,
-                recebido: true,
-                receivedBy: userNome,
-                receivedAt: new Date().toISOString(),
-              }
-            : p
-        )
-      );
+      const { error: errUpd } = await from('pedidos')
+        .update({
+          recebido: true,
+          received_at: new Date().toISOString(),
+          received_by: user?.id ?? null,
+          received_by_nome: userNome,
+        })
+        .eq('id', pedido.id)
+        .execute();
+      if (errUpd) throw errUpd;
+      await loadFromDb();
       toast({
         title: 'Entrada concluída',
         description: `Estoque atualizado. ${totalDespesa > 0 ? 'Despesa gerada em Contas a Pagar.' : ''}`,
+      });
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e?.message || 'Não foi possível concluir a entrada.',
+        variant: 'destructive',
       });
     } finally {
       setDarEntradaId(null);
     }
   };
 
-  const excluirPedido = (id: string) => {
-    persistPedidos(pedidos.filter((p) => p.id !== id));
-    toast({ title: 'Pedido removido', description: 'O pedido foi excluído da lista.' });
+  const excluirPedido = async (id: string) => {
+    try {
+      const { error } = await from('pedidos').eq('id', id).delete().execute();
+      if (error) throw error;
+      await loadFromDb();
+      toast({ title: 'Pedido removido', description: 'O pedido foi excluído da lista.' });
+    } catch (e: any) {
+      // Fallback: remove só do localStorage quando a API falha
+      const next = pedidos.filter((p) => p.id !== id);
+      if (next.length !== pedidos.length) {
+        savePedidosToStorage(next);
+        setPedidos(next);
+        toast({ title: 'Pedido removido', description: 'O pedido foi excluído (apenas local).' });
+      } else {
+        toast({
+          title: 'Erro ao excluir',
+          description: e?.message || 'Não foi possível excluir o pedido.',
+          variant: 'destructive',
+        });
+      }
+    }
   };
 
   const totalPedido = (itens: PedidoItem[]) =>
@@ -360,22 +580,42 @@ export default function Pedidos() {
           </Button>
         </div>
 
-        {pedidos.length === 0 ? (
+        {loadingPedidos ? (
+          <Card className="border-2 border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <Loader2 className="h-12 w-12 text-muted-foreground mb-4 animate-spin" />
+              <CardTitle className="text-lg">Carregando pedidos...</CardTitle>
+            </CardContent>
+          </Card>
+        ) : pedidos.length === 0 ? (
           <Card className="border-2 border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
               <CardTitle className="text-lg">Nenhum pedido</CardTitle>
               <CardDescription className="mt-2">
-                Crie um pedido para listar itens e depois dar entrada no estoque.
+                {!companyId
+                  ? 'Faça login para ver os pedidos da sua empresa.'
+                  : 'Crie um pedido para listar itens e depois dar entrada no estoque.'}
               </CardDescription>
-              <Button className="mt-4" onClick={abrirNovo}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo pedido
-              </Button>
+              {companyId && (
+                <Button className="mt-4" onClick={abrirNovo}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo pedido
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
+          <>
+            {pedidosFromStorage && (
+              <Alert variant="default" className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-500/30">
+                <AlertTitle>Lista apenas deste navegador</AlertTitle>
+                <AlertDescription>
+                  Você está vendo só os pedidos salvos neste computador. Para que todos da empresa (ex.: você e o Vitor) vejam a mesma lista, é preciso que a API exponha as tabelas <strong>pedidos</strong> e <strong>pedido_itens</strong> no backend e que a migração <code className="text-xs">ADD_PEDIDOS_COMPANY_ID</code> esteja aplicada no banco.
+                </AlertDescription>
+              </Alert>
+            )}
+            <div className="grid gap-4">
             {pedidos.map((p) => (
               <Card key={p.id} className={p.recebido ? 'opacity-90' : ''}>
                 <CardHeader className="pb-2">
@@ -479,7 +719,8 @@ export default function Pedidos() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
 
