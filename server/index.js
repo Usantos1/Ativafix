@@ -2155,7 +2155,9 @@ app.post('/api/update/:table', async (req, res) => {
     // Usar apenas colunas que existem na tabela (evita erro "column does not exist")
     const validKeys = keys.filter(k => columnTypes[k]);
     if (validKeys.length === 0) {
-      return res.status(400).json({ error: 'Nenhuma coluna válida para atualização nesta tabela.' });
+      // Ex.: update só com print_status/printed_at em tabela que não tem essas colunas → não quebrar o fluxo
+      console.log(`[Update] ${tableNameOnly}: nenhuma coluna do payload existe na tabela (omitidas: ${keys.join(', ')}). Retornando sucesso sem alterar.`);
+      return res.json({ data: [], rows: [], count: 0 });
     }
     const skippedKeys = keys.filter(k => !columnTypes[k]);
     if (skippedKeys.length > 0) {

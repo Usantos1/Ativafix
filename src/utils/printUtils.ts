@@ -5,7 +5,9 @@
 import { from } from '@/integrations/db/client';
 
 /**
- * Atualiza campos de impressão no banco de dados após impressão
+ * Atualiza campos de impressão no banco de dados após impressão.
+ * Usa apenas print_status e printed_at para funcionar mesmo sem a coluna print_attempts
+ * (opcional; rode ADD_SALES_PRINT_FIELDS_MIGRATION.sql e ADD_OS_PRINT_FIELDS_MIGRATION.sql para ter print_attempts).
  */
 export async function updatePrintStatus(
   table: 'sales' | 'ordens_servico',
@@ -15,43 +17,23 @@ export async function updatePrintStatus(
   try {
     const printStatus = success ? 'SUCCESS' : 'ERROR';
     const now = new Date().toISOString();
+    const payload: Record<string, unknown> = {
+      print_status: printStatus,
+      ...(success ? { printed_at: now } : {}),
+    };
 
     if (table === 'sales') {
-      // Buscar tentativas atuais
-      const { data: current } = await from('sales')
-        .select('print_attempts')
-        .eq('id', recordId)
-        .single();
-
-      const attempts = (current?.print_attempts || 0) + 1;
-
       await from('sales')
-        .update({
-          print_status: printStatus,
-          print_attempts: attempts,
-          ...(success ? { printed_at: now } : {}),
-        })
+        .update(payload)
         .eq('id', recordId);
     } else if (table === 'ordens_servico') {
-      // Buscar tentativas atuais
-      const { data: current } = await from('ordens_servico')
-        .select('print_attempts')
-        .eq('id', recordId)
-        .single();
-
-      const attempts = (current?.print_attempts || 0) + 1;
-
       await from('ordens_servico')
-        .update({
-          print_status: printStatus,
-          print_attempts: attempts,
-          ...(success ? { printed_at: now } : {}),
-        })
+        .update(payload)
         .eq('id', recordId);
     }
   } catch (error) {
-    console.error(`Erro ao atualizar status de impressão para ${table}:`, error);
-    // Não falhar se a atualização do status falhar
+    console.warn(`Status de impressão não atualizado (tabela pode não ter print_status/printed_at):`, error);
+    // Não falhar o fluxo de impressão se a atualização falhar
   }
 }
 
