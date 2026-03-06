@@ -86,7 +86,27 @@ WHERE u.email = 'seu_email_admin';
 
 O `company_id` deve ser `00000000-0000-0000-0000-000000000001` e o `role` deve ser `admin`.
 
-### 6. Erros comuns
+### 6. Coluna "Usuários" mostra 0 para todas as empresas
+
+A coluna **Usuários** na lista de empresas vem de `users.company_id`: conta quantos usuários têm `company_id` igual ao `id` da empresa.
+
+- **Se a API já foi atualizada** e mesmo assim aparece 0, os usuários no banco provavelmente estão com `company_id` nulo ou de outra empresa.
+- **Como corrigir (dados):** vincule cada usuário à empresa desejada. Exemplo (substitua o nome da empresa e os e-mails):
+
+```sql
+-- Ver empresas e usuários
+SELECT id, name FROM companies;
+SELECT id, email, company_id FROM users;
+
+-- Vincular usuários à empresa "Ativa CRM" (troque o nome se precisar)
+UPDATE users
+SET company_id = (SELECT id FROM companies WHERE name = 'Ativa CRM' LIMIT 1)
+WHERE email IN ('usuario1@exemplo.com', 'usuario2@exemplo.com');
+```
+
+- Usuários criados pela revenda (botão "Gerenciar usuários" → "Criar usuário") já nascem com o `company_id` correto. Usuários criados pelo cadastro normal do sistema precisam ser vinculados como acima ou pela tela **Configurações > Usuários e Permissões** (se houver opção de empresa).
+
+### 7. Erros comuns
 
 | Mensagem / Sintoma | O que fazer |
 |--------------------|-------------|
@@ -94,5 +114,6 @@ O `company_id` deve ser `00000000-0000-0000-0000-000000000001` e o `role` deve s
 | `relation "companies" does not exist` | Idem. |
 | `column "company_id" does not exist` (em `users`) | O script adiciona `company_id` em `users`; garantir que esse trecho do script foi executado sem erro. |
 | Token inválido / 403 | Fazer login de novo; conferir se o usuário é admin da empresa principal. |
+| Coluna Usuários sempre 0 | Ver seção 6 acima; conferir se usuários têm `company_id` preenchido e se a API foi reiniciada após o deploy. |
 
 Depois de reexecutar o script e conferir os pontos acima, teste de novo em **Nova Empresa** e **Gerenciar Planos**. Se ainda der 500, use a resposta da API (campo `error`/`detail`) para identificar a linha ou constraint que está falhando.
