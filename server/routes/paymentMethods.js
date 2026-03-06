@@ -188,17 +188,21 @@ walletsRouter.get('/', async (req, res) => {
     const hasCompanyId = await pool.query(`
       SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'wallets' AND column_name = 'company_id'
     `).then(r => r.rows.length > 0);
+
     // Isolamento: se a tabela tem company_id, só retornar carteiras da empresa do usuário
     if (hasCompanyId) {
       if (!companyId) {
+        console.log('[Wallets] Tabela tem company_id mas usuário sem empresa. Retornando lista vazia.');
         return res.json({ success: true, data: [] });
       }
     }
+
     let query = 'SELECT id, name, sort_order FROM wallets WHERE 1=1';
     const params = [];
     if (hasCompanyId && companyId) {
       query += ' AND company_id = $1';
       params.push(companyId);
+      console.log('[Wallets] Filtro por company_id aplicado:', companyId);
     }
     query += ' ORDER BY sort_order, name';
     const result = await pool.query(query, params.length ? params : undefined);

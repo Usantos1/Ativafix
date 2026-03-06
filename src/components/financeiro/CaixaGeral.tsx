@@ -59,13 +59,7 @@ function getBillStatus(dueDate: string | null): 'atrasado' | 'vence_breve' | 'pe
 
 const MASKED_VALUE = 'R$ •••••••';
 
-// Carteiras padrão (mesmos IDs do SQL) — fallback quando a API não retorna
-const DEFAULT_WALLETS = [
-  { id: 'a0000000-0000-0000-0000-000000000001', name: 'Carteira física em dinheiro', sort_order: 0 },
-  { id: 'a0000000-0000-0000-0000-000000000002', name: 'Carteira digital C6 Bank', sort_order: 1 },
-  { id: 'a0000000-0000-0000-0000-000000000003', name: 'Carteira Sumup Bank', sort_order: 2 },
-];
-
+// Cada empresa vê só suas carteiras (API filtra por company_id); sem fallback para não exibir dados de outra empresa
 function WalletSaldoCard({
   name,
   saldo,
@@ -277,7 +271,7 @@ export function CaixaGeral({
   const [retiradaBillId, setRetiradaBillId] = useState('');
   const [isSubmittingRetirada, setIsSubmittingRetirada] = useState(false);
 
-  const walletList = wallets.length > 0 ? wallets : DEFAULT_WALLETS;
+  const walletList = wallets || [];
   const saldoPorWallet = useMemo(() => {
     const out: Record<string, number> = {};
     walletList.forEach((w) => {

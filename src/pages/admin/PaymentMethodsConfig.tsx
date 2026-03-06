@@ -34,12 +34,7 @@ const COLORS = [
   { value: '#6b7280', label: 'Cinza' },
 ];
 
-// Carteiras padrão (mesmos IDs do SQL CRIAR_TABELA_WALLETS_CARTEIRAS.sql) — usadas quando a API não retorna nenhuma
-const DEFAULT_WALLETS = [
-  { id: 'a0000000-0000-0000-0000-000000000001', name: 'Carteira física em dinheiro', sort_order: 0 },
-  { id: 'a0000000-0000-0000-0000-000000000002', name: 'Carteira digital C6 Bank', sort_order: 1 },
-  { id: 'a0000000-0000-0000-0000-000000000003', name: 'Carteira Sumup Bank', sort_order: 2 },
-];
+// Não usar lista padrão quando a API retorna vazio — cada empresa vê só suas carteiras (isolamento por company_id)
 
 export default function PaymentMethodsConfig() {
   const {
@@ -158,7 +153,7 @@ export default function PaymentMethodsConfig() {
     if (wallet) {
       setWalletForm({ id: wallet.id, name: wallet.name, sort_order: wallet.sort_order ?? 0 });
     } else {
-      setWalletForm({ id: '', name: '', sort_order: (wallets.length > 0 ? wallets : DEFAULT_WALLETS).length });
+      setWalletForm({ id: '', name: '', sort_order: wallets.length });
     }
     setIsWalletDialogOpen(true);
   };
@@ -400,13 +395,14 @@ export default function PaymentMethodsConfig() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             )}
-            {!loading && (wallets.length > 0 ? wallets : DEFAULT_WALLETS).length === 0 && (
+            {!loading && wallets.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                Nenhuma carteira cadastrada. Crie uma para vincular às formas de pagamento.
+                Nenhuma carteira cadastrada. Use o botão &quot;Nova Carteira&quot; acima para criar e vincular às formas de pagamento.
               </div>
             )}
+            {!loading && wallets.length > 0 && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {(wallets.length > 0 ? wallets : DEFAULT_WALLETS).map((w) => (
+              {wallets.map((w) => (
                 <Card key={w.id}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -445,6 +441,7 @@ export default function PaymentMethodsConfig() {
                 </Card>
               ))}
             </div>
+            )}
           </TabsContent>
 
           <TabsContent value="report" className="space-y-4 mt-4">
@@ -605,7 +602,7 @@ export default function PaymentMethodsConfig() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_none">Nenhuma (não vinculado)</SelectItem>
-                    {(wallets.length > 0 ? wallets : DEFAULT_WALLETS).map((w) => (
+                    {wallets.map((w) => (
                       <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
                     ))}
                   </SelectContent>

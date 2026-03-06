@@ -125,7 +125,19 @@ WHERE email IN ('usuario1@exemplo.com', 'usuario2@exemplo.com');
 | Configuração do cupom / "Dados da Empresa" mostrando nome/CNPJ de outra empresa | Rodar `CUPOM_CONFIG_ADD_company_id.sql`, reiniciar a API e (se ainda usar kv_store) fazer logout e login para carregar a chave por empresa. |
 | Integrações (WhatsApp, Telegram, API Externa/OpenAI) mostrando ou usando config de outra empresa | Frontend usa chave `integration_settings_<company_id>` no kv_store; backend idem. Rodar `TELEGRAM_CONFIG_ADD_company_id.sql` para Chat IDs do Telegram por empresa; reiniciar a API; logout e login. |
 | Academy / Treinamentos (/treinamentos) mostrando treinamentos de outra empresa | Rodar `TRAININGS_ADD_company_id.sql`; reiniciar a API; logout e login. |
-| Carteiras (/admin/configuracoes/pagamentos) mostrando carteiras de outra empresa | Rodar `WALLETS_ADD_company_id.sql`; reiniciar a API; logout e login. |
+| Carteiras (/admin/configuracoes/pagamentos) mostrando carteiras de outra empresa | **Seção 8** (usuário com `company_id` correto) + rodar `WALLETS_ADD_company_id.sql`; reiniciar a API; logout e login. |
+
+#### Se a ATIVA CRM (ou outra empresa) ainda vê "Carteira Dinheiro / C6 / Sumup" da Prime Camp
+
+1. **Rodar a migração** no **mesmo banco** que a API usa (pgAdmin ou VPS):
+   ```bash
+   # Exemplo VPS
+   PGPASSWORD='SENHA' psql -h localhost -U postgres -d banco_gestao -f db/migrations/manual/WALLETS_ADD_company_id.sql
+   ```
+2. **Vincular o usuário à empresa correta** (Seção 8): na tabela `users`, o usuário (ex.: Uander) deve ter `company_id` = ID da empresa ATIVA CRM, não da Prime Camp.
+3. **Reiniciar a API** (ex.: `pm2 restart primecamp-api`) para carregar o código que filtra por `company_id`.
+4. **Logout e login** na aplicação.
+5. Se ainda aparecer as 3 carteiras: nos **logs da API**, ao abrir a aba Carteiras, deve aparecer `[Wallets] Filtro por company_id aplicado: <uuid>`. Se aparecer "usuário sem empresa" ou não aparecer o filtro, o usuário está sem `company_id` no banco ou a migração não foi aplicada.
 
 ### 8. Logado na empresa A mas aparecendo dados da empresa B (financeiro, caixa, vendas, etc.)
 
