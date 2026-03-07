@@ -182,10 +182,11 @@ export function useRefunds() {
     }
   }, [toast, queryClient]);
 
-  const approveRefund = useCallback(async (id: string) => {
+  const approveRefund = useCallback(async (id: string, options?: { approval_password?: string }) => {
     setLoading(true);
     try {
-      const response = await apiClient.put(`/refunds/${id}/approve`, {});
+      const body = options?.approval_password ? { approval_password: options.approval_password } : {};
+      const response = await apiClient.put(`/refunds/${id}/approve`, body);
       if (response.data?.success) {
         queryClient.invalidateQueries({ queryKey: REFUNDS_QUERY_KEY });
         queryClient.invalidateQueries({ queryKey: VOUCHERS_QUERY_KEY });
@@ -208,10 +209,11 @@ export function useRefunds() {
     }
   }, [toast, queryClient]);
 
-  const completeRefund = useCallback(async (id: string) => {
+  const completeRefund = useCallback(async (id: string, options?: { approval_password?: string }) => {
     setLoading(true);
     try {
-      const response = await apiClient.put(`/refunds/${id}/complete`, {});
+      const body = options?.approval_password ? { approval_password: options.approval_password } : {};
+      const response = await apiClient.put(`/refunds/${id}/complete`, body);
       if (response.data?.success) {
         queryClient.invalidateQueries({ queryKey: REFUNDS_QUERY_KEY });
         queryClient.invalidateQueries({ queryKey: VOUCHERS_QUERY_KEY });

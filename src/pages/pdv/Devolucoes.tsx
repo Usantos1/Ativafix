@@ -66,8 +66,8 @@ export default function Devolucoes() {
   const { toast } = useToast();
   const { profile, isAdmin } = useAuth();
   
-  // Verificar se usuário pode fazer devolução (admin ou gestor)
-  const canProcessRefund = isAdmin || profile?.role === 'admin' || profile?.role === 'manager' || profile?.role === 'gestor';
+  // Quem pode aprovar/completar sem senha (admin ou gestor). Vendedores podem criar e aprovar/completar com senha.
+  const canApproveWithoutPassword = isAdmin || profile?.role === 'admin' || profile?.role === 'manager' || profile?.role === 'gestor';
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
@@ -93,6 +93,12 @@ export default function Devolucoes() {
   const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
   const [searchingCustomers, setSearchingCustomers] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+
+  // Modal de senha de aprovação (para vendedores aprovarem/completarem devolução)
+  const [approvalPasswordOpen, setApprovalPasswordOpen] = useState(false);
+  const [approvalPasswordValue, setApprovalPasswordValue] = useState('');
+  const [approvalAction, setApprovalAction] = useState<'approve' | 'complete' | null>(null);
+  const [approvalRefundId, setApprovalRefundId] = useState<string | null>(null);
 
   // Verificar se veio com sale_id na URL
   useEffect(() => {
@@ -201,19 +207,9 @@ export default function Devolucoes() {
     }
   };
 
-  // Processar devolução
+  // Processar devolução (criar) — qualquer usuário com acesso à página (vendas.manage) pode criar; aprovar/completar exige admin ou senha
   const handleProcessRefund = async () => {
     if (!saleData) return;
-    
-    // Verificar permissão
-    if (!canProcessRefund) {
-      toast({
-        title: 'Acesso Negado',
-        description: 'Apenas administradores ou gestores podem processar devoluções. Solicite autorização.',
-        variant: 'destructive'
-      });
-      return;
-    }
     
     const itemsToRefund = selectedItems.filter(i => i.selected && (i.refund_qty || 0) > 0);
     
@@ -548,45 +544,72 @@ export default function Devolucoes() {
     }
   };
 
-  // Aprovar devolução
-  const handleApproveRefund = async (refundId: string) => {
-    try {
-      const result = await approveRefund(refundId);
-      if (result) {
-        toast({
-          title: 'Sucesso',
-          description: 'Devolução aprovada!'
-        });
-        fetchRefunds();
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao aprovar devolução',
-        variant: 'destructive'
-      });
+  // Aprovar devolução (direto se admin/gestor; senão abre modal de senha)
+  const handleApproveRefund = (refundId: string) => {
+    if (canApproveWithoutPassword) {
+      doApproveRefund(refundId);
+    } else {
+      setApprovalRefundId(refundId);
+      setApprovalAction('approve');
+      setApprovalPasswordValue('');
+      setApprovalPasswordOpen(true);
     }
   };
 
-  // Completar devolução (estornar estoque)
-  const handleCompleteRefund = async (refundId: string) => {
+  const doApproveRefund = async (refundId: string, approvalPassword?: string) => {
     try {
-      const result = await completeRefund(refundId);
+      const result = await approveRefund(refundId, approvalPassword ? { approval_password: approvalPassword } : undefined);
       if (result) {
-        toast({
-          title: 'Sucesso',
-          description: 'Devolução completada! Estoque atualizado.'
-        });
+        toast({ title: 'Sucesso', description: 'Devolução aprovada!' });
         fetchRefunds();
         setRefundDetailsOpen(false);
       }
     } catch (error: any) {
-      toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao completar devolução',
-        variant: 'destructive'
-      });
+      toast({ title: 'Erro', description: error.message || 'Erro ao aprovar devolução', variant: 'destructive' });
     }
+  };
+
+  // Completar devolução (direto se admin/gestor; senão abre modal de senha)
+  const handleCompleteRefund = (refundId: string) => {
+    if (canApproveWithoutPassword) {
+      doCompleteRefund(refundId);
+    } else {
+      setApprovalRefundId(refundId);
+      setApprovalAction('complete');
+      setApprovalPasswordValue('');
+      setApprovalPasswordOpen(true);
+    }
+  };
+
+  const doCompleteRefund = async (refundId: string, approvalPassword?: string) => {
+    try {
+      const result = await completeRefund(refundId, approvalPassword ? { approval_password: approvalPassword } : undefined);
+      if (result) {
+        toast({ title: 'Sucesso', description: 'Devolução completada! Estoque atualizado.' });
+        fetchRefunds();
+        setRefundDetailsOpen(false);
+      }
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message || 'Erro ao completar devolução', variant: 'destructive' });
+    }
+  };
+
+  // Confirmar senha de aprovação (vendedor)
+  const handleApprovalPasswordSubmit = async () => {
+    if (!approvalRefundId || !approvalAction) return;
+    if (!approvalPasswordValue.trim()) {
+      toast({ title: 'Senha obrigatória', description: 'Digite a senha de aprovação', variant: 'destructive' });
+      return;
+    }
+    if (approvalAction === 'approve') {
+      await doApproveRefund(approvalRefundId, approvalPasswordValue.trim());
+    } else {
+      await doCompleteRefund(approvalRefundId, approvalPasswordValue.trim());
+    }
+    setApprovalPasswordOpen(false);
+    setApprovalPasswordValue('');
+    setApprovalRefundId(null);
+    setApprovalAction(null);
   };
 
   const filteredVouchers = vouchers.filter(v => 
@@ -1101,6 +1124,48 @@ export default function Devolucoes() {
                 Completar
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Senha de aprovação (vendedores) */}
+      <Dialog open={approvalPasswordOpen} onOpenChange={(open) => {
+        if (!open) {
+          setApprovalPasswordOpen(false);
+          setApprovalPasswordValue('');
+          setApprovalRefundId(null);
+          setApprovalAction(null);
+        }
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Senha de aprovação
+            </DialogTitle>
+            <DialogDescription>
+              Para {approvalAction === 'approve' ? 'aprovar' : 'completar'} esta devolução/troca, digite a senha de autorização definida pelo administrador.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Label htmlFor="approval-password">Senha</Label>
+            <Input
+              id="approval-password"
+              type="password"
+              placeholder="Senha de aprovação"
+              value={approvalPasswordValue}
+              onChange={(e) => setApprovalPasswordValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleApprovalPasswordSubmit()}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApprovalPasswordOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleApprovalPasswordSubmit} disabled={loading || !approvalPasswordValue.trim()}>
+              {approvalAction === 'approve' ? 'Aprovar' : 'Completar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
