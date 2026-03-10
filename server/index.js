@@ -6,6 +6,10 @@ import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const FormData = require('form-data');
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
@@ -4474,9 +4478,8 @@ app.post('/api/functions/telegram-bot', authenticateToken, async (req, res) => {
 
     // Decodificar base64 para buffer
     const imageBuffer = Buffer.from(file, 'base64');
-    
-    // Criar FormData para envio multipart
-    const FormData = (await import('form-data')).default;
+
+    // Criar FormData para envio multipart (form-data é CJS, carregado via createRequire no topo)
     const formData = new FormData();
     formData.append('chat_id', chatId);
     formData.append('photo', imageBuffer, {
