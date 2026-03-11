@@ -78,8 +78,10 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const host = window.location.hostname;
-    const url = `${getApiUrl()}/theme-config?host=${encodeURIComponent(host)}`;
-    fetch(url)
+    const base = getApiUrl();
+    const url = new URL('theme-config', base.endsWith('/') ? base : base + '/');
+    url.searchParams.set('host', host);
+    fetch(url.toString())
       .then((res) => (res.ok ? res.json() : null))
       .then((data: Partial<ThemeConfig> | null) => {
         if (!data || typeof data !== 'object') return;

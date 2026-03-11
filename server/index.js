@@ -2755,13 +2755,26 @@ app.post('/api/whatsapp/send', async (req, res) => {
 });
 
 // ============================================
-// TEMA DO SISTEMA (cores, logo, nome) — persistido na VPS por domínio
+// TEMA DO SISTEMA (cores, logo, nome) — persistido na VPS por domínio (white-label)
 // ============================================
+// Cada domínio tem sua própria chave; domínios não listados usam a chave padrão.
+// Para liberar white-label em um domínio, adicione-o em WHITELABEL_DOMAINS no .env (ex: ativafix.com,primecamp.cloud).
+const WHITELABEL_DOMAINS = (process.env.WHITELABEL_DOMAINS || 'ativafix.com,www.ativafix.com,primecamp.cloud,www.primecamp.cloud')
+  .toLowerCase()
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 function themeConfigKey(host) {
   if (!host || typeof host !== 'string') return 'theme_config';
   const h = host.toLowerCase().replace(/^www\./, '');
-  return (h === 'ativafix.com') ? 'theme_config_ativafix' : 'theme_config';
+  const normalized = h.replace(/\./g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 64);
+  if (!normalized) return 'theme_config';
+  const allowed = WHITELABEL_DOMAINS.length === 0 || WHITELABEL_DOMAINS.some((d) => d.replace(/^www\./, '') === h);
+  if (!allowed) return 'theme_config';
+  // Compatibilidade: ativafix.com continua com theme_config_ativafix
+  if (h === 'ativafix.com') return 'theme_config_ativafix';
+  return `theme_config_${normalized}`;
 }
 
 // GET /api/theme-config — público (login e primeira carga); ?host=ativafix.com
