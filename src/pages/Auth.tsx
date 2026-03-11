@@ -11,15 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogIn, UserPlus, Phone, Palette, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useThemeConfig } from "@/contexts/ThemeConfigContext";
 
-// ✅ URL do novo logo hospedado
-const LOGO_URL = "https://primecamp.com.br/wp-content/uploads/2025/07/Design-sem-nome-4.png";
+const DEFAULT_LOGO = "https://primecamp.com.br/wp-content/uploads/2025/07/Design-sem-nome-4.png";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { setTheme } = useTheme();
+  const { config } = useThemeConfig();
+  const logoUrl = config.logo || DEFAULT_LOGO;
 
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -220,7 +222,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={LOGO_URL} alt="Prime Camp Logo" className="h-16 w-auto" loading="lazy" decoding="async" />
+            <img src={logoUrl} alt={config.logoAlt || "Logo"} className="h-16 w-auto max-w-[200px] object-contain" loading="lazy" decoding="async" />
           </div>
           <CardTitle className="text-2xl font-bold">Sistema de Processos</CardTitle>
           <CardDescription>Faça login ou crie sua conta para continuar</CardDescription>
