@@ -8,7 +8,7 @@
 cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* 2>/dev/null; sudo systemctl reload nginx && cd server && npm install --production && pm2 restart primecamp-api && cd .. && echo "Deploy concluido!"
 ```
 
-**Atenção:** não corte o comando no meio; a última parte é `echo "Deploy concluido!"` (com aspas fechando).
+**Atenção:** use o comando inteiro; não corte no meio. A parte do Nginx usa `;` de propósito (reload roda mesmo se o cache não existir).
 
 ## Em vários passos (se a uma linha falhar ou para ver em qual passo deu erro)
 

@@ -6,10 +6,6 @@ import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const FormData = require('form-data');
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
@@ -4478,22 +4474,28 @@ app.post('/api/functions/telegram-bot', authenticateToken, async (req, res) => {
 
     // Decodificar base64 para buffer
     const imageBuffer = Buffer.from(file, 'base64');
+    const captionText = caption || `📱 OS-${osNumero}\n📁 Tipo: ${tipo === 'entrada' ? 'Entrada' : tipo === 'saida' ? 'Saída' : 'Processo'}\n📅 ${new Date().toLocaleString('pt-BR')}`;
+    const photoName = fileName || `os-${osNumero}-${tipo}.jpg`;
 
-    // Criar FormData para envio multipart (form-data é CJS, carregado via createRequire no topo)
-    const formData = new FormData();
-    formData.append('chat_id', chatId);
-    formData.append('photo', imageBuffer, {
-      filename: fileName || `os-${osNumero}-${tipo}.jpg`,
-      contentType: 'image/jpeg',
-    });
-    formData.append('caption', caption || `📱 OS-${osNumero}\n📁 Tipo: ${tipo === 'entrada' ? 'Entrada' : tipo === 'saida' ? 'Saída' : 'Processo'}\n📅 ${new Date().toLocaleString('pt-BR')}`);
+    // Multipart manual (sem dependência form-data) para compatibilidade na VPS
+    const boundary = '----PrimeCampTelegram' + Date.now();
+    const CRLF = '\r\n';
+    const parts = [];
+    parts.push(Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="chat_id"${CRLF}${CRLF}${chatId}${CRLF}`, 'utf8'));
+    parts.push(Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="caption"${CRLF}${CRLF}${captionText}${CRLF}`, 'utf8'));
+    parts.push(Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="photo"; filename="${photoName}"${CRLF}Content-Type: image/jpeg${CRLF}${CRLF}`, 'utf8'));
+    parts.push(imageBuffer);
+    parts.push(Buffer.from(`${CRLF}--${boundary}--${CRLF}`, 'utf8'));
+    const body = Buffer.concat(parts);
 
     const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`;
-    
     const telegramResponse = await fetch(telegramUrl, {
       method: 'POST',
-      body: formData,
-      headers: formData.getHeaders(),
+      body,
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': String(body.length),
+      },
     });
 
     const telegramResult = await telegramResponse.json();
