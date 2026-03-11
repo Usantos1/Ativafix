@@ -95,11 +95,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       document.title = nameToSave;
 
       if (error) {
-        const is404 = (error as { status?: number })?.status === 404;
-        if (is404) {
+        const status = (error as { status?: number })?.status;
+        if (status === 404) {
           toast.warning(
             'Tema aplicado aqui, mas não foi salvo na VPS (servidor desatualizado). Faça o deploy da última versão na VPS para persistir para todos.'
           );
+        } else if (status === 401) {
+          toast.error('Sessão expirada. Faça login novamente e tente salvar o tema de novo.');
         } else {
           toast.error(error?.message || (error as { message?: string })?.message || 'Erro ao salvar tema na VPS');
         }

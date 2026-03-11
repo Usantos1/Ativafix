@@ -443,6 +443,8 @@ try {
 // Aplicar autenticação a rotas de dados (não aplicar em /api/auth/*, /api/health, /api/functions/*, /api/whatsapp/*, /api/v1/*)
 // Os endpoints /api/functions/*, /api/whatsapp/* e /api/v1/* terão autenticação própria dentro de cada rota
 app.use((req, res, next) => {
+  // Preflight CORS: OPTIONS nunca exige autenticação
+  if (req.method === 'OPTIONS') return next();
   // Pular autenticação para rotas de auth, health check, functions, whatsapp, webhook/leads, webhook/test e API pública v1
   // Também pular para rota de teste de api-tokens
   // IMPORTANTE: Pular também para /api/admin/revenda/* pois já tem autenticação própria
