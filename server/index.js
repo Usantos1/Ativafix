@@ -465,7 +465,11 @@ try {
 app.use((req, res, next) => {
   // Preflight CORS: OPTIONS nunca exige autenticação
   if (req.method === 'OPTIONS') return next();
-  // GET theme-config (qualquer path): bypass imediato por req.url (funciona mesmo se req.path vier diferente)
+  // GET theme-config/ok: responder aqui também (redundante com middleware cedo — cobre processo antigo na porta ou ordem diferente)
+  if (req.method === 'GET' && typeof req.url === 'string' && req.url.indexOf('theme-config/ok') !== -1) {
+    res.setHeader('X-Theme-Config', 'enabled');
+    return res.status(200).json({ ok: true, themeConfig: 'enabled', path: req.url, _v: 2 });
+  }
   if (req.method === 'GET' && typeof req.url === 'string' && req.url.indexOf('theme-config') !== -1) return next();
   // Pular autenticação para rotas de auth, health check, functions, whatsapp, webhook/leads, webhook/test e API pública v1
   // Também pular para rota de teste de api-tokens

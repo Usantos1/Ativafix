@@ -90,7 +90,21 @@ Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd`
 
    **c) Teste sem /api** (caso o Nginx repasse só o path): `curl -s http://localhost:3000/theme-config/ok`
 
-   **d) Conferir se a VPS está com o código novo:** na VPS rode:
+   **d) Status "errored" ou muitos restarts no PM2:** o app pode estar crashando (ex.: porta 3000 em uso por processo antigo). Rode:
+   ```bash
+   pm2 logs primecamp-api --err --lines 80
+   ```
+   Veja a mensagem de erro (ex.: `EADDRINUSE :::3000` = porta em uso). Libere a porta e reinicie:
+   ```bash
+   pm2 stop primecamp-api
+   fuser -k 3000/tcp 2>/dev/null || true
+   sleep 2
+   cd /root/primecamp-ofc/server && pm2 start index.js --name primecamp-api
+   curl -s http://localhost:3000/api/theme-config/ok
+   ```
+   Se o PM2 foi iniciado com `ecosystem.config.js`, use: `pm2 start ecosystem.config.js` (ou o comando que você usa) em vez de `pm2 start index.js --name primecamp-api`.
+
+   **e) Conferir se a VPS está com o código novo:** na VPS rode:
    ```bash
    grep -n "Bypass imediato" /root/primecamp-ofc/server/index.js
    ```

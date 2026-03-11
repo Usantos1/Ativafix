@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useLayoutEffect, ReactNode } from 'react';
 import { getApiUrl } from '@/utils/apiUrl';
 
 interface ThemeColors {
@@ -105,8 +105,8 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // Título da aba conforme config
-  useEffect(() => {
+  // Título da aba: useLayoutEffect para atualizar antes da pintura e evitar flash "Prime Camp" ao carregar
+  useLayoutEffect(() => {
     if (config.companyName) {
       document.title = config.companyName;
     }
