@@ -449,10 +449,14 @@ app.use((req, res, next) => {
   // Também pular para rota de teste de api-tokens
   // IMPORTANTE: Pular também para /api/admin/revenda/* pois já tem autenticação própria
   // IMPORTANTE: Pular também para /api/public/* (portal de vagas e candidaturas públicas)
+  const isGetThemeConfig = req.method === 'GET' && (
+    (req.path && (req.path.startsWith('/api/theme-config') || req.path.startsWith('/theme-config') || req.path.includes('theme-config'))) ||
+    (req.originalUrl && req.originalUrl.includes('theme-config'))
+  );
   if (req.path.startsWith('/api/auth/') || 
       req.path === '/api/health' || 
       req.path === '/health' ||
-      ((req.path.startsWith('/api/theme-config') || req.path.startsWith('/theme-config')) && req.method === 'GET') || // GET tema e /ok públicos (Nginx pode repassar sem /api)
+      isGetThemeConfig || // GET tema e /ok públicos (qualquer formato de path)
       req.path.startsWith('/api/public/') ||  // Rotas públicas (vagas, candidaturas)
       req.path.startsWith('/api/functions/') ||
       req.path.startsWith('/api/storage/') ||
@@ -2778,8 +2782,9 @@ function themeConfigKey(host) {
 }
 
 // Diagnóstico: confirma que a API tem a rota de tema (se retornar 404, o deploy da API não atualizou)
-function themeConfigOk(_req, res) {
-  res.json({ ok: true, themeConfig: 'enabled' });
+function themeConfigOk(req, res) {
+  res.setHeader('X-Theme-Config', 'enabled');
+  res.json({ ok: true, themeConfig: 'enabled', path: req.path || req.url });
 }
 app.get('/api/theme-config/ok', themeConfigOk);
 app.get('/theme-config/ok', themeConfigOk); // quando Nginx repassa sem prefixo /api

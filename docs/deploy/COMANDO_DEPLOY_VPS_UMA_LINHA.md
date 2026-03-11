@@ -65,6 +65,16 @@ Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd`
 
 3. **Reinício garantido:** `cd /root/primecamp-ofc && git pull origin main && cd server && npm install --production && pm2 restart primecamp-api && pm2 logs primecamp-api --lines 5`
 
+4. **Se curl /api/theme-config/ok ainda retorna "Token de autenticação necessário":** o middleware está exigindo auth antes da rota. Confirme que o código novo está no servidor:
+   ```bash
+   cd /root/primecamp-ofc && git fetch origin main && git log -1 --oneline origin/main -- server/index.js
+   ```
+   E que o PM2 está rodando a partir da pasta certa:
+   ```bash
+   pm2 show primecamp-api
+   ```
+   O "exec cwd" deve ser a pasta que contém `server/index.js` (ou a pasta `server`). Se o projeto estiver em `~/primecamp-ofc`, o script de start do PM2 deve apontar para esse diretório. Depois de `git pull`, faça `pm2 restart primecamp-api` de novo.
+
 ## Requisito: Node 18+ na API
 
 A API usa o **fetch nativo** do Node (sem `node-fetch` nem `form-data`). É necessário **Node 18 ou superior** no ambiente onde a API roda. Para conferir: `node -v`. Se for menor que 18, atualize: `nvm install 20 && nvm use 20` (ou use o método do seu provedor).
