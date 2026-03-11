@@ -65,15 +65,28 @@ Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd`
 
 3. **Reinício garantido:** `cd /root/primecamp-ofc && git pull origin main && cd server && npm install --production && pm2 restart primecamp-api && pm2 logs primecamp-api --lines 5`
 
-4. **Se curl /api/theme-config/ok ainda retorna "Token de autenticação necessário":** o middleware está exigindo auth antes da rota. Confirme que o código novo está no servidor:
+4. **Se curl /api/theme-config/ok ainda retorna "Token de autenticação necessário":**
+
+   **a) Testar direto no Node (na VPS):**
    ```bash
-   cd /root/primecamp-ofc && git fetch origin main && git log -1 --oneline origin/main -- server/index.js
+   curl -s http://localhost:3000/api/theme-config/ok
    ```
-   E que o PM2 está rodando a partir da pasta certa:
+   - Se retornar `{"ok":true,...}` → o Node está certo; o 401 via HTTPS vem do **Nginx** (proxy ou outro backend). Confira qual servidor Nginx usa para `api.ativafix.com` e se o `proxy_pass` aponta para `http://127.0.0.1:3000` (ou a porta do PM2).
+   - Se retornar `{"error":"Token..."}` → o processo na porta 3000 **não** é o código novo. Siga (b).
+
+   **b) Forçar atualização do código e reinício:**
    ```bash
-   pm2 show primecamp-api
+   cd /root/primecamp-ofc
+   git fetch origin main
+   git reset --hard origin/main
+   git log -1 --oneline
    ```
-   O "exec cwd" deve ser a pasta que contém `server/index.js` (ou a pasta `server`). Se o projeto estiver em `~/primecamp-ofc`, o script de start do PM2 deve apontar para esse diretório. Depois de `git pull`, faça `pm2 restart primecamp-api` de novo.
+   O último commit deve ser algo como `9dcc7fd` ou mais recente. Depois:
+   ```bash
+   cd server && pm2 restart primecamp-api
+   curl -s http://localhost:3000/api/theme-config/ok
+   ```
+   Se localhost retornar `{"ok":true,...}`, aí teste de novo: `curl -s https://api.ativafix.com/api/theme-config/ok`.
 
 ## Requisito: Node 18+ na API
 
