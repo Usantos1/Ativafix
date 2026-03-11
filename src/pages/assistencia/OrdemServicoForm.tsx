@@ -60,6 +60,7 @@ import { printTermica, generateCupomTermica } from '@/utils/pdfGenerator';
 import { updatePrintStatus, printViaIframe } from '@/utils/printUtils';
 import { printOSTermicaDirect } from '@/utils/osPrintUtils';
 import { useChecklistConfig } from '@/hooks/useChecklistConfig';
+import { useAlertsFire } from '@/hooks/useAlerts';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePaymentMethods as usePaymentMethodsHook } from '@/hooks/usePaymentMethods';
 import { useRegisterPagamentoOS } from '@/hooks/usePDV';
@@ -363,6 +364,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
   const { configuracoes, getConfigByStatus } = useConfiguracaoStatus();
   const { tecnicos, colaboradores, getColaboradorById, isLoading: isLoadingCargos } = useCargos();
   const { sendMessage, loading: whatsappLoading } = useWhatsApp();
+  const { fire: fireAlert } = useAlertsFire();
   const { sendMultiplePhotos: sendTelegramPhotos, deleteMessage: deleteTelegramMessage, loading: telegramLoading } = useTelegram();
   const { imageUrl: osImageReferenceUrl } = useOSImageReference();
   const { itemsEntrada: checklistEntradaConfig, itemsSaida: checklistSaidaConfig } = useChecklistConfig();
@@ -1743,7 +1745,26 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
           console.error('Erro ao enviar notificação de abertura (OS Aberta):', error);
           // Não bloquear a criação se o envio falhar
         }
-        
+
+        // Painel de Alertas: disparar "Nova OS aberta" para números configurados (principal + adicionais)
+        try {
+          const linkOs = `${window.location.origin}/acompanhar-os/${novaOS.id}`;
+          await fireAlert({
+            codigo_alerta: 'os.criada',
+            payload: {
+              numero_os: novaOS.numero,
+              cliente: selectedCliente?.nome || novaOS.cliente_nome || 'Cliente',
+              marca: marcas.find(m => m.id === formData.marca_id)?.nome || novaOS.marca_nome || '',
+              modelo: modelos.find(m => m.id === formData.modelo_id)?.nome || novaOS.modelo_nome || '',
+              usuario: currentUserNome,
+              link_os: linkOs,
+              empresa: profile?.company_name ?? '',
+            },
+          });
+        } catch (err: any) {
+          console.error('Painel de Alertas: falha ao disparar os.criada:', err?.message || err);
+        }
+
         if (isModal && onClose) {
           // Se estiver no modal, fecha e deixa o usuário abrir novamente se quiser
           onClose();

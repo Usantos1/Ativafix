@@ -278,3 +278,28 @@ export function useAlertsPreview() {
     previewLoading: previewMutation.isPending,
   };
 }
+
+/** Disparar alerta do Painel de Alertas (ex.: os.criada após abrir uma OS). Não bloqueia em erro. */
+export function useAlertsFire() {
+  const { session } = useAuth();
+  const token = session?.token;
+  const base = `${getApiUrl()}/alerts`;
+
+  const fireMutation = useMutation({
+    mutationFn: async ({ codigo_alerta, payload }: { codigo_alerta: string; payload?: Record<string, unknown> }) => {
+      const res = await fetch(`${base}/fire`, {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ codigo_alerta, payload: payload ?? {} }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || res.statusText);
+      return data;
+    },
+  });
+
+  return {
+    fire: fireMutation.mutateAsync,
+    fireLoading: fireMutation.isPending,
+  };
+}

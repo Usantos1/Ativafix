@@ -154,9 +154,9 @@ export default function PainelAlertas() {
       title="Painel de Alertas"
       subtitle="Configure notificações automáticas por WhatsApp (Ativa CRM)"
     >
-      <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+      <div className="h-full flex flex-col min-h-0 p-4 md:p-6 space-y-4 w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 w-full">
+          <TabsList className="grid w-full grid-cols-3 max-w-md shrink-0">
             <TabsTrigger value="geral" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Configurações</span>
@@ -172,11 +172,11 @@ export default function PainelAlertas() {
           </TabsList>
 
           {/* ─── Tab Configurações gerais ───────────────────────────────────── */}
-          <TabsContent value="geral" className="mt-6">
+          <TabsContent value="geral" className="mt-4 flex-1 flex flex-col min-h-0 overflow-auto data-[state=inactive]:hidden">
             {panelLoading ? (
               <p className="text-muted-foreground">Carregando...</p>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 pb-4">
                 <Card>
                   <CardHeader>
                     <CardTitle>Configurações gerais</CardTitle>
@@ -330,7 +330,7 @@ export default function PainelAlertas() {
           </TabsContent>
 
           {/* ─── Tab Alertas por categoria ─────────────────────────────────── */}
-          <TabsContent value="alertas" className="mt-6">
+          <TabsContent value="alertas" className="mt-4 flex-1 flex flex-col min-h-0 overflow-auto data-[state=inactive]:hidden">
             {catalogLoading || configsLoading ? (
               <p className="text-muted-foreground">Carregando catálogo...</p>
             ) : (
@@ -366,7 +366,7 @@ export default function PainelAlertas() {
           </TabsContent>
 
           {/* ─── Tab Histórico ───────────────────────────────────────────────── */}
-          <TabsContent value="historico" className="mt-6">
+          <TabsContent value="historico" className="mt-4 flex-1 flex flex-col min-h-0 overflow-auto data-[state=inactive]:hidden">
             <HistoricoTab />
           </TabsContent>
         </Tabs>
