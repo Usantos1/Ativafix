@@ -52,11 +52,21 @@ function loadSystemNameFromStorage(): string | undefined {
   return undefined;
 }
 
+function loadLogoFromStorage(): string | undefined {
+  try {
+    const logo = localStorage.getItem('systemLogo');
+    if (logo && typeof logo === 'string' && logo.startsWith('data:image/')) return logo;
+  } catch (_) {}
+  return undefined;
+}
+
 export function ThemeConfigProvider({ children }: { children: ReactNode }) {
   const savedName = loadSystemNameFromStorage();
+  const savedLogo = loadLogoFromStorage();
   const [config, setConfig] = useState<ThemeConfig>({
     ...defaultConfig,
     ...(savedName ? { companyName: savedName } : {}),
+    ...(savedLogo ? { logo: savedLogo } : {}),
   });
 
   // Aplicar nome do sistema e título da aba ao carregar (quando foi salvo nas configurações)

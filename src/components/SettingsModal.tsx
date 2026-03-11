@@ -26,7 +26,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [notifications, setNotifications] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
 
-  // Carregar configurações salvas ao abrir o modal (para o nome do sistema refletir o que foi salvo)
+  // Carregar configurações salvas ao abrir o modal
   useEffect(() => {
     if (isOpen) {
       try {
@@ -38,9 +38,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           if (parsed.notifications != null) setNotifications(parsed.notifications);
           if (parsed.compactMode != null) setCompactMode(parsed.compactMode);
         }
+        const logo = localStorage.getItem('systemLogo');
+        setLogoPreview(logo && logo.startsWith('data:image/') ? logo : config.logo || null);
       } catch (_) {}
     }
-  }, [isOpen]);
+  }, [isOpen, config.logo]);
   
   // Cores do tema
   const [primaryColor, setPrimaryColor] = useState(config.colors.primary);
@@ -51,15 +53,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const handleSave = () => {
     try {
       const nameToSave = (systemName || '').trim() || 'Prime Camp | Gestão de Processos';
-      // Save settings to localStorage
       localStorage.setItem('systemSettings', JSON.stringify({
         systemName: nameToSave,
         autoSave,
         notifications,
         compactMode
       }));
+
+      // Persistir logo (em chave separada para não estourar quota do JSON)
+      try {
+        if (logoPreview) {
+          localStorage.setItem('systemLogo', logoPreview);
+        } else {
+          localStorage.removeItem('systemLogo');
+        }
+      } catch (e) {
+        if (e instanceof DOMException && (e as DOMException).name === 'QuotaExceededError') {
+          toast.error('Logo muito grande para salvar. Use uma imagem menor (recomendado até 1MB).');
+          return;
+        }
+        throw e;
+      }
       
-      // Update theme colors and nome do sistema no contexto (para refletir na aplicação)
       updateConfig({
         companyName: nameToSave,
         colors: {
@@ -73,9 +88,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         logo: logoPreview || config.logo,
       });
       
-      // Atualizar título da aba
       document.title = nameToSave;
-      
       toast.success('Configurações salvas com sucesso!');
       onClose();
     } catch (error) {
@@ -85,19 +98,37 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error('A imagem deve ter no máximo 2MB');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setLogoPreview(result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Formato não aceito. Use PNG, JPG ou SVG.');
+      event.target.value = '';
+      return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 2MB');
+      event.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => {
+      toast.error('Erro ao ler o arquivo. Tente outra imagem.');
+      event.target.value = '';
+    };
+    reader.onloadend = () => {
+      try {
+        const result = reader.result as string;
+        if (!result || !result.startsWith('data:image/')) {
+          toast.error('Arquivo inválido. Use PNG, JPG ou SVG.');
+          return;
+        }
+        setLogoPreview(result);
+      } catch {
+        toast.error('Erro ao processar a imagem.');
+      }
+      event.target.value = '';
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemoveLogo = () => {
@@ -274,6 +305,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       src={logoPreview} 
                       alt="Logo preview" 
                       className="h-20 w-auto object-contain rounded border"
+                      onError={() => {
+                        toast.error('Não foi possível exibir a logo. Tente outro arquivo.');
+                        setLogoPreview(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
                     />
                     <Button
                       variant="destructive"

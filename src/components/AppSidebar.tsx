@@ -27,6 +27,7 @@ import {
   Star,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeConfig } from "@/contexts/ThemeConfigContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useQuery } from "@tanstack/react-query";
 import { from } from "@/integrations/db/client";
@@ -53,13 +54,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-const logoImage = "https://primecamp.com.br/wp-content/uploads/2025/07/Design-sem-nome-4.png";
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, isAdmin: isAdminAuth, signOut } = useAuth();
+  const { config } = useThemeConfig();
+  const logoUrl = config.logo || "https://primecamp.com.br/wp-content/uploads/2025/07/Design-sem-nome-4.png";
   const { hasPermission, loading: permissionsLoading, isAdmin } = usePermissions();
   
   // Verificar admin de MÚLTIPLAS fontes para garantir que funcione
@@ -240,9 +241,9 @@ export function AppSidebar() {
       {!collapsed && (
         <SidebarHeader className="px-4 py-4 border-b-2 border-gray-200 dark:border-gray-700 h-16 flex items-center justify-center bg-white dark:bg-gray-900">
           <img
-            src={logoImage}
-            alt="Prime Camp Logo"
-            className="h-10 w-auto object-contain"
+            src={logoUrl}
+            alt={config.logoAlt || "Logo"}
+            className="h-10 w-auto object-contain max-w-[180px]"
             fetchpriority="high"
             decoding="async"
             width="233"
