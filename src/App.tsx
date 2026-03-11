@@ -11,6 +11,7 @@ import { NotificationManager } from "@/components/NotificationManager";
 import { HelmetProvider } from "react-helmet-async";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PermissionRoute } from "@/components/PermissionRoute";
+import { RecrutamentoGuard } from "@/components/RecrutamentoGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import DashboardGestao from "./pages/DashboardGestao";
@@ -156,11 +157,11 @@ const App = () => (
               <Route path="/admin/configuracoes/pagamentos" element={<PermissionRoute permission="admin.view"><PaymentMethodsConfig /></PermissionRoute>} />
               <Route path="/minha-empresa" element={<ProtectedRoute><CompanyDashboardPage /></ProtectedRoute>} />
               <Route path="/assinatura" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
-              <Route path="/admin/job-surveys" element={<ProtectedRoute><RecruitmentManager /></ProtectedRoute>} />
-              <Route path="/admin/job-surveys/:id" element={<ProtectedRoute><JobSurveyDetail /></ProtectedRoute>} />
-              <Route path="/admin/talent-bank" element={<ProtectedRoute><TalentBank /></ProtectedRoute>} />
-              <Route path="/admin/interviews" element={<ProtectedRoute><RecruitmentManager /></ProtectedRoute>} />
-              <Route path="/admin/interviews/evaluate/:interview_id" element={<ProtectedRoute><InterviewEvaluation /></ProtectedRoute>} />
+              <Route path="/admin/job-surveys" element={<ProtectedRoute><RecrutamentoGuard><RecruitmentManager /></RecrutamentoGuard></ProtectedRoute>} />
+              <Route path="/admin/job-surveys/:id" element={<ProtectedRoute><RecrutamentoGuard><JobSurveyDetail /></RecrutamentoGuard></ProtectedRoute>} />
+              <Route path="/admin/talent-bank" element={<ProtectedRoute><RecrutamentoGuard><TalentBank /></RecrutamentoGuard></ProtectedRoute>} />
+              <Route path="/admin/interviews" element={<ProtectedRoute><RecrutamentoGuard><RecruitmentManager /></RecrutamentoGuard></ProtectedRoute>} />
+              <Route path="/admin/interviews/evaluate/:interview_id" element={<ProtectedRoute><RecrutamentoGuard><InterviewEvaluation /></RecrutamentoGuard></ProtectedRoute>} />
               <Route path="/admin/logs" element={<PermissionRoute permission="admin.logs"><AdminLogs /></PermissionRoute>} />
               <Route path="/admin/estrutura" element={<ProtectedRoute><EstruturaOrganizacional /></ProtectedRoute>} />
               <Route path="/admin/cadastros" element={<ProtectedRoute><CadastrosBase /></ProtectedRoute>} />

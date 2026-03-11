@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ModernLayout } from '@/components/ModernLayout';
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,9 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+
+const RECRUTAMENTO_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
 interface RHSection {
   title: string;
@@ -36,7 +39,9 @@ interface RHSection {
 
 export default function RH() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const canAccessRecrutamento = user?.company_id === RECRUTAMENTO_COMPANY_ID;
 
   const rhSections: RHSection[] = [
     // Recrutamento
@@ -119,28 +124,35 @@ export default function RH() {
     },
   ];
 
-  const categories = [
-    { id: 'recrutamento', label: 'Recrutamento', icon: Briefcase, color: 'text-emerald-700' },
-    { id: 'desenvolvimento', label: 'Desenvolvimento', icon: GraduationCap, color: 'text-blue-600' },
-    { id: 'avaliacao', label: 'Avaliação', icon: Brain, color: 'text-purple-600' },
-    { id: 'gestao', label: 'Gestão', icon: UserCog, color: 'text-slate-700' },
-    { id: 'compliance', label: 'Compliance', icon: ShieldCheck, color: 'text-slate-800' },
-  ] as const;
+  const categories = useMemo(() => {
+    const base = [
+      { id: 'recrutamento', label: 'Recrutamento', icon: Briefcase, color: 'text-emerald-700' },
+      { id: 'desenvolvimento', label: 'Desenvolvimento', icon: GraduationCap, color: 'text-blue-600' },
+      { id: 'avaliacao', label: 'Avaliação', icon: Brain, color: 'text-purple-600' },
+      { id: 'gestao', label: 'Gestão', icon: UserCog, color: 'text-slate-700' },
+      { id: 'compliance', label: 'Compliance', icon: ShieldCheck, color: 'text-slate-800' },
+    ] as const;
+    if (!canAccessRecrutamento) return base.filter(c => c.id !== 'recrutamento');
+    return base;
+  }, [canAccessRecrutamento]);
 
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
 
-  // Filtrar seções
+  useEffect(() => {
+    if (!canAccessRecrutamento && selectedCategory === 'recrutamento') setSelectedCategory('all');
+  }, [canAccessRecrutamento, selectedCategory]);
+
+  // Filtrar seções (Recrutamento só para empresa 1)
   const filteredSections = useMemo(() => {
     return rhSections.filter(section => {
+      if (section.category === 'recrutamento' && !canAccessRecrutamento) return false;
       const matchesSearch = !searchTerm || 
         section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         section.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
       const matchesCategory = selectedCategory === 'all' || section.category === selectedCategory;
-      
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, canAccessRecrutamento]);
 
   // Agrupar por categoria
   const groupedSections = useMemo(() => {
