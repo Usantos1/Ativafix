@@ -47,12 +47,12 @@ Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd`
 
 A API usa o **fetch nativo** do Node (sem `node-fetch` nem `form-data`). É necessário **Node 18 ou superior** no ambiente onde a API roda. Para conferir: `node -v`. Se for menor que 18, atualize: `nvm install 20 && nvm use 20` (ou use o método do seu provedor).
 
-## Se aparecer "Cannot find package 'form-data'" (Telegram)
+## Se aparecer "Cannot find package 'form-data'" ou "...form-data/index.js" (Telegram)
 
-O `form-data` está no `package.json` do server para dependências transitivas. Na VPS, atualize o código, **reinstale** as dependências do server e reinicie a API:
+O server tem um **postinstall** que cria `form-data/index.js` (o pacote não traz esse arquivo). Na VPS, atualize o código e rode **npm install** no `server` para o postinstall rodar; depois reinicie a API:
 
 ```bash
-cd /root/primecamp-ofc && git fetch origin && git reset --hard origin/main && cd server && rm -rf node_modules && npm install --production && pm2 restart primecamp-api && echo "OK"
+cd /root/primecamp-ofc && git pull origin main && cd server && npm install --production && pm2 restart primecamp-api && echo "OK"
 ```
 
-Assim o pacote `form-data` é instalado e o erro some.
+Se ainda falhar, force reinstalação: `cd server && rm -rf node_modules && npm install --production && pm2 restart primecamp-api`
