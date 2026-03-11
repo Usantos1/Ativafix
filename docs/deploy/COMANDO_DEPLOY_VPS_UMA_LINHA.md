@@ -49,6 +49,22 @@ Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd`
 
 **White-label (tema por domínio):** para a tela de login e quando o usuário não tem empresa, usa-se o tema do domínio. No `.env` da VPS: `WHITELABEL_DOMAINS=ativafix.com,www.ativafix.com,primecamp.cloud,www.primecamp.cloud` (opcional; esses já vêm por padrão).
 
+## POST /api/theme-config ainda retorna 404 depois do deploy
+
+1. **Confirmar que a API nova está no ar:** no navegador ou na VPS rode:
+   ```bash
+   curl -s https://api.ativafix.com/api/theme-config/ok
+   ```
+   Deve retornar `{"ok":true,"themeConfig":"enabled"}`. Se retornar 404, a API em produção **não** é a nova: refaça o deploy (caminho do projeto, `cd server`, `pm2 restart primecamp-api`) e confira com `pm2 list` qual processo está rodando e de qual pasta.
+
+2. **Se /ok retorna 200 mas POST ainda 404:** na VPS teste direto no Node:
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/theme-config -H "Content-Type: application/json" -d '{}'
+   ```
+   Deve retornar `401` (não autorizado), não 404. Se der 404, o servidor Node não tem a rota (código antigo). Se der 401, o Node está certo e o 404 pode vir do Nginx (ex.: bloqueio de POST ou proxy para outro backend). Confira o config do Nginx para `api.ativafix.com` (ou o domínio da API) e garanta que `proxy_pass` envia para o processo que você reiniciou com PM2.
+
+3. **Reinício garantido:** `cd /root/primecamp-ofc && git pull origin main && cd server && npm install --production && pm2 restart primecamp-api && pm2 logs primecamp-api --lines 5`
+
 ## Requisito: Node 18+ na API
 
 A API usa o **fetch nativo** do Node (sem `node-fetch` nem `form-data`). É necessário **Node 18 ou superior** no ambiente onde a API roda. Para conferir: `node -v`. Se for menor que 18, atualize: `nvm install 20 && nvm use 20` (ou use o método do seu provedor).

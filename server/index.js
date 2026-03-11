@@ -452,7 +452,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth/') || 
       req.path === '/api/health' || 
       req.path === '/health' ||
-      (req.path === '/api/theme-config' && req.method === 'GET') || // GET tema público (login e primeira carga)
+      ((req.path.startsWith('/api/theme-config') || req.path.startsWith('/theme-config')) && req.method === 'GET') || // GET tema e /ok públicos (Nginx pode repassar sem /api)
       req.path.startsWith('/api/public/') ||  // Rotas públicas (vagas, candidaturas)
       req.path.startsWith('/api/functions/') ||
       req.path.startsWith('/api/storage/') ||
@@ -2776,6 +2776,13 @@ function themeConfigKey(host) {
   if (h === 'ativafix.com') return 'theme_config_ativafix';
   return `theme_config_${normalized}`;
 }
+
+// Diagnóstico: confirma que a API tem a rota de tema (se retornar 404, o deploy da API não atualizou)
+function themeConfigOk(_req, res) {
+  res.json({ ok: true, themeConfig: 'enabled' });
+}
+app.get('/api/theme-config/ok', themeConfigOk);
+app.get('/theme-config/ok', themeConfigOk); // quando Nginx repassa sem prefixo /api
 
 // GET /api/theme-config — público (login) ou com auth (tema da empresa do usuário)
 // Com Authorization: retorna tema da empresa (company_id); senão usa ?host= para tema do domínio
