@@ -319,12 +319,11 @@ export default function AdminReseller() {
     setSelectedCompany(null);
   };
 
-  const openCreateDialog = () => {
+  const openCreateDialog = async () => {
     resetForm();
     setFormData(prev => ({ ...prev, plan_id: '', billing_cycle: 'monthly' }));
+    await Promise.all([loadSegmentos(), loadPlans()]);
     setDialogOpen(true);
-    loadPlans();
-    loadSegmentos();
   };
 
   const openEditDialog = async (company: Company) => {
