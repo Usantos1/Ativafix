@@ -569,7 +569,7 @@ export default function Integration() {
               <Label>URL do Webhook (somente leitura)</Label>
               <Input
                 readOnly
-                value={`https://ativafix.com/api/webhook`}
+                value={`https://api.ativafix.com/api/webhook`}
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">

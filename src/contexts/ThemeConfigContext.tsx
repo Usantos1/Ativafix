@@ -38,7 +38,7 @@ const defaultConfigPrimeCamp: ThemeConfig = {
 export function getDefaultConfigByHost(): ThemeConfig {
   if (typeof window === 'undefined') return defaultConfigPrimeCamp;
   const h = window.location.hostname;
-  const isAtivaFix = h === 'ativafix.com' || h === 'www.ativafix.com' || h === 'localhost' || h === '127.0.0.1';
+  const isAtivaFix = h === 'ativafix.com' || h === 'www.ativafix.com' || h === 'app.ativafix.com' || h === 'localhost' || h === '127.0.0.1';
   if (isAtivaFix) {
     const origin = window.location.origin;
     return {

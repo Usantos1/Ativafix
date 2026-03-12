@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { from } from '@/integrations/db/client';
 import { toast } from 'sonner';
 
-const APP_BASE_URL = import.meta.env.VITE_APP_URL || 'https://ativafix.com';
+const APP_BASE_URL = import.meta.env.VITE_APP_URL || 'https://app.ativafix.com';
 
 interface SendMessageData {
   number: string;

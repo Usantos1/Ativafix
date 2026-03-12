@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { APP_PUBLIC_URL } from '@/utils/appUrl';
 import { OrdemServico } from '@/types/assistencia';
 import { ChecklistConfigItem } from '@/hooks/useChecklistConfig';
 import { dateFormatters, currencyFormatters } from '@/utils/formatters';
@@ -27,8 +28,7 @@ export async function generateOSPDF(data: OSPDFData): Promise<string> {
   // Gerar QR Code
   let qrCodeImg = '';
   try {
-    const publicDomain = 'https://ativafix.com';
-    const qrCodeUrl = await QRCode.toDataURL(`${publicDomain}/acompanhar-os/${os.id}`, {
+    const qrCodeUrl = await QRCode.toDataURL(`${APP_PUBLIC_URL}/acompanhar-os/${os.id}`, {
       width: 100,
       margin: 1,
       errorCorrectionLevel: 'M',

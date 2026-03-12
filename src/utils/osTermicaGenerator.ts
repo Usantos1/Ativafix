@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { APP_PUBLIC_URL } from '@/utils/appUrl';
 import { OrdemServico } from '@/types/assistencia';
 import { ChecklistConfigItem } from '@/hooks/useChecklistConfig';
 import { dateFormatters, currencyFormatters } from '@/utils/formatters';
@@ -29,8 +30,7 @@ export async function generateOSTermica(data: OSTermicaData): Promise<string> {
   // Gerar QR Code com URL da OS
   let qrCodeImg = '';
   try {
-    const publicDomain = 'https://ativafix.com';
-    const qrCodeUrl = await QRCode.toDataURL(`${publicDomain}/acompanhar-os/${os.id}`, {
+    const qrCodeUrl = await QRCode.toDataURL(`${APP_PUBLIC_URL}/acompanhar-os/${os.id}`, {
       width: 120,
       margin: 2,
       errorCorrectionLevel: 'H',

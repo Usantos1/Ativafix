@@ -105,6 +105,8 @@ app.use(cors({
       'http://ativafix.com',
       'https://www.ativafix.com',
       'http://www.ativafix.com',
+      'https://app.ativafix.com',
+      'http://app.ativafix.com',
     ].filter(Boolean);
     
     if (allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
@@ -1231,7 +1233,7 @@ app.post('/api/auth/request-password-reset', async (req, res) => {
 
     // TODO: Enviar email com link de reset usando nodemailer ou serviço de email
     // Por enquanto, apenas retornar o token (em desenvolvimento)
-    const resetLink = `${process.env.FRONTEND_URL || 'https://ativafix.com'}/reset-password?access_token=${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_URL || 'https://app.ativafix.com'}/reset-password?access_token=${resetToken}`;
     
     console.log(`[API] Link de reset gerado para ${user.email}: ${resetLink}`);
 
@@ -2812,7 +2814,7 @@ app.post('/api/whatsapp/send', async (req, res) => {
 // ============================================
 // Cada domínio tem sua própria chave; domínios não listados usam a chave padrão.
 // Para liberar white-label em um domínio, adicione-o em WHITELABEL_DOMAINS no .env (ex: ativafix.com).
-const WHITELABEL_DOMAINS = (process.env.WHITELABEL_DOMAINS || 'ativafix.com,www.ativafix.com')
+const WHITELABEL_DOMAINS = (process.env.WHITELABEL_DOMAINS || 'ativafix.com,www.ativafix.com,app.ativafix.com')
   .toLowerCase()
   .split(',')
   .map((s) => s.trim())
@@ -2825,8 +2827,8 @@ function themeConfigKey(host) {
   if (!normalized) return 'theme_config';
   const allowed = WHITELABEL_DOMAINS.length === 0 || WHITELABEL_DOMAINS.some((d) => d.replace(/^www\./, '') === h);
   if (!allowed) return 'theme_config';
-  // Compatibilidade: ativafix.com continua com theme_config_ativafix
-  if (h === 'ativafix.com') return 'theme_config_ativafix';
+  // Compatibilidade: ativafix.com e app.ativafix.com usam o mesmo tema (empresa 1 / login)
+  if (h === 'ativafix.com' || h === 'app.ativafix.com') return 'theme_config_ativafix';
   return `theme_config_${normalized}`;
 }
 
@@ -2863,7 +2865,7 @@ app.get('/api/theme-config', async (req, res) => {
       } catch (_) {}
     }
     const h = (host && host.toLowerCase().replace(/^www\./, '')) || '';
-    const isLoginHost = h === 'ativafix.com' || h === 'localhost' || h === '127.0.0.1';
+    const isLoginHost = h === 'ativafix.com' || h === 'app.ativafix.com' || h === 'localhost' || h === '127.0.0.1';
     if (isLoginHost) {
       const company1Result = await pool.query('SELECT value FROM kv_store_2c4defad WHERE key = $1', [adminCompanyKey]);
       if (company1Result.rows.length > 0 && company1Result.rows[0].value) {
