@@ -21,15 +21,15 @@ npm cache clean --force
 npm install
 npm run build
 sudo systemctl stop nginx
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.*
-sudo find /var/www/primecamp.cloud -mindepth 1 -delete 2>/dev/null || true
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.*
+sudo find /var/www/ativafix -mindepth 1 -delete 2>/dev/null || true
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 TIMESTAMP=$(date +%s)
-sudo sed -i "s|src=\"/assets/|src=\"/assets/?v=$TIMESTAMP|g" /var/www/primecamp.cloud/index.html
-sudo sed -i "s|href=\"/assets/|href=\"/assets/?v=$TIMESTAMP|g" /var/www/primecamp.cloud/index.html
+sudo sed -i "s|src=\"/assets/|src=\"/assets/?v=$TIMESTAMP|g" /var/www/ativafix/index.html
+sudo sed -i "s|href=\"/assets/|href=\"/assets/?v=$TIMESTAMP|g" /var/www/ativafix/index.html
 sudo rm -rf /var/cache/nginx/*
 sudo systemctl restart nginx
 echo "✅ Deploy concluído com versionamento: ?v=$TIMESTAMP"
@@ -51,7 +51,7 @@ echo "✅ Deploy concluído com versionamento: ?v=$TIMESTAMP"
 
 **OU use modo anônimo:**
 - `Ctrl + Shift + N` (Chrome/Edge)
-- Acesse: `https://primecamp.cloud/produtos`
+- Acesse: `https://app.ativafix.com/produtos`
 
 ### 2. Verificar Service Workers:
 
@@ -77,7 +77,7 @@ console.log(document.querySelector('script[src*="index-"]')?.src);
 
 Deve mostrar algo como:
 ```
-https://primecamp.cloud/assets/index-B2StyxFt.js?v=1234567890
+https://app.ativafix.com/assets/index-B2StyxFt.js?v=1234567890
 ```
 
 **NÃO deve mostrar:** `index-BTnGtZKu.js` (antigo)
@@ -86,7 +86,7 @@ https://primecamp.cloud/assets/index-B2StyxFt.js?v=1234567890
 
 ## 🔍 Verificar se Funcionou
 
-1. **Acesse:** `https://primecamp.cloud/produtos`
+1. **Acesse:** `https://app.ativafix.com/produtos`
 2. **Clique nos três pontos (⋯) de qualquer produto**
 3. **DEVE aparecer:** "Abrir", **"Clonar"**, "Inativar", "Excluir"
 4. **NÃO deve aparecer apenas:** "Abrir", "Inativar", "Excluir"
@@ -99,8 +99,8 @@ https://primecamp.cloud/assets/index-B2StyxFt.js?v=1234567890
 
 ```bash
 # Na VPS
-ls -lh /var/www/primecamp.cloud/assets/ | grep "index-.*\.js" | grep -v "\.es\.js"
-grep -o 'assets/index-[^"]*\.js' /var/www/primecamp.cloud/index.html | head -1
+ls -lh /var/www/ativafix/assets/ | grep "index-.*\.js" | grep -v "\.es\.js"
+grep -o 'assets/index-[^"]*\.js' /var/www/ativafix/index.html | head -1
 ```
 
 Os dois devem mostrar o **mesmo hash**.
@@ -111,15 +111,15 @@ Os dois devem mostrar o **mesmo hash**.
 cd /root/primecamp-ofc
 touch src/main.tsx
 npm run build
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
 sudo systemctl restart nginx
 ```
 
 ### Opção 3: Verificar configuração do Nginx
 
 ```bash
-sudo nano /etc/nginx/sites-available/primecamp.cloud
+sudo nano /etc/nginx/sites-available/ativafix
 ```
 
 Adicione dentro do bloco `server {`:
@@ -144,7 +144,7 @@ sudo systemctl restart nginx
 
 - [ ] Script executado na VPS
 - [ ] Build concluído sem erros
-- [ ] Arquivos copiados para `/var/www/primecamp.cloud/`
+- [ ] Arquivos copiados para `/var/www/ativafix/`
 - [ ] Versionamento adicionado (?v=timestamp)
 - [ ] Nginx reiniciado (não apenas reload)
 - [ ] Cache do navegador limpo COMPLETAMENTE

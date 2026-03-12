@@ -47,7 +47,7 @@ sleep 3
 
 echo ""
 echo "9️⃣ Testando o que está sendo servido..."
-curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "✅ CONCLUÍDO!"
@@ -55,7 +55,7 @@ echo ""
 echo "📋 TESTE NO NAVEGADOR:"
 echo "   1. Feche TODAS as abas"
 echo "   2. Abra janela anônima (Ctrl+Shift+N)"
-echo "   3. Acesse: https://primecamp.cloud/integracoes"
+echo "   3. Acesse: https://app.ativafix.com/integracoes"
 echo "   4. Verifique se a seção 'Integração Telegram' aparece"
-echo "   5. Verifique se a URL do Webhook mostra: https://primecamp.cloud/api/webhook"
+echo "   5. Verifique se a URL do Webhook mostra: https://app.ativafix.com/api/webhook"
 

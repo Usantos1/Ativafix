@@ -56,7 +56,7 @@ echo "1. Verifique os logs: pm2 logs primecamp-api --lines 100"
 echo "2. Procure por '✅ Tabelas de API inicializadas' nos logs"
 echo "3. Se aparecer erro, execute manualmente:"
 echo "   psql -U postgres -d banco_gestao -f CRIAR_TABELAS_API_TOKENS.sql"
-echo "4. Teste criar um token na interface: https://primecamp.cloud/integracoes"
+echo "4. Teste criar um token na interface: https://app.ativafix.com/integracoes"
 echo ""
 
 

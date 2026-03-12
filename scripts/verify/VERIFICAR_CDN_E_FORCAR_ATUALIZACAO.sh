@@ -4,11 +4,11 @@ echo "🔍 VERIFICANDO CDN E FORÇANDO ATUALIZAÇÃO"
 echo "=========================================="
 echo ""
 
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 echo "1️⃣ Verificando se há Cloudflare ou CDN..."
 echo "   Testando headers HTTP..."
-curl -I https://primecamp.cloud/ 2>/dev/null | grep -i "cloudflare\|cf-\|server:" || echo "   (Nenhum header de CDN detectado)"
+curl -I https://app.ativafix.com/ 2>/dev/null | grep -i "cloudflare\|cf-\|server:" || echo "   (Nenhum header de CDN detectado)"
 echo ""
 
 echo "2️⃣ Fazendo rebuild completo para gerar novo hash..."

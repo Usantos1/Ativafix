@@ -4,7 +4,7 @@ echo "🧹 VERIFICANDO SERVICE WORKER E CACHE"
 echo "======================================"
 echo ""
 
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 echo "1️⃣ Verificando se há Service Worker registrado..."
 if [ -f "$NGINX_ROOT/service-worker.js" ] || [ -f "$NGINX_ROOT/sw.js" ]; then
@@ -35,7 +35,7 @@ fi
 echo ""
 
 echo "4️⃣ Verificando headers do Nginx para cache..."
-NGINX_CONFIG="/etc/nginx/sites-enabled/primecamp.cloud.conf"
+NGINX_CONFIG="/etc/nginx/sites-enabled/ativafix.conf"
 if grep -A 10 "location = /index.html" "$NGINX_CONFIG" 2>/dev/null | grep -q "Cache-Control.*no-cache"; then
     echo "   ✅ Headers anti-cache configurados para index.html"
 else
@@ -57,4 +57,4 @@ echo "     - Limpar cache completamente (Ctrl+Shift+Delete)"
 echo "     - Ou usar modo anônimo/privado"
 echo ""
 echo "Para forçar atualização, pode tentar adicionar query string:"
-echo "  https://primecamp.cloud/admin/configuracoes/pagamentos?v=$(date +%s)"
+echo "  https://app.ativafix.com/admin/configuracoes/pagamentos?v=$(date +%s)"

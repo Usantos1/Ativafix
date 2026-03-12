@@ -1,8 +1,8 @@
 # Comandos VPS - Deploy Scrollbar (CORRIGIDO)
 
 ## ⚠️ IMPORTANTE: Use a rota CORRETA!
-- ✅ **NOVO:** `https://primecamp.cloud/financeiro` (com filtros de data e scrollbar)
-- ❌ **ANTIGO:** `https://primecamp.cloud/admin/financeiro` (sem filtros)
+- ✅ **NOVO:** `https://app.ativafix.com/financeiro` (com filtros de data e scrollbar)
+- ❌ **ANTIGO:** `https://app.ativafix.com/admin/financeiro` (sem filtros)
 
 ## Deploy Completo (RECOMENDADO):
 
@@ -34,7 +34,7 @@ git pull origin main
 npm run build
 
 # 4. Definir diretório Nginx
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # 5. Deploy
 rm -rf "$NGINX_ROOT"/* 2>/dev/null
@@ -62,7 +62,7 @@ cd /root/primecamp-ofc
 /usr/bin/npm run build
 
 # 4. Deploy
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 rm -rf "$NGINX_ROOT"/* 2>/dev/null
 cp -r dist/* "$NGINX_ROOT"/
 /usr/bin/chown -R www-data:www-data "$NGINX_ROOT"
@@ -79,6 +79,6 @@ cp -r dist/* "$NGINX_ROOT"/
 grep -r "root " /etc/nginx/sites-enabled/*.conf 2>/dev/null | head -1
 
 # Ou verificar se existe
-ls -la /var/www/primecamp.cloud
+ls -la /var/www/ativafix
 ls -la /var/www/html
 ```

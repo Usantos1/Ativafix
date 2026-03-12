@@ -1,6 +1,6 @@
 -- =====================================================
 -- SOMENTE a tabela payment_fees (sem INSERT de Fiado/Carteira)
--- Use este script NO BANCO que a API api.primecamp.cloud usa.
+-- Use este script NO BANCO que a API api.ativafix.com usa.
 -- Se você rodou o outro script no DBeaver em "banco_gestao",
 -- esse é outro banco. Rode ESTE script no banco da API.
 -- =====================================================

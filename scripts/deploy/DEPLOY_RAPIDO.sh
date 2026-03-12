@@ -22,17 +22,17 @@ echo ""
 # 3. Limpar cache e arquivos antigos
 echo "3️⃣ Limpando cache e arquivos antigos..."
 sudo rm -rf /var/cache/nginx/* 2>/dev/null
-sudo rm -rf /var/www/primecamp.cloud/* 2>/dev/null
-sudo rm -rf /var/www/primecamp.cloud/.* 2>/dev/null
+sudo rm -rf /var/www/ativafix/* 2>/dev/null
+sudo rm -rf /var/www/ativafix/.* 2>/dev/null
 sleep 1
 echo "✅ Cache limpo"
 echo ""
 
 # 4. Copiar novos arquivos
 echo "4️⃣ Copiando arquivos para o Nginx..."
-sudo cp -r dist/* /var/www/primecamp.cloud/ || { echo "❌ Erro ao copiar arquivos"; exit 1; }
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo cp -r dist/* /var/www/ativafix/ || { echo "❌ Erro ao copiar arquivos"; exit 1; }
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 echo "✅ Arquivos copiados"
 echo ""
 

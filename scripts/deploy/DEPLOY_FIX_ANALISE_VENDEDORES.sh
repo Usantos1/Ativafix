@@ -12,8 +12,8 @@ echo "🚀 Iniciando deploy do fix AnaliseVendedores..."
 NGINX_ROOT=$(grep -r "root " /etc/nginx/sites-enabled/*.conf 2>/dev/null | grep -v "#" | head -1 | awk '{print $2}' | sed 's/;$//' | sed 's/;.*$//')
 if [ -z "$NGINX_ROOT" ]; then
     # Tentar padrões comuns
-    if [ -d "/var/www/primecamp.cloud" ]; then
-        NGINX_ROOT="/var/www/primecamp.cloud"
+    if [ -d "/var/www/ativafix" ]; then
+        NGINX_ROOT="/var/www/ativafix"
     elif [ -d "/var/www/html" ]; then
         NGINX_ROOT="/var/www/html"
     else
@@ -53,6 +53,6 @@ pm2 restart primecamp-api || echo "⚠️ PM2 não reiniciado (pode não estar r
 
 echo "✅ Deploy concluído!"
 echo "📍 Frontend: $NGINX_ROOT"
-echo "🔗 Teste: https://primecamp.cloud/financeiro/analise-vendedores"
+echo "🔗 Teste: https://app.ativafix.com/financeiro/analise-vendedores"
 echo ""
 echo "💡 Se ainda houver erro, faça hard refresh no navegador: Ctrl+Shift+R"

@@ -4,7 +4,7 @@ echo "🔍 VERIFICANDO DEPLOY - Diagnóstico Completo"
 echo "=============================================="
 echo ""
 
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 echo "1️⃣ Verificando arquivos JS no servidor..."
 echo "   Arquivos disponíveis:"
@@ -62,7 +62,7 @@ fi
 
 echo ""
 echo "8️⃣ Verificando configuração do Nginx..."
-NGINX_CONFIG="/etc/nginx/sites-available/primecamp.cloud"
+NGINX_CONFIG="/etc/nginx/sites-available/ativafix"
 if [ -f "$NGINX_CONFIG" ]; then
     if grep -q "Cache-Control.*no-cache" "$NGINX_CONFIG"; then
         echo "   ✅ Headers anti-cache configurados"
@@ -90,8 +90,8 @@ else
     echo "SOLUÇÃO:"
     echo "cd /root/primecamp-ofc"
     echo "npm run build"
-    echo "sudo rm -rf /var/www/primecamp.cloud/*"
-    echo "sudo cp -r dist/* /var/www/primecamp.cloud/"
-    echo "sudo chown -R www-data:www-data /var/www/primecamp.cloud"
+    echo "sudo rm -rf /var/www/ativafix/*"
+    echo "sudo cp -r dist/* /var/www/ativafix/"
+    echo "sudo chown -R www-data:www-data /var/www/ativafix"
     echo "sudo systemctl restart nginx"
 fi

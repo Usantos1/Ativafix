@@ -98,7 +98,7 @@ Se após todas essas verificações ainda não funcionar, pode ser necessário:
 2. **Testar a API diretamente:**
    ```bash
    # Obter token de autenticação primeiro
-   curl -H "Authorization: Bearer SEU_TOKEN" https://api.primecamp.cloud/api/financeiro/dashboard
+   curl -H "Authorization: Bearer SEU_TOKEN" https://api.ativafix.com/api/financeiro/dashboard
    ```
 
 3. **Verificar se há algum problema específico do componente:**

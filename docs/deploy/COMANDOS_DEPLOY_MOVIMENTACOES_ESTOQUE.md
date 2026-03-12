@@ -16,7 +16,7 @@
 ## ⚡ Deploy Rápido (Uma Linha)
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* && sudo systemctl restart nginx && echo "✅ Deploy concluído!"
+cd /root/primecamp-ofc && git pull origin main && npm run build && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo chmod -R 755 /var/www/ativafix && sudo rm -rf /var/cache/nginx/* && sudo systemctl restart nginx && echo "✅ Deploy concluído!"
 ```
 
 ---
@@ -54,15 +54,15 @@ sudo rm -rf /var/cache/nginx/*
 sudo find /var/cache/nginx -type f -delete 2>/dev/null || true
 
 # Remover TODOS os arquivos antigos
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.*
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.*
 
 # Copiar novos arquivos
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 # Ajustar permissões
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # Testar configuração do Nginx
 sudo nginx -t
@@ -144,7 +144,7 @@ A aba "Movimentações" agora mostra:
 
 - [ ] Código atualizado (`git pull` executado)
 - [ ] Build do frontend concluído sem erros
-- [ ] Arquivos copiados para `/var/www/primecamp.cloud/`
+- [ ] Arquivos copiados para `/var/www/ativafix/`
 - [ ] Nginx reiniciado
 - [ ] Cache do navegador limpo
 - [ ] Testado adicionar item na OS → verificar movimentação

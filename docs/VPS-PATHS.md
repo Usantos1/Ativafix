@@ -7,7 +7,7 @@ Caminhos corretos usados no deploy. Manter atualizado.
 | Uso | Caminho |
 |-----|---------|
 | Projeto (clone / pasta do app) | `~/primecamp-ofc` |
-| Web root (nginx, arquivos estáticos) | `/var/www/primecamp.cloud/` |
+| Web root (nginx, arquivos estáticos) | `/var/www/ativafix/` |
 
 ## Serviços (systemd)
 
@@ -19,7 +19,7 @@ Caminhos corretos usados no deploy. Manter atualizado.
 ## Comandos de deploy (uma linha)
 
 ```bash
-cd ~/primecamp-ofc && git pull origin main && npm install && (cd server && npm install) && npm run build && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo systemctl restart primecamp-api && sudo systemctl reload nginx
+cd ~/primecamp-ofc && git pull origin main && npm install && (cd server && npm install) && npm run build && sudo cp -r dist/* /var/www/ativafix/ && sudo systemctl restart primecamp-api && sudo systemctl reload nginx
 ```
 
 ## Git
@@ -57,7 +57,7 @@ git pull origin main
 npm install
 cd server && npm install && cd ..
 npm run build
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 ```
 
 **Passo 3 – Reiniciar API e Nginx**
@@ -104,7 +104,7 @@ Salve e saia. Pronto: o script vai verificar a API a cada 2 min e reiniciar só 
 Se já configurou o cron e o script, para os próximos deploys pode usar só:
 
 ```bash
-cd ~/primecamp-ofc && git pull origin main && npm install && (cd server && npm install) && npm run build && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo systemctl restart primecamp-api && sudo systemctl reload nginx
+cd ~/primecamp-ofc && git pull origin main && npm install && (cd server && npm install) && npm run build && sudo cp -r dist/* /var/www/ativafix/ && sudo systemctl restart primecamp-api && sudo systemctl reload nginx
 ```
 
 (Substitua `systemctl restart primecamp-api` por `pm2 restart primecamp-api` se usar PM2.)

@@ -7,7 +7,7 @@ echo ""
 cd /root/primecamp-ofc || exit 1
 
 echo "1️⃣ Verificando se há Cloudflare ou CDN..."
-curl -I https://primecamp.cloud/ 2>&1 | grep -i "cloudflare\|cf-\|server:"
+curl -I https://app.ativafix.com/ 2>&1 | grep -i "cloudflare\|cf-\|server:"
 
 echo ""
 echo "2️⃣ Adicionando headers anti-cache no Nginx para index.html..."
@@ -69,7 +69,7 @@ curl -s http://localhost/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "7️⃣ Testando via HTTPS (pode ter CDN)..."
-curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "8️⃣ Se ainda mostrar arquivo antigo, pode ser CDN (Cloudflare)..."
@@ -82,6 +82,6 @@ echo ""
 echo "📋 TESTE NO NAVEGADOR:"
 echo "   1. Feche TODAS as abas"
 echo "   2. Abra janela anônima (Ctrl+Shift+N)"
-echo "   3. Acesse: https://primecamp.cloud/integracoes"
+echo "   3. Acesse: https://app.ativafix.com/integracoes"
 echo "   4. Verifique no Network tab qual arquivo está sendo carregado"
 

@@ -19,7 +19,7 @@ chmod +x FORCAR_REBUILD_COMPLETO.sh
 
 echo ""
 echo "✅ TUDO CONCLUÍDO!"
-echo "Acesse: https://primecamp.cloud/test-auth"
+echo "Acesse: https://app.ativafix.com/test-auth"
 
 
 

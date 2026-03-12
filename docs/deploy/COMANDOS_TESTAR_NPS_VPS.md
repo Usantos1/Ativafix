@@ -38,7 +38,7 @@ tail -f /var/log/nodejs/server.log | grep -E "\[Update\]|allowed_respondents|tar
 
 ## 🧪 Testar a Correção
 
-1. Abra o navegador e acesse: https://primecamp.cloud
+1. Abra o navegador e acesse: https://app.ativafix.com
 2. Vá para NPS > Gerenciar Pesquisas
 3. Clique em editar uma pesquisa
 4. Modifique os campos "Quem pode responder" ou "Sobre quem é a pesquisa"

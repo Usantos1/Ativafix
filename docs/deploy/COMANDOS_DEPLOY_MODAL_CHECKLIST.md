@@ -18,11 +18,11 @@ cd /root/primecamp-ofc
 git pull origin main
 npm install
 npm run build
-sudo rm -rf /var/cache/nginx/* /var/www/primecamp.cloud/* /var/www/primecamp.cloud/.*
+sudo rm -rf /var/cache/nginx/* /var/www/ativafix/* /var/www/ativafix/.*
 sleep 1
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -44,16 +44,16 @@ npm run build
 
 # 5. Limpar cache do Nginx e arquivos antigos
 sudo rm -rf /var/cache/nginx/*
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.*
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.*
 sleep 1
 
 # 6. Copiar novos arquivos
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 # 7. Ajustar permissões
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # 8. Testar configuração do Nginx
 sudo nginx -t
@@ -103,8 +103,8 @@ sudo systemctl reload nginx
 
 ```bash
 # Verificar data/hora dos arquivos (deve ser recente)
-ls -lh /var/www/primecamp.cloud/index.html
+ls -lh /var/www/ativafix/index.html
 
 # Verificar se o código está no build (procurar por "showChecklistEntradaModal")
-grep -o "showChecklistEntradaModal" /var/www/primecamp.cloud/assets/index-*.js | head -1
+grep -o "showChecklistEntradaModal" /var/www/ativafix/assets/index-*.js | head -1
 ```

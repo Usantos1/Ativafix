@@ -6,13 +6,13 @@ echo ""
 
 cd /root/primecamp-ofc || exit 1
 
-echo "1️⃣ Verificando configuração existente de primecamp.cloud..."
-if [ -f "/etc/nginx/sites-available/primecamp.cloud.conf" ]; then
+echo "1️⃣ Verificando configuração existente de ativafix..."
+if [ -f "/etc/nginx/sites-available/ativafix.conf" ]; then
     echo "   Configuração atual:"
-    cat /etc/nginx/sites-available/primecamp.cloud.conf
+    cat /etc/nginx/sites-available/ativafix.conf
     echo ""
     echo "   ✅ Usando configuração existente como base"
-    BASE_CONFIG="/etc/nginx/sites-available/primecamp.cloud.conf"
+    BASE_CONFIG="/etc/nginx/sites-available/ativafix.conf"
 else
     echo "   ⚠️ Configuração não encontrada, criando nova..."
     BASE_CONFIG=""
@@ -21,7 +21,7 @@ fi
 echo ""
 echo "2️⃣ Criando configuração atualizada..."
 
-NGINX_CONFIG="/etc/nginx/sites-available/primecamp.cloud.conf"
+NGINX_CONFIG="/etc/nginx/sites-available/ativafix.conf"
 
 # Se existe configuração anterior, fazer backup
 if [ -f "$NGINX_CONFIG" ]; then
@@ -29,9 +29,9 @@ if [ -f "$NGINX_CONFIG" ]; then
 fi
 
 # Ler configuração existente para pegar SSL se existir
-if [ -f "/etc/nginx/sites-available/primecamp.cloud.conf" ]; then
-    SSL_CERT=$(grep "ssl_certificate" /etc/nginx/sites-available/primecamp.cloud.conf | head -1 | awk '{print $2}' | tr -d ';')
-    SSL_KEY=$(grep "ssl_certificate_key" /etc/nginx/sites-available/primecamp.cloud.conf | head -1 | awk '{print $2}' | tr -d ';')
+if [ -f "/etc/nginx/sites-available/ativafix.conf" ]; then
+    SSL_CERT=$(grep "ssl_certificate" /etc/nginx/sites-available/ativafix.conf | head -1 | awk '{print $2}' | tr -d ';')
+    SSL_KEY=$(grep "ssl_certificate_key" /etc/nginx/sites-available/ativafix.conf | head -1 | awk '{print $2}' | tr -d ';')
     
     if [ -n "$SSL_CERT" ] && [ -n "$SSL_KEY" ]; then
         echo "   ✅ Certificados SSL encontrados"
@@ -50,7 +50,7 @@ if [ "$USE_SSL" = true ]; then
 server {
     listen 80;
     listen [::]:80;
-    server_name primecamp.cloud www.primecamp.cloud;
+    server_name ativafix www.ativafix;
     
     # Redirecionar HTTP para HTTPS
     return 301 https://\$server_name\$request_uri;
@@ -59,7 +59,7 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name primecamp.cloud www.primecamp.cloud;
+    server_name ativafix www.ativafix;
     
     ssl_certificate $SSL_CERT;
     ssl_certificate_key $SSL_KEY;
@@ -103,8 +103,8 @@ server {
     }
     
     # Logs
-    access_log /var/log/nginx/primecamp.cloud.access.log;
-    error_log /var/log/nginx/primecamp.cloud.error.log;
+    access_log /var/log/nginx/ativafix.access.log;
+    error_log /var/log/nginx/ativafix.error.log;
 }
 EOF
 else
@@ -112,7 +112,7 @@ else
 server {
     listen 80;
     listen [::]:80;
-    server_name primecamp.cloud www.primecamp.cloud;
+    server_name ativafix www.ativafix;
     
     root /var/www/html;
     index index.html;
@@ -153,8 +153,8 @@ server {
     }
     
     # Logs
-    access_log /var/log/nginx/primecamp.cloud.access.log;
-    error_log /var/log/nginx/primecamp.cloud.error.log;
+    access_log /var/log/nginx/ativafix.access.log;
+    error_log /var/log/nginx/ativafix.error.log;
 }
 EOF
 fi
@@ -163,9 +163,9 @@ echo "   ✅ Configuração criada"
 
 echo ""
 echo "3️⃣ Removendo link antigo e criando novo..."
-sudo rm -f /etc/nginx/sites-enabled/primecamp.cloud
-sudo rm -f /etc/nginx/sites-enabled/primecamp.cloud.conf
-sudo ln -sf /etc/nginx/sites-available/primecamp.cloud.conf /etc/nginx/sites-enabled/primecamp.cloud.conf
+sudo rm -f /etc/nginx/sites-enabled/ativafix
+sudo rm -f /etc/nginx/sites-enabled/ativafix.conf
+sudo ln -sf /etc/nginx/sites-available/ativafix.conf /etc/nginx/sites-enabled/ativafix.conf
 echo "   ✅ Link criado"
 
 echo ""
@@ -197,7 +197,7 @@ sudo systemctl status nginx --no-pager -l | head -5
 echo ""
 echo "8️⃣ Testando..."
 echo "   Via HTTPS:"
-curl -s -H "Cache-Control: no-cache" https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -H "Cache-Control: no-cache" https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "✅ CONCLUÍDO!"
@@ -205,5 +205,5 @@ echo ""
 echo "📋 TESTE NO NAVEGADOR:"
 echo "   1. Feche TODAS as abas"
 echo "   2. Abra janela anônima (Ctrl+Shift+N)"
-echo "   3. Acesse: https://primecamp.cloud/integracoes"
+echo "   3. Acesse: https://app.ativafix.com/integracoes"
 

@@ -12,8 +12,8 @@ pm2 restart primecamp-api
 pm2 logs primecamp-api --lines 30
 
 # 4. Testar endpoint
-curl -X OPTIONS https://api.primecamp.cloud/api/functions/job-application-submit \
-  -H "Origin: https://primecamp.cloud" \
+curl -X OPTIONS https://api.ativafix.com/api/functions/job-application-submit \
+  -H "Origin: https://app.ativafix.com" \
   -H "Access-Control-Request-Method: POST" \
   -H "Access-Control-Request-Headers: idempotency-key" \
   -v

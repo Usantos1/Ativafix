@@ -37,7 +37,7 @@ fi
 
 echo ""
 echo "4️⃣ Verificando se os arquivos foram copiados para o Nginx..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 if [ -d "$NGINX_ROOT" ]; then
     if grep -r "showAlreadyAppliedModal" "$NGINX_ROOT" 2>/dev/null | head -1; then
         echo "✅ showAlreadyAppliedModal encontrado no diretório do Nginx"

@@ -8,12 +8,12 @@ echo ""
 echo "1️⃣ Verificando configuração do Nginx..."
 echo ""
 echo "Configuração de /api:"
-cat /etc/nginx/sites-available/primecamp.cloud.conf | grep -A 15 "location /api" || echo "Não encontrado"
+cat /etc/nginx/sites-available/ativafix.conf | grep -A 15 "location /api" || echo "Não encontrado"
 echo ""
 
 # 2. Verificar se Nginx está passando para localhost:3000
 echo "2️⃣ Verificando se Nginx está configurado para passar /api para localhost:3000..."
-if grep -q "proxy_pass.*3000" /etc/nginx/sites-available/primecamp.cloud.conf; then
+if grep -q "proxy_pass.*3000" /etc/nginx/sites-available/ativafix.conf; then
     echo "✅ Nginx está configurado para passar para porta 3000"
 else
     echo "⚠️  Nginx pode não estar configurado corretamente"
@@ -30,10 +30,10 @@ echo "   Status: $HTTP_CODE_LOCAL"
 echo "   Resposta: $BODY_LOCAL"
 echo ""
 
-# 4. Testar via Nginx (api.primecamp.cloud)
-echo "4️⃣ Testando rota via Nginx (api.primecamp.cloud)..."
-echo "   GET https://api.primecamp.cloud/api/admin/revenda/test"
-RESPONSE_NGINX=$(curl -s -w "\nHTTP_CODE:%{http_code}" https://api.primecamp.cloud/api/admin/revenda/test)
+# 4. Testar via Nginx (api.ativafix)
+echo "4️⃣ Testando rota via Nginx (api.ativafix)..."
+echo "   GET https://api.ativafix.com/api/admin/revenda/test"
+RESPONSE_NGINX=$(curl -s -w "\nHTTP_CODE:%{http_code}" https://api.ativafix.com/api/admin/revenda/test)
 HTTP_CODE_NGINX=$(echo "$RESPONSE_NGINX" | grep "HTTP_CODE" | cut -d: -f2)
 BODY_NGINX=$(echo "$RESPONSE_NGINX" | sed '/HTTP_CODE/d')
 echo "   Status: $HTTP_CODE_NGINX"

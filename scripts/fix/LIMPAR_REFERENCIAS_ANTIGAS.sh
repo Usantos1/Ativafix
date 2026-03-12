@@ -77,7 +77,7 @@ sudo systemctl reload nginx
 
 echo ""
 echo "8️⃣ Testando o que está sendo servido..."
-SERVED=$(curl -s https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u)
+SERVED=$(curl -s https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u)
 echo "   Arquivos referenciados no HTML servido:"
 echo "$SERVED"
 

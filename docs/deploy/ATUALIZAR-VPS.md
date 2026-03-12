@@ -5,7 +5,7 @@ Use estes passos **na VPS** (SSH no servidor). Banco: **PostgreSQL na VPS** (nã
 ## Deploy rápido (frontend)
 
 ```bash
-cd ~/primecamp-ofc && git pull origin main && npm install && npm run build && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo systemctl reload nginx
+cd ~/primecamp-ofc && git pull origin main && npm install && npm run build && sudo cp -r dist/* /var/www/ativafix/ && sudo systemctl reload nginx
 ```
 
 Ou passo a passo:
@@ -24,7 +24,7 @@ git pull origin main
 ```bash
 npm install
 npm run build
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 sudo systemctl reload nginx
 ```
 

@@ -64,5 +64,5 @@ curl -s http://localhost/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "1️⃣2️⃣ Testando via HTTPS..."
-curl -s -k https://localhost/ 2>/dev/null | grep -o 'assets/index-[^"]*\.js' | sort -u || curl -s https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -k https://localhost/ 2>/dev/null | grep -o 'assets/index-[^"]*\.js' | sort -u || curl -s https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 

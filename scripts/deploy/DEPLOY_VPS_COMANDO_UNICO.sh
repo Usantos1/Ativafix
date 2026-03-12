@@ -37,7 +37,7 @@ echo ""
 
 # 5. Limpar e copiar arquivos para Nginx
 echo "📦 4/7 Copiando arquivos para o Nginx..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Limpar cache do Nginx
 sudo rm -rf /var/cache/nginx/* 2>/dev/null || true

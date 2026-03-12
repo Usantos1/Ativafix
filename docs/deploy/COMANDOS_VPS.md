@@ -75,7 +75,7 @@ pm2 logs primecamp-api --lines 50
 pm2 logs primecamp --lines 100
 
 # Verificar se o endpoint está respondendo
-curl -X POST https://api.primecamp.cloud/api/upsert/kv_store_2c4defad \
+curl -X POST https://api.ativafix.com/api/upsert/kv_store_2c4defad \
   -H "Content-Type: application/json" \
   -d '{"data": {"key": "test", "value": {"test": true}}, "onConflict": "key"}'
 ```
@@ -83,7 +83,7 @@ curl -X POST https://api.primecamp.cloud/api/upsert/kv_store_2c4defad \
 ## Verificação Final
 
 1. **Limpe o cache do navegador** (Ctrl+Shift+R ou Cmd+Shift+R)
-2. Acesse a página de Integrações: `https://primecamp.cloud/integracoes`
+2. Acesse a página de Integrações: `https://app.ativafix.com/integracoes`
 3. Configure os Chat IDs do Telegram
 4. Verifique se está salvando sem erros no console do navegador (F12)
 

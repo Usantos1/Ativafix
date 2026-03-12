@@ -38,4 +38,4 @@ sudo rm -rf /var/lib/nginx/cache/*
 sudo systemctl reload nginx
 
 echo "✅ Deploy concluído com sucesso!"
-echo "🌐 Acesse: https://primecamp.cloud/financeiro"
+echo "🌐 Acesse: https://app.ativafix.com/financeiro"

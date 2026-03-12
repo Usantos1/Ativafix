@@ -12,7 +12,7 @@
 ## ⚡ Deploy Rápido (Uma Linha)
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && echo "✅ Deploy concluído!"
+cd /root/primecamp-ofc && git pull origin main && npm run build && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo chmod -R 755 /var/www/ativafix && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && echo "✅ Deploy concluído!"
 ```
 
 ---
@@ -50,18 +50,18 @@ sudo rm -rf /var/cache/nginx/*
 sudo find /var/cache/nginx -type f -delete
 
 # Remover TODOS os arquivos antigos do diretório web
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.*
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.*
 
 # Aguardar um segundo
 sleep 1
 
 # Copiar novos arquivos
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 # Ajustar permissões
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # Testar configuração do Nginx
 sudo nginx -t
@@ -74,10 +74,10 @@ sudo systemctl reload nginx
 
 ```bash
 # Verificar se os arquivos foram copiados
-ls -lh /var/www/primecamp.cloud/index.html
+ls -lh /var/www/ativafix/index.html
 
 # Verificar data de modificação
-stat /var/www/primecamp.cloud/index.html
+stat /var/www/ativafix/index.html
 
 # Verificar logs do Nginx (se necessário)
 sudo tail -f /var/log/nginx/error.log
@@ -123,7 +123,7 @@ pm2 logs primecamp-api --lines 20
 
 - [ ] Código atualizado (`git pull` executado)
 - [ ] Build do frontend concluído sem erros
-- [ ] Arquivos copiados para `/var/www/primecamp.cloud/`
+- [ ] Arquivos copiados para `/var/www/ativafix/`
 - [ ] Cache do Nginx limpo
 - [ ] Nginx recarregado sem erros
 - [ ] Cache do navegador limpo (Hard Refresh)
@@ -140,10 +140,10 @@ pm2 logs primecamp-api --lines 20
 
 ```bash
 # Forçar remoção completa
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.??*
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.??*
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
 sudo systemctl reload nginx
 ```
 
@@ -181,10 +181,10 @@ npm run build
 2. **Verificar se o build foi atualizado:**
    ```bash
    # Verificar data do index.html
-   ls -lh /var/www/primecamp.cloud/index.html
+   ls -lh /var/www/ativafix/index.html
    
    # Verificar hash dos arquivos JS
-   ls -lh /var/www/primecamp.cloud/assets/ | head -5
+   ls -lh /var/www/ativafix/assets/ | head -5
    ```
 
 3. **Forçar reload do Nginx:**
@@ -200,10 +200,10 @@ npm run build
 
 ```bash
 # Verificar arquivos no diretório web
-ls -la /var/www/primecamp.cloud/ | head -20
+ls -la /var/www/ativafix/ | head -20
 
 # Verificar assets
-ls -la /var/www/primecamp.cloud/assets/ | head -10
+ls -la /var/www/ativafix/assets/ | head -10
 
 # Verificar logs do Nginx
 sudo tail -20 /var/log/nginx/access.log

@@ -41,7 +41,7 @@ pm2 status
 echo ""
 echo "8. Testando token com logs..."
 echo "   Execute este comando em outro terminal:"
-echo "   curl -X GET 'https://api.primecamp.cloud/api/v1/produtos?limit=5' -H 'Authorization: Bearer 33db39d91ff563f1b71a8f026392ef3f1a281bb9d58b296de514083e98fba123'"
+echo "   curl -X GET 'https://api.ativafix.com/api/v1/produtos?limit=5' -H 'Authorization: Bearer 33db39d91ff563f1b71a8f026392ef3f1a281bb9d58b296de514083e98fba123'"
 echo ""
 echo "9. Monitorando logs em tempo real..."
 echo "   Execute: pm2 logs primecamp-api | grep -i 'token\|api'"

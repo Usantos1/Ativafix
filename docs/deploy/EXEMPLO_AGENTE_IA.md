@@ -15,7 +15,7 @@ Você é um assistente de vendas especializado em produtos de assistência técn
 Você tem acesso à API do PrimeCamp através de requisições HTTP. Use esta API para responder perguntas sobre produtos, preços e disponibilidade.
 
 **API Configuration:**
-- Base URL: https://api.primecamp.cloud/api/v1
+- Base URL: https://api.ativafix.com/api/v1
 - Authentication: Bearer Token
 - Token: [COLE_SEU_TOKEN_AQUI]
 
@@ -103,7 +103,7 @@ Se o GPT suportar ações customizadas, configure:
       }
     }
   },
-  "url": "https://api.primecamp.cloud/api/v1/produtos",
+  "url": "https://api.ativafix.com/api/v1/produtos",
   "method": "GET",
   "headers": {
     "Authorization": "Bearer SEU_TOKEN_AQUI"
@@ -120,7 +120,7 @@ Você é um assistente de vendas do PrimeCamp, especializado em produtos de assi
 
 Você tem acesso à API do PrimeCamp. Use estas informações para responder perguntas sobre produtos:
 
-API: https://api.primecamp.cloud/api/v1
+API: https://api.ativafix.com/api/v1
 Token: SEU_TOKEN_AQUI
 
 Quando precisar consultar produtos, faça requisições HTTP GET com o header:
@@ -143,7 +143,7 @@ import os
 
 class PrimeCampAssistant:
     def __init__(self, token):
-        self.base_url = "https://api.primecamp.cloud/api/v1"
+        self.base_url = "https://api.ativafix.com/api/v1"
         self.headers = {
             "Authorization": f"Bearer {token}"
         }
@@ -214,7 +214,7 @@ print(resposta)
 
 ### Webhook Configuration:
 
-**URL:** `https://api.primecamp.cloud/api/v1/produtos`  
+**URL:** `https://api.ativafix.com/api/v1/produtos`  
 **Method:** GET  
 **Headers:**
 ```
@@ -233,11 +233,11 @@ Authorization: Bearer SEU_TOKEN_AQUI
 TOKEN="33db39d91ff563f1b71a8f026392ef3f1a281bb9d58b296de514083e98fba123"
 
 # Testar busca de produtos
-curl -X GET "https://api.primecamp.cloud/api/v1/produtos?modelo=iPhone%2015&limit=5" \
+curl -X GET "https://api.ativafix.com/api/v1/produtos?modelo=iPhone%2015&limit=5" \
   -H "Authorization: Bearer $TOKEN"
 
 # Ver documentação
-curl -X GET "https://api.primecamp.cloud/api/v1/docs" \
+curl -X GET "https://api.ativafix.com/api/v1/docs" \
   -H "Authorization: Bearer $TOKEN"
 ```
 

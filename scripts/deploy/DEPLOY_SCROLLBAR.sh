@@ -15,7 +15,7 @@ npm run build
 
 echo ""
 echo "3️⃣ Detectando diretório do Nginx..."
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "/var/www/primecamp.cloud")
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "/var/www/ativafix")
 
 echo ""
 echo "4️⃣ Deploy para $NGINX_ROOT..."
@@ -29,5 +29,5 @@ sudo systemctl reload nginx
 
 echo ""
 echo "✅ Deploy concluído!"
-echo "🌐 Acesse: https://primecamp.cloud/financeiro"
+echo "🌐 Acesse: https://app.ativafix.com/financeiro"
 echo "💡 No navegador: Ctrl+Shift+R (hard refresh)"

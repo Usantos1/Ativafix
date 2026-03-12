@@ -51,19 +51,19 @@ echo "✅ Diretório dist/ existe."
 
 echo ""
 echo "6️⃣ Limpando diretório do Nginx..."
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.* 2>/dev/null || true
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.* 2>/dev/null || true
 echo "✅ Diretório limpo."
 
 echo ""
 echo "7️⃣ Copiando arquivos para o Nginx..."
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 echo "✅ Arquivos copiados."
 
 echo ""
 echo "8️⃣ Ajustando permissões..."
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 echo "✅ Permissões ajustadas."
 
 echo ""
@@ -77,9 +77,9 @@ echo ""
 echo "🎉 DEPLOY COMPLETO FINALIZADO!"
 echo ""
 echo "📋 PRÓXIMOS PASSOS NO NAVEGADOR:"
-echo "1. Feche TODAS as abas do primecamp.cloud"
+echo "1. Feche TODAS as abas do ativafix"
 echo "2. Limpe o cache do navegador completamente (Ctrl+Shift+Delete)"
 echo "3. Ou use modo anônimo/privado (Ctrl+Shift+N)"
-echo "4. Acesse: https://primecamp.cloud/vaga/atendente-cs"
+echo "4. Acesse: https://app.ativafix.com/vaga/atendente-cs"
 echo "5. O erro showAlreadyAppliedModal deve desaparecer"
 echo ""

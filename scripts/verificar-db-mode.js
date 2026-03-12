@@ -55,7 +55,7 @@ try {
   if (buildIndex.includes('gogxicjaqpqbhsfzutij.supabase.co')) {
     console.log('   ⚠️  Build parece estar usando Supabase');
   }
-  if (buildIndex.includes('api.primecamp.cloud') || buildIndex.includes('localhost:3000')) {
+  if (buildIndex.includes('api.ativafix.com') || buildIndex.includes('localhost:3000')) {
     console.log('   ✅ Build parece estar usando PostgreSQL');
   }
 } catch (e) {

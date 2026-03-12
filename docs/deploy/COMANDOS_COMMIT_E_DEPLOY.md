@@ -51,14 +51,14 @@ npm run build
 sudo rm -rf /var/cache/nginx/*
 
 # Remover arquivos antigos
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.*
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.*
 sleep 1
 
 # Copiar novos arquivos
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # Recarregar Nginx
 sudo nginx -t

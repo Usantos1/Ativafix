@@ -44,5 +44,5 @@ sudo systemctl reload nginx
 
 echo ""
 echo "8️⃣ Testando..."
-curl -s https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 

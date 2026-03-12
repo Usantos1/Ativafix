@@ -4,8 +4,8 @@ echo ""
 
 echo "1️⃣ Verificando configuração do Nginx..."
 echo "Diretório root configurado:"
-sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | head -1
-sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-enabled/primecamp.cloud* 2>/dev/null | grep "root" | head -1
+sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | head -1
+sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-enabled/ativafix* 2>/dev/null | grep "root" | head -1
 
 echo ""
 echo "2️⃣ Verificando se index.html existe..."

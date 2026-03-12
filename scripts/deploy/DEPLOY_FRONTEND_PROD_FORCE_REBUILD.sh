@@ -31,12 +31,12 @@ echo "✅ Build concluído."
 # Detectar diretório do Nginx
 echo ""
 echo "4️⃣ Detectando diretório do Nginx..."
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-enabled/primecamp.cloud* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
+  NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-enabled/ativafix* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
 fi
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT="/var/www/primecamp.cloud"
+  NGINX_ROOT="/var/www/ativafix"
 fi
 
 echo "📁 Diretório do Nginx: $NGINX_ROOT"
@@ -80,6 +80,6 @@ echo "✅ Nginx recarregado."
 
 echo ""
 echo "✅ Deploy FORÇADO concluído!"
-echo "🌐 Acesse: https://primecamp.cloud/vaga/Aux-tecnico"
+echo "🌐 Acesse: https://app.ativafix.com/vaga/Aux-tecnico"
 echo "💡 IMPORTANTE: Use modo anônimo (Ctrl+Shift+N) e limpe o cache do navegador!"
 echo "   Ou pressione Ctrl+Shift+R para hard refresh"

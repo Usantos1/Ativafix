@@ -37,7 +37,7 @@ Isso significa que há um problema com o código fonte ou com o processo de buil
 ## 📋 Após o Deploy
 
 No navegador:
-1. Feche TODAS as abas do primecamp.cloud
+1. Feche TODAS as abas do ativafix
 2. Ctrl+Shift+Delete → Limpar cache completamente
 3. OU use modo anônimo (Ctrl+Shift+N)
-4. Acesse: https://primecamp.cloud/vaga/atendente-cs
+4. Acesse: https://app.ativafix.com/vaga/atendente-cs

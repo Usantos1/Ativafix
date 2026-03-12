@@ -32,8 +32,8 @@ echo "✅ Build concluído."
 # 4. Deploy do frontend
 echo ""
 echo "4️⃣ Copiando arquivos para o Nginx..."
-sudo rm -rf /var/www/primecamp.cloud/* 2>/dev/null || true
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo rm -rf /var/www/ativafix/* 2>/dev/null || true
+sudo cp -r dist/* /var/www/ativafix/
 echo "✅ Arquivos copiados."
 
 # 5. Reload Nginx

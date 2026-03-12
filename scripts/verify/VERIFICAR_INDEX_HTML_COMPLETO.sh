@@ -4,7 +4,7 @@ echo "🔍 VERIFICANDO INDEX.HTML COMPLETO NO SERVIDOR"
 echo "=============================================="
 echo ""
 
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 echo "1️⃣ Verificando qual arquivo JS o index.html referencia..."
 JS_REF=$(grep -o 'assets/index-[^"]*\.js' "$NGINX_ROOT/index.html" | head -1)

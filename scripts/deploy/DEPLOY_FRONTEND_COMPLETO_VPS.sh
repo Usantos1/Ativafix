@@ -25,7 +25,7 @@ echo "✅ Build concluído."
 
 echo ""
 echo "3️⃣ Copiando arquivos para o Nginx..."
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 if [ $? -ne 0 ]; then
     echo "❌ Erro ao copiar arquivos."
     exit 1

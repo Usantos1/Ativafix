@@ -53,7 +53,7 @@ echo ""
 
 # 7. Limpar e copiar arquivos para Nginx
 echo "📦 6/8 Copiando arquivos para o Nginx..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Limpar diretório do Nginx COMPLETAMENTE
 sudo rm -rf "$NGINX_ROOT"/* 2>/dev/null || true

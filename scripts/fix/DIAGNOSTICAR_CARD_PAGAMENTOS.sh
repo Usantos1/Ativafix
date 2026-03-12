@@ -53,7 +53,7 @@ fi
 echo ""
 
 echo "5️⃣ Verificando arquivos no servidor web..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 if [ -f "$NGINX_ROOT/index.html" ]; then
     echo "   ✅ index.html existe no servidor"
     

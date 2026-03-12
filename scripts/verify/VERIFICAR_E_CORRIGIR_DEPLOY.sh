@@ -57,7 +57,7 @@ echo "$BUILD_RESULT" | head -3
 
 echo ""
 echo "6️⃣ Verificando arquivos atuais no Nginx..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 if [ -d "$NGINX_ROOT" ]; then
     OLD_BUILD=$(sudo grep -r "showAlreadyAppliedModal" "$NGINX_ROOT" 2>/dev/null | head -1 || echo "")
     if [ -n "$OLD_BUILD" ]; then
@@ -113,7 +113,7 @@ echo "  ✅ Build compilado: CONTÉM showAlreadyAppliedModal"
 echo "  ✅ Nginx: ATUALIZADO com novo build"
 echo ""
 echo "🌐 TESTE NO NAVEGADOR:"
-echo "  1. Feche TODAS as abas do primecamp.cloud"
+echo "  1. Feche TODAS as abas do ativafix"
 echo "  2. Use modo anônimo (Ctrl+Shift+N) OU limpe cache (Ctrl+Shift+Delete)"
-echo "  3. Acesse: https://primecamp.cloud/vaga/Aux-tecnico"
+echo "  3. Acesse: https://app.ativafix.com/vaga/Aux-tecnico"
 echo ""

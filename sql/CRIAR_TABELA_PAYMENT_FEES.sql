@@ -1,6 +1,6 @@
 -- =====================================================
 -- CRIAR TABELA payment_fees (taxas por forma de pagamento)
--- Execute este script no banco da API (ex.: api.primecamp.cloud)
+-- Execute este script no banco da API (ex.: api.ativafix.com)
 -- para corrigir o erro: relation "payment_fees" does not exist
 -- =====================================================
 

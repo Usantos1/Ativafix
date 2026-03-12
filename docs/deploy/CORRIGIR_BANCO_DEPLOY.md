@@ -30,11 +30,11 @@ pm2 restart primecamp-api
 cd ..
 npm install
 npm run build
-sudo rm -rf /var/cache/nginx/* /var/www/primecamp.cloud/* /var/www/primecamp.cloud/.*
+sudo rm -rf /var/cache/nginx/* /var/www/ativafix/* /var/www/ativafix/.*
 sleep 2
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 sudo nginx -t && sudo systemctl reload nginx
 ```
 

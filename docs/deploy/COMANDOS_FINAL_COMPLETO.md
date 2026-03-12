@@ -33,7 +33,7 @@ pm2 logs primecamp-api --lines 30
 cd /root/primecamp-ofc
 git pull origin main
 npm run build
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 sudo rm -rf "$NGINX_ROOT"/*
 sudo cp -r dist/* "$NGINX_ROOT/"
 sudo chown -R www-data:www-data "$NGINX_ROOT"

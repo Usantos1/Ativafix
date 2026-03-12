@@ -117,4 +117,4 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}🎉 Tudo pronto! Acesse https://primecamp.cloud/financeiro${NC}"
+echo -e "${GREEN}🎉 Tudo pronto! Acesse https://app.ativafix.com/financeiro${NC}"

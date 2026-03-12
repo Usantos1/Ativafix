@@ -89,19 +89,19 @@ echo "8️⃣ Verificando logs recentes do servidor..."
 pm2 logs primecamp-api --lines 30 --nostream | tail -30
 
 echo ""
-echo "9️⃣ Verificando configuração do Nginx para api.primecamp.cloud..."
-if [ -f /etc/nginx/sites-available/primecamp.cloud ]; then
-    if grep -q "api.primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud; then
-        echo "✅ Configuração do Nginx encontrada para api.primecamp.cloud"
+echo "9️⃣ Verificando configuração do Nginx para api.ativafix..."
+if [ -f /etc/nginx/sites-available/ativafix ]; then
+    if grep -q "api.ativafix" /etc/nginx/sites-available/ativafix; then
+        echo "✅ Configuração do Nginx encontrada para api.ativafix"
         echo "   Verificando se está habilitada..."
-        if [ -L /etc/nginx/sites-enabled/primecamp.cloud ]; then
+        if [ -L /etc/nginx/sites-enabled/ativafix ]; then
             echo "✅ Site habilitado no Nginx"
         else
             echo "⚠️  Site não está habilitado no Nginx"
-            echo "   Execute: sudo ln -s /etc/nginx/sites-available/primecamp.cloud /etc/nginx/sites-enabled/"
+            echo "   Execute: sudo ln -s /etc/nginx/sites-available/ativafix /etc/nginx/sites-enabled/"
         fi
     else
-        echo "⚠️  Configuração do Nginx não encontrada para api.primecamp.cloud"
+        echo "⚠️  Configuração do Nginx não encontrada para api.ativafix"
         echo "   Será necessário adicionar a configuração manualmente"
     fi
 else
@@ -114,6 +114,6 @@ echo ""
 echo "📋 PRÓXIMOS PASSOS:"
 echo "1. Se a API não estiver respondendo, verifique os logs acima"
 echo "2. Se o Nginx não estiver configurado, configure manualmente"
-echo "3. Teste a API externamente: curl https://api.primecamp.cloud/api/health"
+echo "3. Teste a API externamente: curl https://api.ativafix.com/api/health"
 echo ""
 

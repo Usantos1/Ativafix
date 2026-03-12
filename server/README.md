@@ -29,7 +29,7 @@ JWT_SECRET=your_jwt_secret_here_change_in_production
 PORT=3000
 
 # API Origin (URLs permitidas para CORS)
-VITE_API_ORIGIN=http://localhost:5173,http://localhost:8080,https://primecamp.cloud
+VITE_API_ORIGIN=http://localhost:5173,http://localhost:8080,https://app.ativafix.com
 
 # Storage Configuration (opcional)
 STORAGE_BASE_URL=http://localhost:3000/uploads

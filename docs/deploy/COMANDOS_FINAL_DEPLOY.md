@@ -67,7 +67,7 @@ grep -r "DashboardExecutivo\|/financeiro" /var/www/html/assets/*.js | head -5
    ```
 
 2. **Frontend:**
-   - Acesse: `https://primecamp.cloud/financeiro`
+   - Acesse: `https://app.ativafix.com/financeiro`
    - Deve carregar o Dashboard Executivo (não "Página em Construção")
    - Limpe cache do navegador: `Ctrl + Shift + R`
 

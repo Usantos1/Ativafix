@@ -41,7 +41,7 @@ sudo chmod -R 755 /var/www/html/
 
 echo ""
 echo "6️⃣ Verificando configuração do Nginx..."
-NGINX_CONFIG="/etc/nginx/sites-available/primecamp.cloud.conf"
+NGINX_CONFIG="/etc/nginx/sites-available/ativafix.conf"
 
 if [ ! -f "$NGINX_CONFIG" ]; then
     echo "⚠️  Configuração do Nginx não encontrada em $NGINX_CONFIG"
@@ -51,7 +51,7 @@ if [ ! -f "$NGINX_CONFIG" ]; then
 server {
     listen 80;
     listen [::]:80;
-    server_name primecamp.cloud www.primecamp.cloud;
+    server_name ativafix www.ativafix;
     
     root /var/www/html;
     index index.html;
@@ -72,14 +72,14 @@ server {
         add_header Cache-Control "public, immutable";
     }
     
-    access_log /var/log/nginx/primecamp.cloud.access.log;
-    error_log /var/log/nginx/primecamp.cloud.error.log;
+    access_log /var/log/nginx/ativafix.access.log;
+    error_log /var/log/nginx/ativafix.error.log;
 }
 EOF
 
     # Criar link simbólico
-    sudo rm -f /etc/nginx/sites-enabled/primecamp.cloud.conf
-    sudo ln -sf "$NGINX_CONFIG" /etc/nginx/sites-enabled/primecamp.cloud.conf
+    sudo rm -f /etc/nginx/sites-enabled/ativafix.conf
+    sudo ln -sf "$NGINX_CONFIG" /etc/nginx/sites-enabled/ativafix.conf
     echo "   ✅ Configuração criada"
 fi
 
@@ -118,5 +118,5 @@ echo "Verificando arquivos em /var/www/html:"
 ls -lah /var/www/html/ | head -10
 
 echo ""
-echo "Teste acessando: https://primecamp.cloud/rh"
+echo "Teste acessando: https://app.ativafix.com/rh"
 

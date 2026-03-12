@@ -11,8 +11,8 @@ echo "🚀 Iniciando deploy do fix scrollbar..."
 # Detectar diretório nginx
 NGINX_ROOT=$(grep -r "root " /etc/nginx/sites-enabled/*.conf 2>/dev/null | grep -v "#" | head -1 | awk '{print $2}' | sed 's/;$//' | sed 's/;.*$//')
 if [ -z "$NGINX_ROOT" ]; then
-    if [ -d "/var/www/primecamp.cloud" ]; then
-        NGINX_ROOT="/var/www/primecamp.cloud"
+    if [ -d "/var/www/ativafix" ]; then
+        NGINX_ROOT="/var/www/ativafix"
     elif [ -d "/var/www/html" ]; then
         NGINX_ROOT="/var/www/html"
     else
@@ -55,4 +55,4 @@ echo "💡 IMPORTANTE: Faça hard refresh no navegador:"
 echo "   - Windows/Linux: Ctrl+Shift+R ou Ctrl+F5"
 echo "   - Mac: Cmd+Shift+R"
 echo ""
-echo "📍 Teste: https://primecamp.cloud/financeiro"
+echo "📍 Teste: https://app.ativafix.com/financeiro"

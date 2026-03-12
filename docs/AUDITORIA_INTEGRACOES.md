@@ -32,7 +32,7 @@ Na página **Integrações** (`/integracoes`, `src/pages/Integration.tsx`) exist
   Lista de eventos (Nova Tarefa Criada, Mudança de Status, etc.). Salva na config, mas **nenhum endpoint** no `server` lê essa lista. Ou seja, a escolha de “eventos que disparam notificações” não tem efeito hoje.
 
 - **`webhookUrl`**  
-  Faz parte do estado e é salvo no mesmo objeto de integração. Na UI, porém, a **URL exibida é fixa** (`https://primecamp.cloud/api/webhook`). Nada no código usa `settings.webhookUrl`. O fluxo real de webhooks é o **WebhookManager** (URLs do tipo `/api/webhook/leads/{key}`).
+  Faz parte do estado e é salvo no mesmo objeto de integração. Na UI, porém, a **URL exibida é fixa** (`https://app.ativafix.com/api/webhook`). Nada no código usa `settings.webhookUrl`. O fluxo real de webhooks é o **WebhookManager** (URLs do tipo `/api/webhook/leads/{key}`).
 
 **Recomendações:**  
 - Remover da UI (e do tipo/estado) os campos que não serão implementados em curto prazo, **ou** documentar como “reservado para uso futuro” e não persistir no mesmo objeto que o backend lê.  

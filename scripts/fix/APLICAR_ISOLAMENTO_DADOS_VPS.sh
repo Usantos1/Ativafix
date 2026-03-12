@@ -42,7 +42,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Copiar build para nginx
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 sudo systemctl reload nginx
 echo "✅ Frontend atualizado."
 

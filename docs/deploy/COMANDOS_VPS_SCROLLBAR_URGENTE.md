@@ -27,7 +27,7 @@ git pull origin main
 npm run build
 
 # 3. Deploy
-NGINX_ROOT="/var/www/primecamp.cloud"  # ou "/var/www/html"
+NGINX_ROOT="/var/www/ativafix"  # ou "/var/www/html"
 sudo rm -rf "$NGINX_ROOT"/*
 sudo cp -r dist/* "$NGINX_ROOT"/
 sudo chown -R www-data:www-data "$NGINX_ROOT"
@@ -47,6 +47,6 @@ sudo systemctl reload nginx
 **Após o deploy, FAÇA:**
 1. **Hard refresh no navegador:** `Ctrl+Shift+R` ou `Ctrl+F5`
 2. **OU abra em aba anônima/privada** para testar sem cache
-3. **Teste em:** https://primecamp.cloud/financeiro/transacoes
+3. **Teste em:** https://app.ativafix.com/financeiro/transacoes
 
 O scrollbar agora está aplicado **globalmente** em TODOS os elementos com overflow, então deve aparecer em todas as páginas!

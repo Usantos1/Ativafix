@@ -12,10 +12,10 @@ cd /root/primecamp-ofc
 git pull origin main
 rm -rf dist node_modules/.vite node_modules/.cache .vite .cache
 npm run build
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 sudo rm -rf /var/cache/nginx/* /var/lib/nginx/cache/* /tmp/nginx_cache/*
 sudo systemctl reload nginx
 ```

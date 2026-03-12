@@ -4,7 +4,7 @@ echo "🔧 CORRIGINDO 404 EM ASSETS"
 echo "============================"
 echo ""
 
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 echo "1️⃣ Verificando se o arquivo existe..."
 if [ -f "$NGINX_ROOT/assets/index-B2StyxFt.js" ]; then
@@ -25,7 +25,7 @@ echo "   ✅ Permissões ajustadas"
 
 echo ""
 echo "3️⃣ Verificando configuração do Nginx..."
-NGINX_CONFIG="/etc/nginx/sites-available/primecamp.cloud"
+NGINX_CONFIG="/etc/nginx/sites-available/ativafix"
 if [ -f "$NGINX_CONFIG" ]; then
     echo "   Verificando se há location /assets..."
     if grep -q "location /assets" "$NGINX_CONFIG"; then
@@ -39,7 +39,7 @@ if [ -f "$NGINX_CONFIG" ]; then
 else
     echo "   ⚠️ Arquivo de configuração não encontrado"
     echo "   Procurando em sites-enabled..."
-    NGINX_CONFIG_ENABLED="/etc/nginx/sites-enabled/primecamp.cloud"
+    NGINX_CONFIG_ENABLED="/etc/nginx/sites-enabled/ativafix"
     if [ -f "$NGINX_CONFIG_ENABLED" ]; then
         echo "   ✅ Encontrado em sites-enabled"
         if grep -q "location /assets" "$NGINX_CONFIG_ENABLED"; then

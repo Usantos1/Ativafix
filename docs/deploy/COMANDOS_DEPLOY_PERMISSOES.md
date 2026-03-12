@@ -3,7 +3,7 @@
 ## ⚡ Deploy Rápido (Uma Linha)
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && echo "✅ Deploy concluído!"
+cd /root/primecamp-ofc && git pull origin main && npm run build && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo chmod -R 755 /var/www/ativafix && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && echo "✅ Deploy concluído!"
 ```
 
 ## 📋 O que foi corrigido:
@@ -48,14 +48,14 @@ git pull origin main
 npm run build
 
 # 5. Limpar diretório de deploy
-sudo rm -rf /var/www/primecamp.cloud/*
+sudo rm -rf /var/www/ativafix/*
 
 # 6. Copiar arquivos buildados
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 # 7. Ajustar permissões
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # 8. Limpar cache do Nginx
 sudo rm -rf /var/cache/nginx/*

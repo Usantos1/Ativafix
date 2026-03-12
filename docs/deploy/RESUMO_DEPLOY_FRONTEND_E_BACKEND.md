@@ -36,20 +36,20 @@ cd /root/primecamp-ofc
 git pull origin main
 rm -rf dist node_modules/.vite node_modules/.cache .vite
 npm run build
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 sudo rm -rf /var/cache/nginx/* /var/lib/nginx/cache/*
 sudo systemctl reload nginx
 ```
 
 ### 3. NO NAVEGADOR (Após deploy)
 
-1. Feche TODAS as abas do primecamp.cloud
+1. Feche TODAS as abas do ativafix
 2. Ctrl+Shift+Delete → Limpar cache completamente
 3. OU use modo anônimo (Ctrl+Shift+N)
-4. Acesse: https://primecamp.cloud/vaga/Aux-tecnico
+4. Acesse: https://app.ativafix.com/vaga/Aux-tecnico
 
 ## 📋 Comandos Rápidos
 
@@ -60,7 +60,7 @@ cd /root/primecamp-ofc && git pull origin main && pm2 restart primecamp-api
 
 ### Frontend apenas:
 ```bash
-cd /root/primecamp-ofc && git pull origin main && rm -rf dist node_modules/.vite && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo systemctl reload nginx
+cd /root/primecamp-ofc && git pull origin main && rm -rf dist node_modules/.vite && npm run build && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo systemctl reload nginx
 ```
 
 ## ✅ Verificação

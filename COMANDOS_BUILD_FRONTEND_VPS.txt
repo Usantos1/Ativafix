@@ -17,8 +17,8 @@ npm install
 npm run build
 
 # 4. Copiar arquivos compilados para o diretório do Nginx
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
 
 # 5. Recarregar Nginx
 sudo systemctl reload nginx

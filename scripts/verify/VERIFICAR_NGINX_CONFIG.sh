@@ -10,8 +10,8 @@ echo "   Arquivos em sites-enabled:"
 ls -la "$NGINX_SITES" | grep primecamp
 
 echo ""
-echo "2️⃣ Verificando configuração do primecamp.cloud..."
-NGINX_CONFIG="/etc/nginx/sites-available/primecamp.cloud"
+echo "2️⃣ Verificando configuração do ativafix..."
+NGINX_CONFIG="/etc/nginx/sites-available/ativafix"
 if [ -f "$NGINX_CONFIG" ]; then
     echo "   ✅ Arquivo encontrado: $NGINX_CONFIG"
     echo ""
@@ -20,7 +20,7 @@ if [ -f "$NGINX_CONFIG" ]; then
 else
     echo "   ❌ Arquivo não encontrado!"
     echo "   Procurando em sites-enabled..."
-    NGINX_CONFIG_ENABLED="/etc/nginx/sites-enabled/primecamp.cloud"
+    NGINX_CONFIG_ENABLED="/etc/nginx/sites-enabled/ativafix"
     if [ -f "$NGINX_CONFIG_ENABLED" ]; then
         echo "   ✅ Encontrado em sites-enabled"
         echo ""
@@ -57,7 +57,7 @@ fi
 
 echo ""
 echo "5️⃣ Testando acesso HTTPS direto..."
-curl -I https://primecamp.cloud/assets/index-B2StyxFt.js 2>&1 | head -10
+curl -I https://app.ativafix.com/assets/index-B2StyxFt.js 2>&1 | head -10
 
 echo ""
 echo "✅ Verificação concluída!"

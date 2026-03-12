@@ -5,7 +5,7 @@ echo "VERIFICANDO CONFIGURAÇÃO NGINX PARA API"
 echo "=========================================="
 
 echo ""
-echo "1. Procurando configuração do Nginx para api.primecamp.cloud..."
+echo "1. Procurando configuração do Nginx para api.ativafix..."
 find /etc/nginx -name "*api*" -o -name "*primecamp*" 2>/dev/null | head -5
 
 echo ""

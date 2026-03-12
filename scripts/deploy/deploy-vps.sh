@@ -16,7 +16,7 @@ echo ">>> Build frontend..."
 npm run build
 
 echo ">>> Copiando dist para nginx..."
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 echo ">>> Reiniciando API (para carregar server/index.js)..."
 sudo systemctl restart primecamp-api || true

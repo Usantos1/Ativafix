@@ -2,15 +2,15 @@
 
 **Use estes comandos na VPS** (SSH no servidor). O `cd` no início é obrigatório para funcionar de qualquer diretório.
 
-**Domínios:** o sistema (login, dashboard, OS, cupom) fica em **app.ativafix.com**; **ativafix.com** mostra a **landing de vendas em React** (mesma build do app). No Nginx, **ativafix.com** e **app.ativafix.com** devem usar o **mesmo** `root` (ex.: `/var/www/primecamp.cloud`): o build único decide pelo hostname — em ativafix.com exibe a LP, em app.ativafix.com exibe o app. Um único deploy atualiza os dois. Na API: `FRONTEND_URL=https://app.ativafix.com` no `.env`.
+**Domínios:** o sistema (login, dashboard, OS, cupom) fica em **app.ativafix.com**; **ativafix.com** mostra a **landing de vendas em React** (mesma build do app). No Nginx, **ativafix.com** e **app.ativafix.com** devem usar o **mesmo** `root` (ex.: `/var/www/ativafix`): o build único decide pelo hostname — em ativafix.com exibe a LP, em app.ativafix.com exibe o app. Um único deploy atualiza os dois. Na API: `FRONTEND_URL=https://app.ativafix.com` no `.env`.
 
 ## Uma linha (copiar inteiro, incluindo a aspas final do echo)
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* 2>/dev/null; sudo systemctl reload nginx && cd server && npm install --production && pm2 restart primecamp-api && cd .. && echo "Deploy concluido!"
+cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo chmod -R 755 /var/www/ativafix && sudo rm -rf /var/cache/nginx/* 2>/dev/null; sudo systemctl reload nginx && cd server && npm install --production && pm2 restart primecamp-api && cd .. && echo "Deploy concluido!"
 ```
 
-**Atenção:** use o comando inteiro; não corte no meio. O path correto é **`/var/www/primecamp.cloud`** (com `.cloud`). Se aparecer `chown: cannot access '/var/www/primecamp'`, o path está errado e o deploy não conclui (404). A parte do Nginx usa `;` de propósito (reload roda mesmo se o cache não existir).
+**Atenção:** use o comando inteiro; não corte no meio. O path do frontend é **`/var/www/ativafix`**. Se aparecer erro de `chown` ou 404, crie a pasta com `sudo mkdir -p /var/www/ativafix` e confira o Nginx. A parte do Nginx usa `;` de propósito (reload roda mesmo se o cache não existir).
 
 ## Em vários passos (se a uma linha falhar ou para ver em qual passo deu erro)
 
@@ -19,10 +19,10 @@ cd /root/primecamp-ofc
 git pull origin main
 npm install
 npm run build
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 sudo rm -rf /var/cache/nginx/* 2>/dev/null
 sudo systemctl reload nginx
 cd server
@@ -40,7 +40,7 @@ Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd`
 2. `git pull origin main` – atualiza o código  
 3. `npm install` – dependências do frontend (raiz)  
 4. `npm run build` – build do frontend  
-5. Limpa e copia `dist/*` para `/var/www/primecamp.cloud/`  
+5. Limpa e copia `dist/*` para `/var/www/ativafix/`  
 6. Ajusta dono e permissões  
 7. Limpa cache do Nginx e recarrega  
 8. `cd server` → `npm install --production` → `pm2 restart primecamp-api` → `cd ..`
@@ -70,11 +70,27 @@ Isso acontece quando **ativafix.com** está apontando para outro `root` no Nginx
 
 1. Abra o config do Nginx: `sudo nano /etc/nginx/sites-available/ativafix`
 2. No bloco `server` de **ativafix.com** (e www.ativafix.com), o `root` tem que ser **igual** ao de app.ativafix.com:
-   - `root /var/www/primecamp.cloud;`
+   - `root /var/www/ativafix;`
 3. Não use outra pasta só para ativafix.com (ex.: `/var/www/ativafix.com` ou `/var/www/landing`). Os dois domínios devem usar **o mesmo** `root`.
 4. Salve, teste: `sudo nginx -t` e depois `sudo systemctl reload nginx`.
-5. Rode o deploy de novo (build + copiar para `/var/www/primecamp.cloud`).
+5. Rode o deploy de novo (build + copiar para `/var/www/ativafix`).
 6. Abra https://ativafix.com em aba anônima ou com cache limpo (Ctrl+Shift+R). Deve aparecer a LP em React (hero verde, dores, recursos, CTA WhatsApp).
+
+**Diagnóstico na VPS (ver se os dois domínios servem o mesmo arquivo):**
+```bash
+# Os dois devem devolver o MESMO index.html (com script src="/assets/...")
+curl -sI https://ativafix.com | head -3
+curl -sI https://app.ativafix.com | head -3
+curl -s https://ativafix.com 2>/dev/null | head -20
+curl -s https://app.ativafix.com 2>/dev/null | head -20
+```
+Se o corpo de ativafix.com for diferente (ex.: texto "em construção" ou outro HTML), o Nginx está com `root` diferente para ativafix.com — corrija para `root /var/www/ativafix;` no bloco de ativafix.com.
+
+**Correção em uma linha (na VPS):** trocar `ativafix-lp` por `ativafix` no config do ativafix.com e recarregar o Nginx:
+```bash
+sudo sed -i 's|root /var/www/ativafix-lp;|root /var/www/ativafix;|g' /etc/nginx/sites-available/ativafix && sudo nginx -t && sudo systemctl reload nginx
+```
+Depois abra https://ativafix.com em aba anônima — deve carregar a LP em React (hero verde).
 
 **Painel de Alertas:** para o Painel de Alertas funcionar, rode **uma vez** no banco usado pela API a migração `db/migrations/manual/PAINEL_ALERTAS_TABELAS.sql`. Se a API estiver em "errored" com muitos restarts, veja a seção "PM2 em erro / API caindo" abaixo.
 
@@ -159,13 +175,13 @@ cd /root/primecamp-ofc && git pull origin main && cd server && npm install --pro
 
 Se ainda falhar, force reinstalação: `cd server && rm -rf node_modules && npm install --production && pm2 restart primecamp-api`
 
-## Se deu 404 ou "chown: cannot access '/var/www/primecamp'"
+## Se deu 404 ou erro de chown no path do frontend
 
-O path certo é **`/var/www/primecamp.cloud`** (com `.cloud`). Criar a pasta se não existir e rodar só a parte do frontend:
+O path do frontend é **`/var/www/ativafix`**. Criar a pasta se não existir e rodar só a parte do frontend:
 
 ```bash
-sudo mkdir -p /var/www/primecamp.cloud
-cd /root/primecamp-ofc && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo systemctl reload nginx && echo "Frontend atualizado!"
+sudo mkdir -p /var/www/ativafix
+cd /root/primecamp-ofc && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo chmod -R 755 /var/www/ativafix && sudo systemctl reload nginx && echo "Frontend atualizado!"
 ```
 
 Se o build já foi feito antes, isso já resolve. Se não, rode o deploy completo (comando de uma linha no topo) com atenção ao path.

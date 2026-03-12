@@ -87,7 +87,7 @@ echo "   1. No navegador, abra DevTools (F12)"
 echo "   2. Vá em Application/Storage → Clear storage"
 echo "   3. Marque tudo e clique em 'Clear site data'"
 echo "   4. OU use modo anônimo: Ctrl+Shift+N"
-echo "   5. Acesse: https://primecamp.cloud/integracoes"
+echo "   5. Acesse: https://app.ativafix.com/integracoes"
 echo "   6. Abra Network tab e verifique qual arquivo JS está sendo carregado"
 echo "   7. Deve ser: index-B3J_Mk_8.js (não index-ecSPLH9U.js)"
 

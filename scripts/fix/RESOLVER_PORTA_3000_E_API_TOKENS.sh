@@ -105,7 +105,7 @@ echo "════════════════════════�
 echo ""
 echo "📋 PRÓXIMOS PASSOS:"
 echo "1. Se a rota de teste funcionou, teste no navegador:"
-echo "   https://api.primecamp.cloud/api/api-tokens/test"
+echo "   https://api.ativafix.com/api/api-tokens/test"
 echo ""
 echo "2. Se ainda não funcionar, verifique:"
 echo "   pm2 logs primecamp-api --lines 100"

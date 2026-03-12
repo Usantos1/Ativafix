@@ -10,8 +10,8 @@ echo "🚀 DEPLOY URGENTE - Fix Scrollbar..."
 
 # Detectar diretório nginx (com fallbacks seguros)
 NGINX_ROOT=""
-if [ -d "/var/www/primecamp.cloud" ]; then
-    NGINX_ROOT="/var/www/primecamp.cloud"
+if [ -d "/var/www/ativafix" ]; then
+    NGINX_ROOT="/var/www/ativafix"
 elif [ -d "/var/www/html" ]; then
     NGINX_ROOT="/var/www/html"
 else
@@ -96,4 +96,4 @@ echo "   - Windows/Linux: Ctrl+Shift+R ou Ctrl+F5"
 echo "   - Mac: Cmd+Shift+R"
 echo "   - Ou abra em aba anônima/privada"
 echo ""
-echo "📍 Teste: https://primecamp.cloud/financeiro/transacoes"
+echo "📍 Teste: https://app.ativafix.com/financeiro/transacoes"

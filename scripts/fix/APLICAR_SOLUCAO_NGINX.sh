@@ -96,7 +96,7 @@ curl -s http://localhost/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "   Via HTTPS:"
-curl -s -H "Cache-Control: no-cache" https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -H "Cache-Control: no-cache" https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "✅ SOLUÇÃO APLICADA!"
@@ -104,6 +104,6 @@ echo ""
 echo "📋 TESTE NO NAVEGADOR:"
 echo "   1. Feche TODAS as abas"
 echo "   2. Abra janela anônima (Ctrl+Shift+N)"
-echo "   3. Acesse: https://primecamp.cloud/integracoes"
+echo "   3. Acesse: https://app.ativafix.com/integracoes"
 echo "   4. Deve estar igual ao localhost agora"
 

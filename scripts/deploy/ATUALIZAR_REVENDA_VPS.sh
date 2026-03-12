@@ -39,5 +39,5 @@ echo "📋 Para ver logs em tempo real, execute:"
 echo "   pm2 logs primecamp-api --lines 50 | grep -i 'revenda\|users\|erro'"
 echo ""
 echo "🔍 Para testar a rota de usuários, execute:"
-echo "   curl -H 'Authorization: Bearer SEU_TOKEN' https://api.primecamp.cloud/api/admin/revenda/companies/ID_EMPRESA/users"
+echo "   curl -H 'Authorization: Bearer SEU_TOKEN' https://api.ativafix.com/api/admin/revenda/companies/ID_EMPRESA/users"
 

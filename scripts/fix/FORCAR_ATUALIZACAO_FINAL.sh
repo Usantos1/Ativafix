@@ -35,7 +35,7 @@ sleep 2
 
 echo ""
 echo "6️⃣ Testando..."
-curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "✅ CONCLUÍDO!"
@@ -43,6 +43,6 @@ echo ""
 echo "📋 TESTE NO NAVEGADOR AGORA:"
 echo "   1. Feche TODAS as abas"
 echo "   2. Abra janela anônima (Ctrl+Shift+N)"
-echo "   3. Acesse: https://primecamp.cloud/integracoes"
+echo "   3. Acesse: https://app.ativafix.com/integracoes"
 echo "   4. A seção 'Integração Telegram' deve aparecer"
 

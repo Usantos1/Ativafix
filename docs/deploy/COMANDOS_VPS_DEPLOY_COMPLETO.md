@@ -59,15 +59,15 @@ npm run build:prod
 ### 6. Copiar arquivos buildados para Nginx
 ```bash
 # Copiar arquivos do build para o diretório do Nginx
-cp -r dist/* /var/www/primecamp.cloud/
+cp -r dist/* /var/www/ativafix/
 # ou
-cp -r build/* /var/www/primecamp.cloud/
+cp -r build/* /var/www/ativafix/
 # ou
-rsync -av --delete dist/ /var/www/primecamp.cloud/
+rsync -av --delete dist/ /var/www/ativafix/
 
 # Ajustar permissões
-chown -R www-data:www-data /var/www/primecamp.cloud/
-chmod -R 755 /var/www/primecamp.cloud/
+chown -R www-data:www-data /var/www/ativafix/
+chmod -R 755 /var/www/ativafix/
 ```
 
 ### 7. Reiniciar Backend (PM2)
@@ -149,9 +149,9 @@ npm run build
 
 # 4. Copiar para Nginx
 echo "📦 Copiando arquivos..."
-cp -r dist/* /var/www/primecamp.cloud/
-chown -R www-data:www-data /var/www/primecamp.cloud/
-chmod -R 755 /var/www/primecamp.cloud/
+cp -r dist/* /var/www/ativafix/
+chown -R www-data:www-data /var/www/ativafix/
+chmod -R 755 /var/www/ativafix/
 
 # 5. Reiniciar backend (PM2)
 echo "🔄 Reiniciando backend..."
@@ -192,16 +192,16 @@ pm2 logs primecamp-api --lines 100
 # Testar endpoint
 curl http://localhost:3000/api/health
 # ou
-curl https://api.primecamp.cloud/api/health
+curl https://api.ativafix.com/api/health
 ```
 
 ### 2. Verificar Frontend
 ```bash
 # Verificar se arquivos estão no lugar
-ls -la /var/www/primecamp.cloud/
+ls -la /var/www/ativafix/
 
 # Testar acesso
-curl -I https://primecamp.cloud
+curl -I https://app.ativafix.com
 ```
 
 ### 3. Verificar Nginx
@@ -236,14 +236,14 @@ pm2 save
 ### Se o frontend não carregar:
 ```bash
 # Verificar permissões
-ls -la /var/www/primecamp.cloud/
+ls -la /var/www/ativafix/
 
 # Verificar logs do Nginx
 tail -50 /var/log/nginx/error.log
 
 # Verificar configuração do Nginx
 nginx -t
-cat /etc/nginx/sites-available/primecamp.cloud
+cat /etc/nginx/sites-available/ativafix
 ```
 
 ### Se houver erros de dependências:

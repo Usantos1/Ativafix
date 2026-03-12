@@ -35,8 +35,8 @@ Se alguma verificação falhar, o script **para** e mostra exatamente onde está
 
 Se o script mostrar "✅ CONFIRMADO: showAlreadyAppliedModal está no Nginx", então:
 
-1. Feche TODAS as abas do primecamp.cloud
+1. Feche TODAS as abas do ativafix
 2. Use modo anônimo (Ctrl+Shift+N)
-3. Acesse: https://primecamp.cloud/vaga/Aux-tecnico
+3. Acesse: https://app.ativafix.com/vaga/Aux-tecnico
 
 Se ainda assim o erro persistir, então há algo mais profundo (talvez cache do CDN, ou problema no processo de build do Vite).

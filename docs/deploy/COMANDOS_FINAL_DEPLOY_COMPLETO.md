@@ -40,7 +40,7 @@ pm2 logs primecamp-api --lines 50
 grep -r "DashboardExecutivo" /var/www/html/assets/*.js | head -3
 
 # Testar endpoint da API
-curl -H "Authorization: Bearer SEU_TOKEN" https://api.primecamp.cloud/api/financeiro/dashboard
+curl -H "Authorization: Bearer SEU_TOKEN" https://api.ativafix.com/api/financeiro/dashboard
 ```
 
 ## Se ainda houver problemas:
@@ -53,5 +53,5 @@ curl -H "Authorization: Bearer SEU_TOKEN" https://api.primecamp.cloud/api/financ
 ## Acesso
 
 Após o deploy, acesse:
-- Frontend: https://primecamp.cloud/financeiro
-- API: https://api.primecamp.cloud/api/financeiro/dashboard
+- Frontend: https://app.ativafix.com/financeiro
+- API: https://api.ativafix.com/api/financeiro/dashboard

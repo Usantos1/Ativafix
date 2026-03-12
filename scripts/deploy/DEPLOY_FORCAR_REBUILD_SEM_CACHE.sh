@@ -35,10 +35,10 @@ echo "   ✅ Build concluído"
 echo ""
 
 echo "5️⃣ Copiando arquivos para o servidor web..."
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 echo "   ✅ Arquivos copiados"
 echo ""
 
@@ -63,5 +63,5 @@ echo ""
 echo "📋 Próximos passos:"
 echo "   - Teste em uma janela anônima do navegador"
 echo "   - Ou limpe o cache do navegador (Ctrl+Shift+Delete)"
-echo "   - Acesse: https://primecamp.cloud/admin/configuracoes"
+echo "   - Acesse: https://app.ativafix.com/admin/configuracoes"
 echo ""

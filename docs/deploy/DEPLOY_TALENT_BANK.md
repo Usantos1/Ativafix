@@ -22,10 +22,10 @@ chmod +x scripts/deploy/DEPLOY_VPS_COMANDO_UNICO.sh && \
 cd /root/primecamp-ofc && \
 git pull origin main && \
 npm run build && \
-sudo rm -rf /var/cache/nginx/* /var/www/primecamp.cloud/* && \
-sudo cp -r dist/* /var/www/primecamp.cloud/ && \
-sudo chown -R www-data:www-data /var/www/primecamp.cloud && \
-sudo chmod -R 755 /var/www/primecamp.cloud && \
+sudo rm -rf /var/cache/nginx/* /var/www/ativafix/* && \
+sudo cp -r dist/* /var/www/ativafix/ && \
+sudo chown -R www-data:www-data /var/www/ativafix && \
+sudo chmod -R 755 /var/www/ativafix && \
 sudo systemctl reload nginx && \
 pm2 restart all && \
 echo "✅ Deploy concluído!"
@@ -44,10 +44,10 @@ git pull origin main
 npm run build
 
 # 4. Limpar e copiar para Nginx
-sudo rm -rf /var/cache/nginx/* /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo rm -rf /var/cache/nginx/* /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # 5. Reiniciar serviços
 sudo systemctl reload nginx

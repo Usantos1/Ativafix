@@ -84,7 +84,7 @@ echo "========================================"
 echo "✅ NGINX CONFIGURADO PARA SPA!"
 echo "========================================"
 echo ""
-echo "Agora teste: https://primecamp.cloud/test-auth"
+echo "Agora teste: https://app.ativafix.com/test-auth"
 echo ""
 
 

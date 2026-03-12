@@ -4,11 +4,11 @@ Execute no servidor:
 
 ```bash
 # Ver conteúdo do index.html no servidor
-cat /var/www/primecamp.cloud/index.html | grep -A 5 -B 5 "script"
+cat /var/www/ativafix/index.html | grep -A 5 -B 5 "script"
 
 # OU ver o arquivo completo
-head -50 /var/www/primecamp.cloud/index.html
-tail -20 /var/www/primecamp.cloud/index.html
+head -50 /var/www/ativafix/index.html
+tail -20 /var/www/ativafix/index.html
 ```
 
 **O que procurar:**

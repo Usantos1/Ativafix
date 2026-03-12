@@ -7,12 +7,12 @@ echo ""
 cd /root/primecamp-ofc
 
 # Detectar diretório do Nginx
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-enabled/primecamp.cloud* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
+  NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-enabled/ativafix* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
 fi
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT="/var/www/primecamp.cloud"
+  NGINX_ROOT="/var/www/ativafix"
 fi
 
 echo "📁 Diretório do Nginx: $NGINX_ROOT"
@@ -39,5 +39,5 @@ sudo systemctl reload nginx
 
 echo ""
 echo "✅ Deploy concluído no diretório correto!"
-echo "🌐 Acesse: https://primecamp.cloud/financeiro"
+echo "🌐 Acesse: https://app.ativafix.com/financeiro"
 echo "💡 No navegador: Ctrl+Shift+R (hard refresh)"

@@ -7,7 +7,7 @@ echo "=========================================="
 # Primeiro, fazer login para obter um token válido
 echo ""
 echo "1. Fazendo login para obter token..."
-LOGIN_RESPONSE=$(curl -s -X POST https://api.primecamp.cloud/api/auth/login \
+LOGIN_RESPONSE=$(curl -s -X POST https://api.ativafix.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "uander.admin@gmail.com",
@@ -25,13 +25,13 @@ if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
     echo "❌ Não foi possível obter o token. Verifique as credenciais."
     echo ""
     echo "Para testar manualmente:"
-    echo "1. Faça login no navegador em https://primecamp.cloud"
+    echo "1. Faça login no navegador em https://app.ativafix.com"
     echo "2. Abra o console do navegador (F12)"
     echo "3. Digite: localStorage.getItem('auth_token')"
     echo "4. Copie o token e use no comando abaixo:"
     echo ""
     echo "curl -H \"Authorization: Bearer SEU_TOKEN_AQUI\" \\"
-    echo "  https://api.primecamp.cloud/api/admin/revenda/plans"
+    echo "  https://api.ativafix.com/api/admin/revenda/plans"
     exit 1
 fi
 
@@ -42,7 +42,7 @@ echo ""
 # Testar rota de planos
 echo "2. Testando rota /api/admin/revenda/plans..."
 PLANS_RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  https://api.primecamp.cloud/api/admin/revenda/plans)
+  https://api.ativafix.com/api/admin/revenda/plans)
 
 echo "Resposta:"
 echo "$PLANS_RESPONSE" | jq '.' 2>/dev/null || echo "$PLANS_RESPONSE"

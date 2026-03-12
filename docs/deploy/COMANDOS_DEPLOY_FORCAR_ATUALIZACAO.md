@@ -37,20 +37,20 @@ ls -lh dist/assets/ | grep index
 sudo systemctl stop nginx
 
 # Remover TUDO (incluindo arquivos ocultos)
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.*
-sudo find /var/www/primecamp.cloud -type f -delete 2>/dev/null
-sudo find /var/www/primecamp.cloud -type d -delete 2>/dev/null
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.*
+sudo find /var/www/ativafix -type f -delete 2>/dev/null
+sudo find /var/www/ativafix -type d -delete 2>/dev/null
 
 # Criar diretório novamente
-sudo mkdir -p /var/www/primecamp.cloud
+sudo mkdir -p /var/www/ativafix
 
 # Copiar novos arquivos
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 # Ajustar permissões
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # Limpar cache do Nginx COMPLETAMENTE
 sudo rm -rf /var/cache/nginx/*
@@ -68,13 +68,13 @@ sudo systemctl status nginx
 
 ```bash
 # Verificar hash do arquivo JS principal
-ls -lh /var/www/primecamp.cloud/assets/ | grep "index-.*\.js"
+ls -lh /var/www/ativafix/assets/ | grep "index-.*\.js"
 
 # Verificar conteúdo do index.html (deve ter o novo hash)
-head -50 /var/www/primecamp.cloud/index.html | grep "index-"
+head -50 /var/www/ativafix/index.html | grep "index-"
 
 # Verificar data de modificação
-stat /var/www/primecamp.cloud/index.html
+stat /var/www/ativafix/index.html
 ```
 
 ---
@@ -93,7 +93,7 @@ stat /var/www/primecamp.cloud/index.html
    - Clique em **"Limpar dados"**
 5. **Fechar TODAS as abas do site**
 6. **Abrir em modo anônimo:** `Ctrl + Shift + N`
-7. **Acessar:** `https://primecamp.cloud/produtos`
+7. **Acessar:** `https://app.ativafix.com/produtos`
 8. **Abrir DevTools (F12) → Aba Network**
 9. **Marcar "Desativar cache"**
 10. **Recarregar:** `Ctrl + Shift + R`
@@ -109,7 +109,7 @@ stat /var/www/primecamp.cloud/index.html
    - Clique em **"Limpar agora"**
 4. **Fechar TODAS as abas do site**
 5. **Abrir em modo privado:** `Ctrl + Shift + P`
-6. **Acessar:** `https://primecamp.cloud/produtos`
+6. **Acessar:** `https://app.ativafix.com/produtos`
 7. **Recarregar:** `Ctrl + Shift + R`
 
 ---
@@ -122,7 +122,7 @@ stat /var/www/primecamp.cloud/index.html
 // Verificar qual arquivo JS está sendo carregado
 console.log(document.querySelector('script[src*="index-"]')?.src);
 
-// Deve mostrar: https://primecamp.cloud/assets/index-B2StyxFt.js
+// Deve mostrar: https://app.ativafix.com/assets/index-B2StyxFt.js
 // NÃO deve mostrar: index-BTnGtZKu.js (antigo)
 ```
 
@@ -152,9 +152,9 @@ touch src/main.tsx
 npm run build
 
 # Deploy
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
 sudo systemctl restart nginx
 ```
 
@@ -162,8 +162,8 @@ sudo systemctl restart nginx
 
 ```bash
 # Editar index.html para adicionar ?v=timestamp
-sudo sed -i 's|href="/assets/|href="/assets/?v='$(date +%s)'|g' /var/www/primecamp.cloud/index.html
-sudo sed -i 's|src="/assets/|src="/assets/?v='$(date +%s)'|g' /var/www/primecamp.cloud/index.html
+sudo sed -i 's|href="/assets/|href="/assets/?v='$(date +%s)'|g' /var/www/ativafix/index.html
+sudo sed -i 's|src="/assets/|src="/assets/?v='$(date +%s)'|g' /var/www/ativafix/index.html
 ```
 
 ### Opção 3: Configurar Nginx para não fazer cache de HTML/JS
@@ -171,7 +171,7 @@ sudo sed -i 's|src="/assets/|src="/assets/?v='$(date +%s)'|g' /var/www/primecamp
 Editar configuração do Nginx:
 
 ```bash
-sudo nano /etc/nginx/sites-available/primecamp.cloud
+sudo nano /etc/nginx/sites-available/ativafix
 ```
 
 Adicionar dentro do bloco `server {`:
@@ -197,7 +197,7 @@ sudo systemctl reload nginx
 
 - [ ] Build executado com sucesso
 - [ ] Hash do arquivo JS mudou (verificar com `ls -lh dist/assets/`)
-- [ ] Arquivos copiados para `/var/www/primecamp.cloud/`
+- [ ] Arquivos copiados para `/var/www/ativafix/`
 - [ ] Nginx reiniciado (não apenas reload)
 - [ ] Cache do navegador limpo COMPLETAMENTE
 - [ ] Testado em modo anônimo/privado

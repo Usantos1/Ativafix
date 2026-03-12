@@ -27,7 +27,7 @@ sudo systemctl reload nginx
 
 2. **Acesse o sistema:**
    - O item "Financeiro" no sidebar agora apontará para `/financeiro`
-   - OU acesse diretamente: `https://primecamp.cloud/financeiro`
+   - OU acesse diretamente: `https://app.ativafix.com/financeiro`
 
 3. **Verifique:**
    - ✅ O Dashboard Executivo IA-First deve carregar

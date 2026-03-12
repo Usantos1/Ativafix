@@ -14,16 +14,16 @@ echo "   sites-enabled:"
 ls -la /etc/nginx/sites-enabled/ 2>/dev/null | grep -v "^d"
 
 echo ""
-echo "2️⃣ Criando configuração completa do Nginx para primecamp.cloud..."
+echo "2️⃣ Criando configuração completa do Nginx para ativafix..."
 
-NGINX_CONFIG="/etc/nginx/sites-available/primecamp.cloud"
+NGINX_CONFIG="/etc/nginx/sites-available/ativafix"
 
 # Criar configuração completa
 sudo tee "$NGINX_CONFIG" > /dev/null <<'EOF'
 server {
     listen 80;
     listen [::]:80;
-    server_name primecamp.cloud www.primecamp.cloud;
+    server_name ativafix www.ativafix;
     
     # Redirecionar HTTP para HTTPS
     return 301 https://$server_name$request_uri;
@@ -32,14 +32,14 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name primecamp.cloud www.primecamp.cloud;
+    server_name ativafix www.ativafix;
     
     root /var/www/html;
     index index.html;
     
     # SSL configuration (ajustar caminhos se necessário)
-    # ssl_certificate /etc/letsencrypt/live/primecamp.cloud/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/primecamp.cloud/privkey.pem;
+    # ssl_certificate /etc/letsencrypt/live/ativafix/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/ativafix/privkey.pem;
     
     # Headers de segurança
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -77,8 +77,8 @@ server {
     }
     
     # Logs
-    access_log /var/log/nginx/primecamp.cloud.access.log;
-    error_log /var/log/nginx/primecamp.cloud.error.log;
+    access_log /var/log/nginx/ativafix.access.log;
+    error_log /var/log/nginx/ativafix.error.log;
 }
 EOF
 
@@ -86,12 +86,12 @@ echo "   ✅ Configuração criada em $NGINX_CONFIG"
 
 echo ""
 echo "3️⃣ Removendo link antigo em sites-enabled (se existir)..."
-sudo rm -f /etc/nginx/sites-enabled/primecamp.cloud
+sudo rm -f /etc/nginx/sites-enabled/ativafix
 sudo rm -f /etc/nginx/sites-enabled/default
 
 echo ""
 echo "4️⃣ Criando link simbólico em sites-enabled..."
-sudo ln -sf /etc/nginx/sites-available/primecamp.cloud /etc/nginx/sites-enabled/primecamp.cloud
+sudo ln -sf /etc/nginx/sites-available/ativafix /etc/nginx/sites-enabled/ativafix
 echo "   ✅ Link criado"
 
 echo ""
@@ -128,7 +128,7 @@ curl -s http://localhost/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "   Via HTTPS:"
-curl -s -H "Cache-Control: no-cache" https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -H "Cache-Control: no-cache" https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "✅ CONFIGURAÇÃO RECRIADA!"
@@ -136,6 +136,6 @@ echo ""
 echo "📋 TESTE NO NAVEGADOR:"
 echo "   1. Feche TODAS as abas"
 echo "   2. Abra janela anônima (Ctrl+Shift+N)"
-echo "   3. Acesse: https://primecamp.cloud/integracoes"
+echo "   3. Acesse: https://app.ativafix.com/integracoes"
 echo "   4. Deve estar igual ao localhost agora"
 

@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # Diretório do projeto na VPS
 PROJECT_DIR="/root/primecamp-ofc"
-NGINX_WEB_ROOT="/var/www/primecamp.cloud"
+NGINX_WEB_ROOT="/var/www/ativafix"
 
 cd "$PROJECT_DIR" || { echo -e "${RED}❌ Erro: Diretório $PROJECT_DIR não encontrado.${NC}"; exit 1; }
 

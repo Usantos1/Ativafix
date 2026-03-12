@@ -32,8 +32,8 @@ echo "✅ Cache do Nginx removido."
 
 echo ""
 echo "5️⃣ Copiando arquivos para o Nginx..."
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
 echo "✅ Arquivos copiados."
 
 echo ""
@@ -46,7 +46,7 @@ echo "🎉 REBUILD FORÇADO CONCLUÍDO!"
 echo ""
 echo "📋 PRÓXIMOS PASSOS:"
 echo "1. Abra o navegador em MODO ANÔNIMO (Ctrl+Shift+N)"
-echo "2. Acesse: https://primecamp.cloud"
+echo "2. Acesse: https://app.ativafix.com"
 echo "3. Faça login"
 echo "4. Abra o console (F12)"
 echo "5. Procure por: '[AppSidebar] Verificação de permissões'"

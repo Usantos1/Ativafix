@@ -6,14 +6,14 @@ Não cole mensagens de erro nem comentários no meio do script (ex.: `# Erro: ..
 ## Por que o erro continua?
 
 Você rodou o script no **banco local** (ex.: `banco_gestao` no DBeaver).  
-A aplicação em **localhost:8080** usa a API em **https://api.primecamp.cloud**, que se conecta a **outro banco de dados** (servidor de produção).
+A aplicação em **localhost:8080** usa a API em **https://api.ativafix.com**, que se conecta a **outro banco de dados** (servidor de produção).
 
-A tabela `payment_fees` precisa existir **no banco que a API api.primecamp.cloud usa**.
+A tabela `payment_fees` precisa existir **no banco que a API api.ativafix usa**.
 
 ## O que fazer
 
 1. **Conectar no banco da API de produção**  
-   Use o mesmo banco que está configurado no servidor da API (variáveis `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` no servidor api.primecamp.cloud).
+   Use o mesmo banco que está configurado no servidor da API (variáveis `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` no servidor api.ativafix).
 
 2. **Rodar o script nesse banco**  
    Execute o conteúdo de `CRIAR_TABELA_PAYMENT_FEES.sql` nessa conexão (psql, DBeaver, ou o cliente que você usa no servidor).
@@ -21,7 +21,7 @@ A tabela `payment_fees` precisa existir **no banco que a API api.primecamp.cloud
 3. **Se você só tem acesso ao banco local**  
    Para testar tudo localmente, configure a aplicação para usar a API local (variável `VITE_API_URL` apontando para seu backend local) e use o banco onde você já criou a tabela.
 
-Resumo: **rodar o script no mesmo banco em que a API que você está usando (api.primecamp.cloud) se conecta.**
+Resumo: **rodar o script no mesmo banco em que a API que você está usando (api.ativafix) se conecta.**
 
 ---
 

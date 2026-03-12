@@ -21,16 +21,16 @@ server {
     if ($host = ativafix.com) {
         return 301 https://$host$request_uri;
     }
-    if ($host = www.primecamp.cloud) {
+    if ($host = www.ativafix) {
         return 301 https://$host$request_uri;
     }
-    if ($host = primecamp.cloud) {
+    if ($host = ativafix) {
         return 301 https://$host$request_uri;
     }
 
     listen 80;
     listen [::]:80;
-    server_name primecamp.cloud www.primecamp.cloud ativafix.com www.ativafix.com;
+    server_name ativafix www.ativafix ativafix.com www.ativafix.com;
     return 301 https://$host$request_uri;
 }
 ```
@@ -44,9 +44,9 @@ server {
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name primecamp.cloud www.primecamp.cloud ativafix.com www.ativafix.com;
+    server_name ativafix www.ativafix ativafix.com www.ativafix.com;
 
-    root /var/www/primecamp.cloud;
+    root /var/www/ativafix;
     index index.html;
 
     location / {
@@ -63,14 +63,14 @@ server {
         add_header X-Content-Type-Options "nosniff";
     }
 
-    ssl_certificate /etc/letsencrypt/live/primecamp.cloud/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/primecamp.cloud/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/ativafix/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ativafix/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }
 ```
 
-**Importante:** Com esse config, o certificado SSL é só de **primecamp.cloud**. Ao acessar **https://ativafix.com** o navegador pode acusar “certificado inválido” (nome diferente). Para HTTPS correto em ativafix.com, é preciso emitir certificado também para ativafix.com (veja seção SSL mais abaixo). O HTTP em ativafix.com já redireciona para HTTPS.
+**Importante:** Com esse config, o certificado SSL é só de **ativafix**. Ao acessar **https://ativafix.com** o navegador pode acusar “certificado inválido” (nome diferente). Para HTTPS correto em ativafix.com, é preciso emitir certificado também para ativafix.com (veja seção SSL mais abaixo). O HTTP em ativafix.com já redireciona para HTTPS.
 
 Depois de editar:
 
@@ -82,20 +82,20 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## 1. Nginx: servir o frontend em ativafix.com e www.ativafix.com
 
-No mesmo servidor que já atende primecamp.cloud, adicione os novos nomes ao bloco do frontend **ou** crie um bloco específico para ativafix.com.
+No mesmo servidor que já atende ativafix, adicione os novos nomes ao bloco do frontend **ou** crie um bloco específico para ativafix.com.
 
 ### Opção A – Adicionar ao config existente (recomendado)
 
-Se o frontend já está em `/etc/nginx/sites-available/primecamp.cloud`, edite o bloco que tem `server_name primecamp.cloud` e inclua ativafix.com:
+Se o frontend já está em `/etc/nginx/sites-available/ativafix`, edite o bloco que tem `server_name ativafix` e inclua ativafix.com:
 
 ```bash
-sudo nano /etc/nginx/sites-available/primecamp.cloud
+sudo nano /etc/nginx/sites-available/ativafix
 ```
 
-No bloco **HTTPS** do frontend (o que tem `root /var/www/primecamp.cloud`), altere a linha `server_name` para:
+No bloco **HTTPS** do frontend (o que tem `root /var/www/ativafix`), altere a linha `server_name` para:
 
 ```nginx
-server_name primecamp.cloud www.primecamp.cloud ativafix.com www.ativafix.com;
+server_name ativafix www.ativafix ativafix.com www.ativafix.com;
 ```
 
 Salve, teste e recarregue:
@@ -104,7 +104,7 @@ Salve, teste e recarregue:
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Assim, **ativafix.com** e **www.ativafix.com** passam a servir os mesmos arquivos do frontend (mesma pasta do primecamp.cloud).
+Assim, **ativafix.com** e **www.ativafix.com** passam a servir os mesmos arquivos do frontend (mesma pasta do ativafix).
 
 ---
 
@@ -137,7 +137,7 @@ server {
     listen [::]:443 ssl http2;
     server_name ativafix.com www.ativafix.com;
 
-    root /var/www/primecamp.cloud;
+    root /var/www/ativafix;
     index index.html;
 
     location / {
@@ -208,13 +208,13 @@ server {
 4. **Testar no navegador:**  
    https://ativafix.com e https://api.ativafix.com/api/health
 
-**Importante:** O `root` **tem que ser** `/var/www/primecamp.cloud` (não `/var/www/ativafix.com`). Não existe pasta separada para ativafix; o mesmo deploy serve os dois domínios. Se no servidor estiver `root /var/www/ativafix.com;`, o site dá 404. Corrija para `root /var/www/primecamp.cloud;`, depois `sudo nginx -t && sudo systemctl reload nginx`.
+**Importante:** O `root` **tem que ser** `/var/www/ativafix` (não `/var/www/ativafix.com`). Não existe pasta separada para ativafix; o mesmo deploy serve os dois domínios. Se no servidor estiver `root /var/www/ativafix.com;`, o site dá 404. Corrija para `root /var/www/ativafix;`, depois `sudo nginx -t && sudo systemctl reload nginx`.
 
 ---
 
 ## 2. Nginx: API em api.ativafix.com (se não usar o arquivo único acima)
 
-No mesmo arquivo onde está o bloco da **api.primecamp.cloud** (ex.: `primecamp.cloud` ou `ativafix.com`), adicione um bloco para **api.ativafix.com** fazendo proxy para o mesmo backend (porta 3000):
+No mesmo arquivo onde está o bloco da **api.ativafix** (ex.: `ativafix` ou `ativafix.com`), adicione um bloco para **api.ativafix.com** fazendo proxy para o mesmo backend (porta 3000):
 
 ```nginx
 # API ativafix.com (HTTPS)
@@ -245,10 +245,10 @@ server {
 }
 ```
 
-Ou, se quiser **reaproveitar o mesmo bloco** da api.primecamp.cloud, basta colocar os dois nomes no `server_name`:
+Ou, se quiser **reaproveitar o mesmo bloco** da api.ativafix, basta colocar os dois nomes no `server_name`:
 
 ```nginx
-server_name api.primecamp.cloud api.ativafix.com;
+server_name api.ativafix api.ativafix.com;
 ```
 
 (Os certificados SSL precisam cobrir ambos os nomes ou você usa um cert para cada.)
@@ -282,9 +282,9 @@ sudo nginx -t && sudo systemctl reload nginx
 
 - **Frontend:** ao abrir o site em **ativafix.com** ou **www.ativafix.com**, a aplicação usa automaticamente **https://api.ativafix.com/api** (arquivo `src/utils/apiUrl.ts`).
 - **Backend:** a API aceita requisições com origem **ativafix.com** e **www.ativafix.com** (CORS no `server/index.js`).
-- **Deploy:** o mesmo build e a mesma pasta (`/var/www/primecamp.cloud`) servem **primecamp.cloud** e **ativafix.com**; não é necessário build ou pasta separados.
+- **Deploy:** o mesmo build e a mesma pasta (`/var/www/ativafix`) servem **ativafix** e **ativafix.com**; não é necessário build ou pasta separados.
 - **Logo, nome e cores no ativafix.com:** em **ativafix.com** e **www.ativafix.com**, o logo, o nome "Ativa Fix" e as cores padrão (dourado HSL 44 100% 53%) vêm do **domínio**. O tema (cores, nome, logo) é **persistido na VPS** (API `GET/POST /api/theme-config`, tabela `kv_store_2c4defad`), não no localStorage: ao salvar nas configurações do sistema, reflete para todos os dispositivos e navegadores que acessam esse domínio.
-- **White-label por domínio:** cada domínio liberado tem sua própria config de tema (sem misturar com outros). Na VPS, no `.env`, opcional: `WHITELABEL_DOMAINS=ativafix.com,www.ativafix.com,primecamp.cloud,www.primecamp.cloud`. Só domínios listados usam config própria; se não definir, esses quatro já vêm liberados por padrão.
+- **White-label por domínio:** cada domínio liberado tem sua própria config de tema (sem misturar com outros). Na VPS, no `.env`, opcional: `WHITELABEL_DOMAINS=ativafix.com,www.ativafix.com,ativafix,www.ativafix`. Só domínios listados usam config própria; se não definir, esses quatro já vêm liberados por padrão.
 
 ---
 

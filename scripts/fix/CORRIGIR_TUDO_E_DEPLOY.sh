@@ -166,7 +166,7 @@ echo "📋 STATUS:"
 pm2 status | grep primecamp-api
 echo ""
 echo "🌐 TESTAR AGORA:"
-echo "1. Acesse: https://primecamp.cloud/test-auth"
+echo "1. Acesse: https://app.ativafix.com/test-auth"
 echo "2. Abra em JANELA ANÔNIMA (Ctrl + Shift + N) para evitar cache"
 echo "3. Abra Console (F12)"
 echo "4. Clique em 'Testar Conexão com API'"

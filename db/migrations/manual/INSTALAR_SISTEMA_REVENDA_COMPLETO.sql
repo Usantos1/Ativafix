@@ -286,7 +286,7 @@ $$ LANGUAGE plpgsql;
 
 -- Inserir empresa admin (ID fixo conhecido)
 INSERT INTO public.companies (id, name, email, status, cnpj)
-VALUES ('00000000-0000-0000-0000-000000000001', 'Prime Camp Admin', 'admin@primecamp.cloud', 'active', '00.000.000/0001-00')
+VALUES ('00000000-0000-0000-0000-000000000001', 'Prime Camp Admin', 'admin@ativafix.com', 'active', '00.000.000/0001-00')
 ON CONFLICT (id) DO UPDATE 
 SET name = EXCLUDED.name, email = EXCLUDED.email, status = EXCLUDED.status;
 

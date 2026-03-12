@@ -91,7 +91,7 @@ echo "   ✅ Cache limpo"
 echo ""
 echo "7️⃣ Testando o que está sendo servido..."
 echo "   index.html referencia:"
-curl -s https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | head -1
+curl -s https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | head -1
 
 echo ""
 echo "✅ CORREÇÃO CONCLUÍDA!"
@@ -99,7 +99,7 @@ echo ""
 echo "📋 TESTE AGORA:"
 echo "   1. Feche TODAS as abas"
 echo "   2. Abra janela anônima (Ctrl+Shift+N)"
-echo "   3. Acesse: https://primecamp.cloud/integracoes"
+echo "   3. Acesse: https://app.ativafix.com/integracoes"
 echo "   4. Abra Network tab (F12)"
 echo "   5. Verifique qual arquivo JS está sendo carregado"
 echo "   6. Deve ser: $BUNDLE_NAME"

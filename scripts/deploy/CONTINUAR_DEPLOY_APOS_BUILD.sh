@@ -7,7 +7,7 @@ echo ""
 
 # Copiar arquivos para Nginx
 echo "1/4 Copiando arquivos para o Nginx..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Limpar diretório do Nginx
 sudo rm -rf "$NGINX_ROOT"/* 2>/dev/null || true
@@ -53,6 +53,6 @@ echo "🎉 DEPLOY CONCLUÍDO!"
 echo ""
 echo "📋 PRÓXIMOS PASSOS:"
 echo "1. Limpe o cache do navegador (Ctrl+Shift+R ou use modo anônimo)"
-echo "2. Acesse https://primecamp.cloud/admin/talent-bank"
+echo "2. Acesse https://app.ativafix.com/admin/talent-bank"
 echo "3. Verifique se os candidatos aparecem"
 echo ""

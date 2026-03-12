@@ -5,7 +5,7 @@ echo "=================================================="
 echo ""
 
 echo "1️⃣ Verificando qual configuração está ativa..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Encontrar arquivos de configuração
 echo "   Arquivos em sites-enabled:"

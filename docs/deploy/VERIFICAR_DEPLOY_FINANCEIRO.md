@@ -28,7 +28,7 @@ grep -r "financeiro" /var/www/html/assets/*.js | head -5
 
 ### 5. Verificar logs do Nginx (se houver erros)
 ```bash
-sudo tail -f /var/log/nginx/primecamp.cloud.error.log
+sudo tail -f /var/log/nginx/ativafix.error.log
 ```
 
 ### 6. Limpar cache do Nginx mais agressivamente
@@ -42,7 +42,7 @@ sudo systemctl start nginx
 ## 🎯 Teste Direto
 
 Tente acessar diretamente:
-- `https://primecamp.cloud/financeiro`
+- `https://app.ativafix.com/financeiro`
 - Use modo anônimo/privado do navegador
 - Tente em outro navegador
 

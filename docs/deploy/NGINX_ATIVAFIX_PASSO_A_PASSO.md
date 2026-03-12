@@ -18,9 +18,9 @@ Se não estiver: `sudo apt update && sudo apt install -y nginx`
 
 ```bash
 # Um único build serve ativafix.com (landing) e app.ativafix.com (sistema)
-sudo mkdir -p /var/www/primecamp.cloud
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo mkdir -p /var/www/ativafix
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 ```
 
 *(O deploy do frontend copia o build para essa pasta. ativafix.com e app.ativafix.com apontam para a mesma pasta no Nginx.)*
@@ -72,7 +72,7 @@ sudo nano /etc/nginx/sites-available/ativafix
 
 **Apague tudo** que estiver no arquivo e **cole o bloco abaixo inteiro**. Depois ajuste:
 
-- **ativafix.com e app.ativafix.com:** usam o **mesmo** `root` (pasta do build do app React), ex.: `/var/www/primecamp.cloud`. O próprio app decide: em ativafix.com exibe a landing de vendas; em app.ativafix.com exibe o sistema. Um deploy só atualiza os dois.
+- **ativafix.com e app.ativafix.com:** usam o **mesmo** `root` (pasta do build do app React), ex.: `/var/www/ativafix`. O próprio app decide: em ativafix.com exibe a landing de vendas; em app.ativafix.com exibe o sistema. Um deploy só atualiza os dois.
 - **ssl_certificate / ssl_certificate_key:** se o Certbot tiver gerado em outro caminho, use `ls /etc/letsencrypt/live/` e ajuste.
 
 ```nginx
@@ -94,7 +94,7 @@ server {
     listen [::]:443 ssl http2;
     server_name ativafix.com www.ativafix.com;
 
-    root /var/www/primecamp.cloud;
+    root /var/www/ativafix;
     index index.html;
 
     location / {
@@ -125,7 +125,7 @@ server {
     listen [::]:443 ssl http2;
     server_name app.ativafix.com;
 
-    root /var/www/primecamp.cloud;
+    root /var/www/ativafix;
     index index.html;
 
     location / {
@@ -210,10 +210,10 @@ sudo systemctl reload nginx
 
 ## 9. (Opcional) Desativar o site antigo
 
-Se você tinha um config só para `primecamp.cloud` ou outro arquivo que conflita com os mesmos `server_name`, desative:
+Se você tinha um config só para `ativafix` ou outro arquivo que conflita com os mesmos `server_name`, desative:
 
 ```bash
-sudo rm -f /etc/nginx/sites-enabled/primecamp.cloud
+sudo rm -f /etc/nginx/sites-enabled/ativafix
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -251,8 +251,8 @@ Se passar, o cron do certbot já renova sozinho.
 
 | Domínio           | Uso                          | root / proxy                     |
 |-------------------|------------------------------|-----------------------------------|
-| ativafix.com      | Landing de vendas (React)    | `root /var/www/primecamp.cloud`   |
-| app.ativafix.com  | Sistema (login, dashboard…)  | `root /var/www/primecamp.cloud`   |
+| ativafix.com      | Landing de vendas (React)    | `root /var/www/ativafix`   |
+| app.ativafix.com  | Sistema (login, dashboard…)  | `root /var/www/ativafix`   |
 | api.ativafix.com  | API (Node na porta 3000)     | `proxy_pass :3000`                |
 
 - **ativafix.com** e **app.ativafix.com** usam o **mesmo** build. O React mostra a landing em ativafix.com e o app em app.ativafix.com (detecção por hostname). Um deploy só atualiza os dois.

@@ -8,19 +8,19 @@ echo ""
 cd /root/primecamp-ofc
 
 # Verificar qual é o diretório correto
-echo "1️⃣ Verificando configuração do Nginx para primecamp.cloud..."
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
+echo "1️⃣ Verificando configuração do Nginx para ativafix..."
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
 
 if [ -z "$NGINX_ROOT" ]; then
     # Tentar pegar do sites-enabled
-    NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-enabled/primecamp.cloud* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
+    NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-enabled/ativafix* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
 fi
 
 if [ -n "$NGINX_ROOT" ]; then
     echo "  ✅ Diretório root encontrado: $NGINX_ROOT"
 else
-    echo "  ⚠️  Não foi possível detectar automaticamente, usando padrão: /var/www/primecamp.cloud"
-    NGINX_ROOT="/var/www/primecamp.cloud"
+    echo "  ⚠️  Não foi possível detectar automaticamente, usando padrão: /var/www/ativafix"
+    NGINX_ROOT="/var/www/ativafix"
 fi
 
 # Verificar se o diretório existe
@@ -60,4 +60,4 @@ echo ""
 echo "✅ Correção concluída!"
 echo ""
 echo "📝 Diretório correto: $NGINX_ROOT"
-echo "🌐 Acesse: https://primecamp.cloud/financeiro"
+echo "🌐 Acesse: https://app.ativafix.com/financeiro"

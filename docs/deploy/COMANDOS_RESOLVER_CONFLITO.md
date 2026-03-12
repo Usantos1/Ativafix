@@ -23,7 +23,7 @@ git checkout -- FORCAR_DEPLOY_COMPLETO.sh
 git pull origin main
 
 # 3. Detectar diretório do Nginx
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "/var/www/primecamp.cloud")
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "/var/www/ativafix")
 
 # 4. Fazer deploy
 sudo rm -rf "$NGINX_ROOT"/*

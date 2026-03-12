@@ -1,6 +1,6 @@
 -- ============================================
 -- Tabela de períodos de garantia + colunas em produtos (tipo, unidade, garantia_dias)
--- Execute no PostgreSQL que a API usa (VPS / api.primecamp.cloud) UMA VEZ.
+-- Execute no PostgreSQL que a API usa (VPS / api.ativafix.com) UMA VEZ.
 -- Não é Supabase: o app usa PostgreSQL via API REST.
 -- ============================================
 

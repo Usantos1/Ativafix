@@ -27,7 +27,7 @@ npx update-browserslist-db@latest
 npm run build
 
 # 4. Deploy
-NGINX_ROOT="/var/www/primecamp.cloud"  # ou "/var/www/html"
+NGINX_ROOT="/var/www/ativafix"  # ou "/var/www/html"
 sudo rm -rf "$NGINX_ROOT"/*
 sudo cp -r dist/* "$NGINX_ROOT"/
 sudo chown -R www-data:www-data "$NGINX_ROOT"

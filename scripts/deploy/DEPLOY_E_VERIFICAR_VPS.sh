@@ -36,15 +36,15 @@ fi
 
 echo ""
 echo "5️⃣ Deployando..."
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
 sudo systemctl reload nginx
 echo "✅ Deploy concluído."
 
 echo ""
 echo "📋 TESTE AGORA:"
 echo "1. Abra navegador em MODO ANÔNIMO (Ctrl+Shift+N)"
-echo "2. Acesse: https://primecamp.cloud"
+echo "2. Acesse: https://app.ativafix.com"
 echo "3. Faça login"
 echo "4. Abra console (F12)"
 echo "5. Digite: window.APP_SIDEBAR_DEBUG"

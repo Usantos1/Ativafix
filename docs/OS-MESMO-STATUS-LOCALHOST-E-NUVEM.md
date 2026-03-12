@@ -6,7 +6,7 @@
 
 O frontend usa a API conforme a variável `VITE_API_URL` (e a lógica em `src/integrations/db/client.ts`):
 
-- Se **não** definir `VITE_API_URL` no `.env` do frontend, ou se definir com URL que **contém** `localhost` (ex.: `http://localhost:3000/api`), o app **ignora** e usa a API de produção: `https://api.primecamp.cloud/api`.
+- Se **não** definir `VITE_API_URL` no `.env` do frontend, ou se definir com URL que **contém** `localhost` (ex.: `http://localhost:3000/api`), o app **ignora** e usa a API de produção: `https://api.ativafix.com/api`.
 - Se definir `VITE_API_URL` com uma URL que **não** contém a palavra `localhost` (ex.: `http://127.0.0.1:3000/api`), o app usa **essa** API.
 
 **Consequência:** no localhost, se o `.env` tiver por exemplo `VITE_API_URL=http://127.0.0.1:3000/api`, você está apontando para a API local (e o banco da sua máquina). A nuvem usa a API de produção (banco da nuvem). São **dois bancos**: a mesma OS #7000 pode existir nos dois com status diferentes.

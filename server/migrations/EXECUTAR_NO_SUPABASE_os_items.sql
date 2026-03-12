@@ -1,4 +1,4 @@
--- Execute este SQL no BANCO DE DADOS que a API usa (api.primecamp.cloud).
+-- Execute este SQL no BANCO DE DADOS que a API usa (api.ativafix.com).
 -- Não é Supabase: é o PostgreSQL (ou outro) conectado ao seu backend/API.
 -- Se você tem acesso ao servidor da API, rode isso no cliente do banco (psql, DBeaver, etc.).
 

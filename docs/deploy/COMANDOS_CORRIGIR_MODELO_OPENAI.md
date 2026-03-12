@@ -15,7 +15,7 @@ O modelo 'gpt-5' está configurado mas não está funcionando (retorna resposta 
 
 ## Como corrigir:
 
-1. Acesse o sistema: https://primecamp.cloud/admin/configuracoes
+1. Acesse o sistema: https://app.ativafix.com/admin/configuracoes
 2. Vá em "Integrações" > "OpenAI"
 3. Mude o modelo de 'gpt-5' para:
    - `gpt-4o` (melhor qualidade)

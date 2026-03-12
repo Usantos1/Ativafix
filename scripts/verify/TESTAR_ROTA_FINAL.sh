@@ -9,17 +9,17 @@ echo "=========================================="
 echo ""
 echo "1. Testando GET /api/admin/revenda/plans..."
 curl -s -H "Authorization: Bearer $TOKEN" \
-  https://api.primecamp.cloud/api/admin/revenda/plans | jq '.' 2>/dev/null || \
+  https://api.ativafix.com/api/admin/revenda/plans | jq '.' 2>/dev/null || \
 curl -s -H "Authorization: Bearer $TOKEN" \
-  https://api.primecamp.cloud/api/admin/revenda/plans
+  https://api.ativafix.com/api/admin/revenda/plans
 
 echo ""
 echo ""
 echo "2. Testando GET /api/admin/revenda/companies..."
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://api.primecamp.cloud/api/admin/revenda/companies?page=1&limit=10" | jq '.' 2>/dev/null || \
+  "https://api.ativafix.com/api/admin/revenda/companies?page=1&limit=10" | jq '.' 2>/dev/null || \
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://api.primecamp.cloud/api/admin/revenda/companies?page=1&limit=10"
+  "https://api.ativafix.com/api/admin/revenda/companies?page=1&limit=10"
 
 echo ""
 echo "=========================================="

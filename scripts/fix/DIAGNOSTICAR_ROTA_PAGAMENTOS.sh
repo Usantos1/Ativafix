@@ -46,7 +46,7 @@ fi
 echo ""
 
 echo "4️⃣ Verificando arquivos no servidor..."
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 if grep -r "configuracoes/pagamentos" "$NGINX_ROOT"/assets/*.js 2>/dev/null | head -1 > /dev/null; then
     echo "   ✅ Rota encontrada nos arquivos do servidor"
     grep -r "configuracoes/pagamentos" "$NGINX_ROOT"/assets/*.js 2>/dev/null | head -1 | cut -c1-200

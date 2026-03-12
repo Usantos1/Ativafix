@@ -56,18 +56,18 @@ sudo rm -rf /var/cache/nginx/*
 sudo find /var/cache/nginx -type f -delete
 
 # Remover TODOS os arquivos antigos (incluindo arquivos ocultos)
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.*
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.*
 
 # Aguardar um segundo
 sleep 1
 
 # Copiar novos arquivos
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 # Ajustar permissões
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # Testar configuração do Nginx
 sudo nginx -t
@@ -90,8 +90,8 @@ sudo systemctl reload nginx
 ### Verificar Arquivos no Nginx
 
 ```bash
-ls -la /var/www/primecamp.cloud/
-ls -la /var/www/primecamp.cloud/assets/ | head -20
+ls -la /var/www/ativafix/
+ls -la /var/www/ativafix/assets/ | head -20
 ```
 
 ### Verificar Logs do Nginx
@@ -112,10 +112,10 @@ pm2 status
 
 ```bash
 # Verificar data de modificação do index.html
-ls -lh /var/www/primecamp.cloud/index.html
+ls -lh /var/www/ativafix/index.html
 
 # Verificar conteúdo do index.html (primeiras linhas)
-head -20 /var/www/primecamp.cloud/index.html
+head -20 /var/www/ativafix/index.html
 ```
 
 ---
@@ -155,7 +155,7 @@ head -20 /var/www/primecamp.cloud/index.html
 
 - [ ] Backend reiniciado (pm2 status mostra online)
 - [ ] Build do frontend concluído sem erros
-- [ ] Arquivos copiados para `/var/www/primecamp.cloud/`
+- [ ] Arquivos copiados para `/var/www/ativafix/`
 - [ ] Nginx recarregado sem erros
 - [ ] Cache do navegador limpo
 - [ ] Logout e Login feito novamente
@@ -172,9 +172,9 @@ head -20 /var/www/primecamp.cloud/index.html
 
 ```bash
 # Forçar remoção completa
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo rm -rf /var/www/primecamp.cloud/.??*
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo rm -rf /var/www/ativafix/*
+sudo rm -rf /var/www/ativafix/.??*
+sudo cp -r dist/* /var/www/ativafix/
 sudo systemctl reload nginx
 ```
 

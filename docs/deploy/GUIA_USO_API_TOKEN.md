@@ -2,7 +2,7 @@
 
 ## 📋 Informações Básicas
 
-**URL Base:** `https://api.primecamp.cloud/api/v1`  
+**URL Base:** `https://api.ativafix.com/api/v1`  
 **Autenticação:** Bearer Token  
 **Header:** `Authorization: Bearer <seu_token>`
 
@@ -10,7 +10,7 @@
 
 ### 1. Obter o Token
 
-1. Acesse: `https://primecamp.cloud/integracoes`
+1. Acesse: `https://app.ativafix.com/integracoes`
 2. Vá na aba "API Externa"
 3. Clique em "Novo Token"
 4. Preencha:
@@ -55,7 +55,7 @@ Buscar produtos com filtros
 
 **Exemplo:**
 ```bash
-curl -X GET "https://api.primecamp.cloud/api/v1/produtos?modelo=iPhone%2015&limit=10" \
+curl -X GET "https://api.ativafix.com/api/v1/produtos?modelo=iPhone%2015&limit=10" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
@@ -64,7 +64,7 @@ Buscar produto por ID, código ou código de barras
 
 **Exemplo:**
 ```bash
-curl -X GET "https://api.primecamp.cloud/api/v1/produtos/12345" \
+curl -X GET "https://api.ativafix.com/api/v1/produtos/12345" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
@@ -73,7 +73,7 @@ Listar todas as marcas
 
 **Exemplo:**
 ```bash
-curl -X GET "https://api.primecamp.cloud/api/v1/marcas" \
+curl -X GET "https://api.ativafix.com/api/v1/marcas" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
@@ -85,7 +85,7 @@ Listar modelos (opcionalmente filtrar por marca)
 
 **Exemplo:**
 ```bash
-curl -X GET "https://api.primecamp.cloud/api/v1/modelos?marca_id=UUID_DA_MARCA" \
+curl -X GET "https://api.ativafix.com/api/v1/modelos?marca_id=UUID_DA_MARCA" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
@@ -94,7 +94,7 @@ Listar grupos/categorias de produtos
 
 **Exemplo:**
 ```bash
-curl -X GET "https://api.primecamp.cloud/api/v1/grupos" \
+curl -X GET "https://api.ativafix.com/api/v1/grupos" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
@@ -103,7 +103,7 @@ Ver documentação completa da API
 
 **Exemplo:**
 ```bash
-curl -X GET "https://api.primecamp.cloud/api/v1/docs" \
+curl -X GET "https://api.ativafix.com/api/v1/docs" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
@@ -116,7 +116,7 @@ const token = 'SEU_TOKEN_AQUI';
 // Buscar produtos
 async function buscarProdutos(modelo) {
   const response = await fetch(
-    `https://api.primecamp.cloud/api/v1/produtos?modelo=${encodeURIComponent(modelo)}`,
+    `https://api.ativafix.com/api/v1/produtos?modelo=${encodeURIComponent(modelo)}`,
     {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -143,7 +143,7 @@ headers = {'Authorization': f'Bearer {token}'}
 
 # Buscar produtos
 def buscar_produtos(modelo):
-    url = f'https://api.primecamp.cloud/api/v1/produtos'
+    url = f'https://api.ativafix.com/api/v1/produtos'
     params = {'modelo': modelo, 'limit': 10}
     response = requests.get(url, headers=headers, params=params)
     return response.json()
@@ -156,15 +156,15 @@ print(produtos)
 ### cURL
 ```bash
 # Buscar produtos
-curl -X GET "https://api.primecamp.cloud/api/v1/produtos?modelo=iPhone%2015" \
+curl -X GET "https://api.ativafix.com/api/v1/produtos?modelo=iPhone%2015" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 
 # Buscar produto específico
-curl -X GET "https://api.primecamp.cloud/api/v1/produtos/12345" \
+curl -X GET "https://api.ativafix.com/api/v1/produtos/12345" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 
 # Listar marcas
-curl -X GET "https://api.primecamp.cloud/api/v1/marcas" \
+curl -X GET "https://api.ativafix.com/api/v1/marcas" \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
@@ -176,7 +176,7 @@ curl -X GET "https://api.primecamp.cloud/api/v1/marcas" \
 ```
 Você tem acesso à API do PrimeCamp para consultar produtos, preços e estoque.
 
-URL Base: https://api.primecamp.cloud/api/v1
+URL Base: https://api.ativafix.com/api/v1
 Token: SEU_TOKEN_AQUI
 
 Use esta API quando o cliente perguntar sobre:
@@ -196,7 +196,7 @@ Exemplos de uso:
 ```
 Você é um assistente de vendas do PrimeCamp. Use a API para responder perguntas sobre produtos.
 
-API: https://api.primecamp.cloud/api/v1
+API: https://api.ativafix.com/api/v1
 Token: SEU_TOKEN_AQUI
 
 Quando o cliente perguntar sobre produtos:
@@ -256,7 +256,7 @@ Todas as respostas seguem este formato:
 ## 📊 Monitoramento
 
 Você pode ver o uso do token na interface:
-1. Acesse `https://primecamp.cloud/integracoes`
+1. Acesse `https://app.ativafix.com/integracoes`
 2. Clique no ícone de gráfico ao lado do token
 3. Veja logs de acesso, requisições e erros
 

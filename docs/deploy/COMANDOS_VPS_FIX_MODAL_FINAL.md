@@ -18,10 +18,10 @@ git pull origin main && \
 rm -rf dist node_modules/.vite node_modules/.cache .vite && \
 npm run build && \
 ls -lh dist/assets/index-*.js && \
-sudo rm -rf /var/www/primecamp.cloud/* && \
-sudo cp -r dist/* /var/www/primecamp.cloud/ && \
-sudo chown -R www-data:www-data /var/www/primecamp.cloud && \
-sudo chmod -R 755 /var/www/primecamp.cloud && \
+sudo rm -rf /var/www/ativafix/* && \
+sudo cp -r dist/* /var/www/ativafix/ && \
+sudo chown -R www-data:www-data /var/www/ativafix && \
+sudo chmod -R 755 /var/www/ativafix && \
 sudo rm -rf /var/cache/nginx/* /var/lib/nginx/cache/* && \
 sudo systemctl reload nginx && \
 echo "✅ Deploy concluído! Verifique o hash do arquivo JS acima."
@@ -34,7 +34,7 @@ echo "✅ Deploy concluído! Verifique o hash do arquivo JS acima."
 3. **Limpe o cache do navegador completamente**:
    - `Ctrl + Shift + Delete` → Marque "Imagens e arquivos em cache" → "Todo o período"
    - Ou use modo anônimo/privado (recomendado)
-4. Acesse: `https://primecamp.cloud/vaga/Aux-tecnico`
+4. Acesse: `https://app.ativafix.com/vaga/Aux-tecnico`
 5. Verifique o console: o hash do arquivo JS deve corresponder ao novo build
 
 ## Se o erro persistir:

@@ -6,7 +6,7 @@
 
 ```bash
 # Verificar configuração do Nginx
-sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud | grep "root"
+sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix | grep "root"
 ```
 
 ### 2️⃣ Verificar se o build existe
@@ -29,12 +29,12 @@ npm run build
 cd /root/primecamp-ofc
 
 # Detectar diretório do Nginx
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-enabled/primecamp.cloud* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
+  NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-enabled/ativafix* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
 fi
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT="/var/www/primecamp.cloud"
+  NGINX_ROOT="/var/www/ativafix"
 fi
 
 echo "📁 Diretório do Nginx detectado: $NGINX_ROOT"
@@ -86,7 +86,7 @@ sudo tail -f /var/log/nginx/error.log
 sudo systemctl status nginx
 
 # Verificar se os arquivos foram copiados
-ls -la /var/www/primecamp.cloud/
+ls -la /var/www/ativafix/
 # ou
 ls -la /var/www/html/
 ```

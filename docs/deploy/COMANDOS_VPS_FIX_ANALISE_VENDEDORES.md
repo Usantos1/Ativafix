@@ -23,7 +23,7 @@ git pull origin main
 npm run build
 
 # 3. Detectar diretório Nginx (ajuste se necessário)
-NGINX_ROOT="/var/www/primecamp.cloud"  # ou "/var/www/html"
+NGINX_ROOT="/var/www/ativafix"  # ou "/var/www/html"
 
 # 4. Deploy frontend
 sudo rm -rf "$NGINX_ROOT"/*
@@ -43,7 +43,7 @@ pm2 restart primecamp-api
 
 ## ✅ VERIFICAÇÃO:
 
-1. Acesse: https://primecamp.cloud/financeiro/analise-vendedores
+1. Acesse: https://app.ativafix.com/financeiro/analise-vendedores
 2. Faça hard refresh no navegador: **Ctrl+Shift+R** (ou Ctrl+F5)
 3. O erro não deve mais aparecer
 

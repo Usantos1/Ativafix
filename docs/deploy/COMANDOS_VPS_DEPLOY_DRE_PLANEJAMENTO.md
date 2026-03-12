@@ -34,12 +34,12 @@ echo "✅ Build concluído."
 # 4. Detectar diretório do Nginx
 echo ""
 echo "📁 Detectando diretório do Nginx..."
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-enabled/primecamp.cloud* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
+  NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-enabled/ativafix* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
 fi
 if [ -z "$NGINX_ROOT" ]; then
-  NGINX_ROOT="/var/www/primecamp.cloud"
+  NGINX_ROOT="/var/www/ativafix"
 fi
 
 echo "📁 Diretório do Nginx: $NGINX_ROOT"
@@ -69,7 +69,7 @@ sudo systemctl reload nginx
 
 echo ""
 echo "✅ Deploy concluído com sucesso!"
-echo "🌐 Acesse: https://primecamp.cloud/financeiro/dre"
+echo "🌐 Acesse: https://app.ativafix.com/financeiro/dre"
 echo "💡 No navegador: Ctrl+Shift+R (hard refresh para limpar cache)"
 ```
 
@@ -78,14 +78,14 @@ echo "💡 No navegador: Ctrl+Shift+R (hard refresh para limpar cache)"
 Se preferir executar tudo de uma vez:
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm run build && NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "/var/www/primecamp.cloud") && sudo rm -rf "$NGINX_ROOT"/* && sudo cp -r dist/* "$NGINX_ROOT/" && sudo chown -R www-data:www-data "$NGINX_ROOT" && sudo systemctl reload nginx && echo "✅ Deploy concluído!"
+cd /root/primecamp-ofc && git pull origin main && npm run build && NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "/var/www/ativafix") && sudo rm -rf "$NGINX_ROOT"/* && sudo cp -r dist/* "$NGINX_ROOT/" && sudo chown -R www-data:www-data "$NGINX_ROOT" && sudo systemctl reload nginx && echo "✅ Deploy concluído!"
 ```
 
 ## Verificar se o deploy funcionou
 
 ```bash
 # Verificar se os arquivos foram copiados
-ls -lh /var/www/primecamp.cloud/ | head -20
+ls -lh /var/www/ativafix/ | head -20
 
 # Verificar logs do Nginx
 sudo tail -f /var/log/nginx/error.log

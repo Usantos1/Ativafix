@@ -89,8 +89,8 @@ npm install
 npm run build
 
 # Copiar para Nginx
-sudo rm -rf /var/www/primecamp.cloud/*
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo rm -rf /var/www/ativafix/*
+sudo cp -r dist/* /var/www/ativafix/
 
 # Recarregar Nginx
 sudo systemctl reload nginx
@@ -100,10 +100,10 @@ sudo systemctl reload nginx
 
 ```bash
 # Verificar backend
-curl https://api.primecamp.cloud/api/health
+curl https://api.ativafix.com/api/health
 
 # Verificar frontend
-curl -I https://primecamp.cloud
+curl -I https://app.ativafix.com
 
 # Ver logs do backend
 pm2 logs primecamp-api --lines 50
@@ -180,7 +180,7 @@ sudo tail -f /var/log/nginx/error.log
 sudo nginx -t
 
 # Verificar permissões
-ls -la /var/www/primecamp.cloud
+ls -la /var/www/ativafix
 ```
 
 ---

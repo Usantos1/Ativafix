@@ -60,7 +60,7 @@ if pm2 list | grep -q "primecamp-api"; then
     
     echo ""
     echo "1️⃣1️⃣ Testando endpoint /api/upsert..."
-    API_URL="https://api.primecamp.cloud/api"
+    API_URL="https://api.ativafix.com/api"
     RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST ${API_URL}/upsert/kv_store_2c4defad \
       -H "Content-Type: application/json" \
       -d '{"data": {"key": "test_deploy", "value": {"test": true}}, "onConflict": "key"}' 2>/dev/null)
@@ -81,7 +81,7 @@ echo "✅ Deploy completo!"
 echo ""
 echo "📋 Próximos passos:"
 echo "   1. Limpe o cache do navegador (Ctrl+Shift+R ou Cmd+Shift+R)"
-echo "   2. Acesse: https://primecamp.cloud/integracoes"
+echo "   2. Acesse: https://app.ativafix.com/integracoes"
 echo "   3. Configure os Chat IDs do Telegram"
 echo "   4. Teste salvando as configurações"
 

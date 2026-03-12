@@ -18,7 +18,7 @@ echo "3️⃣ Testando endpoint /financeiro/dashboard diretamente..."
 echo "   (Você precisa ter um token válido para isso funcionar)"
 echo ""
 echo "   Para testar manualmente:"
-echo "   curl -H 'Authorization: Bearer SEU_TOKEN_AQUI' https://api.primecamp.cloud/api/financeiro/dashboard"
+echo "   curl -H 'Authorization: Bearer SEU_TOKEN_AQUI' https://api.ativafix.com/api/financeiro/dashboard"
 
 echo ""
 echo "✅ Verificação concluída!"

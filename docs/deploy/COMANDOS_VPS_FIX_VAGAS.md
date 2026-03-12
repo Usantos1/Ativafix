@@ -10,10 +10,10 @@
 cd /root/primecamp-ofc && \
 git pull origin main && \
 npm run build && \
-sudo rm -rf /var/www/primecamp.cloud/* && \
-sudo cp -r dist/* /var/www/primecamp.cloud/ && \
-sudo chown -R www-data:www-data /var/www/primecamp.cloud && \
-sudo chmod -R 755 /var/www/primecamp.cloud && \
+sudo rm -rf /var/www/ativafix/* && \
+sudo cp -r dist/* /var/www/ativafix/ && \
+sudo chown -R www-data:www-data /var/www/ativafix && \
+sudo chmod -R 755 /var/www/ativafix && \
 sudo systemctl reload nginx && \
 echo "✅ Deploy concluído!"
 ```
@@ -21,6 +21,6 @@ echo "✅ Deploy concluído!"
 ## Verificar se Funcionou
 
 Após o deploy:
-1. Acesse: https://primecamp.cloud/vaga/[qualquer-slug]
+1. Acesse: https://app.ativafix.com/vaga/[qualquer-slug]
 2. A página deve carregar sem erros
 3. O formulário de candidatura deve funcionar normalmente

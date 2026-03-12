@@ -78,7 +78,7 @@ fbq('track', 'PageView');
           const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || args[0]?.href || '');
           if (url && (url.includes('supabase.co') || url.includes('gogxicjaqpqbhsfzutij'))) {
             console.error('🚫🚫🚫 REQUISIÇÃO SUPABASE BLOQUEADA via fetch:', url);
-            return Promise.reject(new Error('🚫 Supabase foi completamente desabilitado. Use PostgreSQL API em api.primecamp.cloud'));
+            return Promise.reject(new Error('🚫 Supabase foi completamente desabilitado. Use PostgreSQL API em api.ativafix.com'));
           }
           return originalFetch.apply(this, args);
         };
@@ -90,7 +90,7 @@ fbq('track', 'PageView');
           this._url = urlString;
           if (urlString && (urlString.includes('supabase.co') || urlString.includes('gogxicjaqpqbhsfzutij'))) {
             console.error('🚫🚫🚫 REQUISIÇÃO SUPABASE BLOQUEADA via XMLHttpRequest:', urlString);
-            throw new Error('🚫 Supabase foi completamente desabilitado. Use PostgreSQL API em api.primecamp.cloud');
+            throw new Error('🚫 Supabase foi completamente desabilitado. Use PostgreSQL API em api.ativafix.com');
           }
           return originalXHROpen.apply(this, [method, url, ...rest]);
         };
@@ -100,7 +100,7 @@ fbq('track', 'PageView');
         XMLHttpRequest.prototype.send = function(...args) {
           if (this._url && (this._url.includes('supabase.co') || this._url.includes('gogxicjaqpqbhsfzutij'))) {
             console.error('🚫🚫🚫 REQUISIÇÃO SUPABASE BLOQUEADA via XMLHttpRequest.send:', this._url);
-            throw new Error('🚫 Supabase foi completamente desabilitado. Use PostgreSQL API em api.primecamp.cloud');
+            throw new Error('🚫 Supabase foi completamente desabilitado. Use PostgreSQL API em api.ativafix.com');
           }
           return originalXHRSend.apply(this, args);
         };
@@ -111,7 +111,7 @@ fbq('track', 'PageView');
           const urlString = typeof url === 'string' ? url : url.toString();
           if (urlString && (urlString.includes('supabase.co') || urlString.includes('gogxicjaqpqbhsfzutij'))) {
             console.error('🚫🚫🚫 WEBSOCKET SUPABASE BLOQUEADO:', urlString);
-            throw new Error('🚫 Supabase WebSocket foi completamente desabilitado. Use PostgreSQL API em api.primecamp.cloud');
+            throw new Error('🚫 Supabase WebSocket foi completamente desabilitado. Use PostgreSQL API em api.ativafix.com');
           }
           return new originalWebSocket(url, protocols);
         };

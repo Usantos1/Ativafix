@@ -4,14 +4,14 @@
 
 ```bash
 # 1. Verificar data/hora dos arquivos (deve ser recente - após o build)
-ls -lh /var/www/primecamp.cloud/index.html
-ls -lh /var/www/primecamp.cloud/assets/index-*.js | head -1
+ls -lh /var/www/ativafix/index.html
+ls -lh /var/www/ativafix/assets/index-*.js | head -1
 
 # 2. Verificar se o arquivo JS contém as validações (procurar por "Cor do equipamento")
-grep -o "Cor do equipamento" /var/www/primecamp.cloud/assets/index-*.js | head -1
+grep -o "Cor do equipamento" /var/www/ativafix/assets/index-*.js | head -1
 
 # 3. Verificar tamanho do arquivo (para comparar)
-ls -lh /var/www/primecamp.cloud/assets/index-*.js
+ls -lh /var/www/ativafix/assets/index-*.js
 ```
 
 ---
@@ -31,7 +31,7 @@ ls -lh /var/www/primecamp.cloud/assets/index-*.js
 ### Opção 3: Modo Anônimo/Privado (MELHOR PARA TESTAR)
 - **Chrome/Edge:** `Ctrl + Shift + N` (ou `Cmd + Shift + N` no Mac)
 - **Firefox:** `Ctrl + Shift + P` (ou `Cmd + Shift + P` no Mac)
-- Abra `https://primecamp.cloud/os/nova` na aba anônima
+- Abra `https://app.ativafix.com/os/nova` na aba anônima
 - Faça login e teste
 
 ### Opção 4: Desabilitar Cache no DevTools (PARA DESENVOLVIMENTO)
@@ -46,7 +46,7 @@ ls -lh /var/www/primecamp.cloud/assets/index-*.js
 
 Após limpar o cache:
 
-1. Acesse `https://primecamp.cloud/os/nova`
+1. Acesse `https://app.ativafix.com/os/nova`
 2. Preencha os campos obrigatórios:
    - Cliente
    - Telefone
@@ -69,7 +69,7 @@ Após limpar o cache:
 
 ```bash
 # Na VPS, verificar o conteúdo do arquivo JS
-grep -c "Cor do equipamento" /var/www/primecamp.cloud/assets/index-*.js
+grep -c "Cor do equipamento" /var/www/ativafix/assets/index-*.js
 ```
 
 Se retornar `0` ou nada, o código não está no build. Nesse caso:
@@ -88,8 +88,8 @@ Se retornar `0` ou nada, o código não está no build. Nesse caso:
    git pull origin main
    rm -rf dist
    npm run build
-   sudo rm -rf /var/www/primecamp.cloud/*
-   sudo cp -r dist/* /var/www/primecamp.cloud/
+   sudo rm -rf /var/www/ativafix/*
+   sudo cp -r dist/* /var/www/ativafix/
    sudo systemctl reload nginx
    ```
 

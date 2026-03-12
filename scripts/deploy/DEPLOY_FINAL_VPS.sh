@@ -18,11 +18,11 @@ if [ ! -d "dist" ]; then
 fi
 
 # 3. Detectar diretório do Nginx
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Tentar detectar do nginx config
-if [ -f "/etc/nginx/sites-available/primecamp.cloud" ]; then
-    DETECTED_ROOT=$(grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' | sed 's/;$//' || echo "")
+if [ -f "/etc/nginx/sites-available/ativafix" ]; then
+    DETECTED_ROOT=$(grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' | sed 's/;$//' || echo "")
     if [ -n "$DETECTED_ROOT" ] && [ "$DETECTED_ROOT" != "/" ]; then
         NGINX_ROOT="$DETECTED_ROOT"
     fi
@@ -82,8 +82,8 @@ echo ""
 echo "✅ DEPLOY CONCLUÍDO!"
 echo ""
 echo "📋 IMPORTANTE:"
-echo "   - Acesse: https://primecamp.cloud/financeiro (NOVO)"
-echo "   - NÃO acesse: https://primecamp.cloud/admin/financeiro (ANTIGO)"
+echo "   - Acesse: https://app.ativafix.com/financeiro (NOVO)"
+echo "   - NÃO acesse: https://app.ativafix.com/admin/financeiro (ANTIGO)"
 echo ""
 echo "💡 Dicas:"
 echo "   - Limpe o cache do navegador (Ctrl+Shift+R)"

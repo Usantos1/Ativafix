@@ -36,6 +36,6 @@ echo "✅ Frontend atualizado!"
 echo ""
 echo "📋 Próximos passos:"
 echo "   1. Limpe o cache do navegador (Ctrl+Shift+R ou Cmd+Shift+R)"
-echo "   2. Acesse: https://primecamp.cloud/integracoes"
+echo "   2. Acesse: https://app.ativafix.com/integracoes"
 echo "   3. Verifique se as atualizações apareceram"
 

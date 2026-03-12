@@ -36,7 +36,7 @@ if pm2 list | grep -q "primecamp-api"; then
     
     echo ""
     echo "6️⃣ Testando endpoint /api/upsert..."
-    API_URL="https://api.primecamp.cloud/api"
+    API_URL="https://api.ativafix.com/api"
     RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST ${API_URL}/upsert/kv_store_2c4defad \
       -H "Content-Type: application/json" \
       -d '{"data": {"key": "test_deploy", "value": {"test": true}}, "onConflict": "key"}' 2>/dev/null)

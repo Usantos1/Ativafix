@@ -16,7 +16,7 @@ WHERE email = 'uander@ativacrm.com';  -- ajuste o email
 -- 3) Opcional: vincular todos que devem estar na Prime Camp Admin
 -- UPDATE users
 -- SET company_id = (SELECT id FROM companies WHERE name ILIKE '%Prime Camp Admin%' LIMIT 1)
--- WHERE email IN ('admin@primecamp.cloud', 'elizangela@...', 'natalia@...', 'vitor@...', 'lojaprimecamp@gmail.com');
+-- WHERE email IN ('admin@ativafix.com', 'elizangela@...', 'natalia@...', 'vitor@...', 'lojaprimecamp@gmail.com');
 
 -- 4) Conferir após o UPDATE
 SELECT u.email, c.name AS empresa

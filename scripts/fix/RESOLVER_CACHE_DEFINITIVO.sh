@@ -17,7 +17,7 @@ sudo nginx -T 2>/dev/null | grep -A 5 "server_name.*primecamp\|root.*html" | hea
 
 echo ""
 echo "3️⃣ Verificando se há proxy/CDN na frente..."
-curl -I https://primecamp.cloud/ 2>&1 | grep -i "server:\|cf-\|cloudflare\|x-cache\|via:"
+curl -I https://app.ativafix.com/ 2>&1 | grep -i "server:\|cf-\|cloudflare\|x-cache\|via:"
 
 echo ""
 echo "4️⃣ Garantindo que index.html está correto localmente..."
@@ -79,7 +79,7 @@ curl -s http://localhost/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "   Via HTTPS (pode ter CDN):"
-curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | sort -u
+curl -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | sort -u
 
 echo ""
 echo "✅ CONCLUÍDO!"
@@ -88,5 +88,5 @@ echo "⚠️ Se ainda mostrar arquivo antigo via HTTPS, há um CDN/proxy na fren
 echo "   Nesse caso, você precisa:"
 echo "   1. Limpar cache no painel do Cloudflare (se usar)"
 echo "   2. OU aguardar alguns minutos para o cache expirar"
-echo "   3. OU adicionar um parâmetro de versão: https://primecamp.cloud/integracoes?v=$(date +%s)"
+echo "   3. OU adicionar um parâmetro de versão: https://app.ativafix.com/integracoes?v=$(date +%s)"
 

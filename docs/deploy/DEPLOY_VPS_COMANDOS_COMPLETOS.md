@@ -19,7 +19,7 @@ ssh root@SEU_IP_DA_VPS
 Recomendado: atualiza código, faz build do frontend, publica no Nginx e reinicia a API.
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && cd server && npm install --production && pm2 restart primecamp-api && cd .. && echo "✅ Deploy concluído!"
+cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo chmod -R 755 /var/www/ativafix && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && cd server && npm install --production && pm2 restart primecamp-api && cd .. && echo "✅ Deploy concluído!"
 ```
 
 ---
@@ -46,14 +46,14 @@ ls -la dist/
 sudo rm -rf /var/cache/nginx/*
 
 # 7. Limpar diretório de deploy do site
-sudo rm -rf /var/www/primecamp.cloud/*
+sudo rm -rf /var/www/ativafix/*
 
 # 8. Copiar build para o diretório do Nginx
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 
 # 9. Ajustar dono e permissões
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 
 # 10. Testar configuração do Nginx
 sudo nginx -t
@@ -80,7 +80,7 @@ echo "✅ Deploy concluído!"
 Se só alterou o frontend e não quer reiniciar o backend:
 
 ```bash
-cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/primecamp.cloud/* && sudo cp -r dist/* /var/www/primecamp.cloud/ && sudo chown -R www-data:www-data /var/www/primecamp.cloud && sudo chmod -R 755 /var/www/primecamp.cloud && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && echo "✅ Frontend atualizado!"
+cd /root/primecamp-ofc && git pull origin main && npm install && npm run build && sudo rm -rf /var/www/ativafix/* && sudo cp -r dist/* /var/www/ativafix/ && sudo chown -R www-data:www-data /var/www/ativafix && sudo chmod -R 755 /var/www/ativafix && sudo rm -rf /var/cache/nginx/* && sudo systemctl reload nginx && echo "✅ Frontend atualizado!"
 ```
 
 ---
@@ -108,22 +108,22 @@ pm2 logs primecamp-api --lines 30 --nostream
 sudo systemctl status nginx --no-pager
 
 # Teste rápido do site (troque pelo seu domínio)
-curl -I https://primecamp.cloud
+curl -I https://app.ativafix.com
 ```
 
 ---
 
 ## 7) Se o Nginx usar outro diretório
 
-Se o site não estiver em `/var/www/primecamp.cloud`, descubra o `root`:
+Se o site não estiver em `/var/www/ativafix`, descubra o `root`:
 
 ```bash
-sudo grep -A 10 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud | grep root
+sudo grep -A 10 "server_name ativafix" /etc/nginx/sites-available/ativafix | grep root
 # ou
-sudo grep -A 10 "server_name primecamp.cloud" /etc/nginx/sites-enabled/* | grep root
+sudo grep -A 10 "server_name ativafix" /etc/nginx/sites-enabled/* | grep root
 ```
 
-Use o caminho que aparecer em `root` no lugar de `/var/www/primecamp.cloud` nos comandos acima.
+Use o caminho que aparecer em `root` no lugar de `/var/www/ativafix` nos comandos acima.
 
 ---
 

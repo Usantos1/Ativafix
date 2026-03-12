@@ -5,12 +5,12 @@ echo "==================================================="
 echo ""
 
 # Detectar diretório do Nginx automaticamente
-NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-available/primecamp.cloud 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
+NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-available/ativafix 2>/dev/null | grep "root" | awk '{print $2}' | sed 's/;//' || echo "")
 if [ -z "$NGINX_ROOT" ]; then
-    NGINX_ROOT=$(sudo grep -A 5 "server_name primecamp.cloud" /etc/nginx/sites-enabled/primecamp.cloud* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
+    NGINX_ROOT=$(sudo grep -A 5 "server_name ativafix" /etc/nginx/sites-enabled/ativafix* 2>/dev/null | grep "root" | head -1 | awk '{print $2}' | sed 's/;//' || echo "")
 fi
 if [ -z "$NGINX_ROOT" ]; then
-    NGINX_ROOT="/var/www/primecamp.cloud"
+    NGINX_ROOT="/var/www/ativafix"
 fi
 
 echo "📁 Diretório root do Nginx: $NGINX_ROOT"
@@ -48,5 +48,5 @@ echo ""
 
 echo "6️⃣ Fazendo requisição HTTP real para ver o que o servidor retorna..."
 echo ""
-curl -s https://primecamp.cloud/ | grep -o 'assets/index-[^"]*\.js' | head -1
+curl -s https://app.ativafix.com/ | grep -o 'assets/index-[^"]*\.js' | head -1
 echo ""

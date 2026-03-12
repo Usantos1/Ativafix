@@ -120,7 +120,7 @@ echo -e "${GREEN}✅ Build do frontend concluído${NC}"
 # 7. LIMPAR CACHE DO NGINX
 # ============================================
 echo -e "${YELLOW}🧹 Limpando cache do Nginx...${NC}"
-sudo rm -rf /var/cache/nginx/* /var/www/primecamp.cloud/* /var/www/primecamp.cloud/.* 2>/dev/null || true
+sudo rm -rf /var/cache/nginx/* /var/www/ativafix/* /var/www/ativafix/.* 2>/dev/null || true
 sleep 1
 echo -e "${GREEN}✅ Cache do Nginx limpo${NC}"
 
@@ -128,9 +128,9 @@ echo -e "${GREEN}✅ Cache do Nginx limpo${NC}"
 # 8. COPIAR ARQUIVOS DO BUILD
 # ============================================
 echo -e "${YELLOW}📁 Copiando arquivos do build...${NC}"
-sudo cp -r $PROJECT_DIR/dist/* /var/www/primecamp.cloud/
-sudo chown -R www-data:www-data /var/www/primecamp.cloud
-sudo chmod -R 755 /var/www/primecamp.cloud
+sudo cp -r $PROJECT_DIR/dist/* /var/www/ativafix/
+sudo chown -R www-data:www-data /var/www/ativafix
+sudo chmod -R 755 /var/www/ativafix
 echo -e "${GREEN}✅ Arquivos copiados${NC}"
 
 # ============================================
@@ -165,14 +165,14 @@ echo ""
 echo -e "${GREEN}✅ Deploy concluído com sucesso!${NC}"
 echo ""
 echo "📊 Sistema IA-First Financeiro disponível em:"
-echo "   - Dashboard: https://primecamp.cloud/financeiro"
-echo "   - Recomendações: https://primecamp.cloud/financeiro/recomendacoes"
-echo "   - Estoque: https://primecamp.cloud/financeiro/estoque"
-echo "   - Vendedores: https://primecamp.cloud/financeiro/vendedores"
-echo "   - Produtos: https://primecamp.cloud/financeiro/produtos"
-echo "   - Previsões: https://primecamp.cloud/financeiro/previsoes"
-echo "   - DRE: https://primecamp.cloud/financeiro/dre"
-echo "   - Planejamento: https://primecamp.cloud/financeiro/planejamento"
+echo "   - Dashboard: https://app.ativafix.com/financeiro"
+echo "   - Recomendações: https://app.ativafix.com/financeiro/recomendacoes"
+echo "   - Estoque: https://app.ativafix.com/financeiro/estoque"
+echo "   - Vendedores: https://app.ativafix.com/financeiro/vendedores"
+echo "   - Produtos: https://app.ativafix.com/financeiro/produtos"
+echo "   - Previsões: https://app.ativafix.com/financeiro/previsoes"
+echo "   - DRE: https://app.ativafix.com/financeiro/dre"
+echo "   - Planejamento: https://app.ativafix.com/financeiro/planejamento"
 echo ""
 echo "📝 Logs do backend:"
 echo "   pm2 logs primecamp-api --lines 50"

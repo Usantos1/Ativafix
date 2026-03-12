@@ -29,7 +29,7 @@ Se aparecer "Vendas de OS devem ter technician_id", o código ainda é o antigo 
 
 ```bash
 npm run build
-sudo cp -r dist/* /var/www/primecamp.cloud/
+sudo cp -r dist/* /var/www/ativafix/
 sudo systemctl reload nginx
 ```
 
@@ -37,7 +37,7 @@ sudo systemctl reload nginx
 
 ## 3. Reiniciar a API (obrigatório para o erro sumir)
 
-A API é o servidor Node que atende `api.primecamp.cloud` (ou a URL que o frontend usa).  
+A API é o servidor Node que atende `api.ativafix` (ou a URL que o frontend usa).  
 Ela roda a partir de `server/index.js`. Depois do `git pull`, esse processo precisa ser reiniciado.
 
 ### Se você usa PM2
@@ -83,7 +83,7 @@ node server/index.js
 | `npm run build` + `cp dist/*` | Só o **frontend**   |
 | Reiniciar a API (pm2/systemd/node) | **Backend** (onde está a correção do technician_id) |
 
-Sem reiniciar a API, o erro continua em **local e produção**, porque ambos usam a mesma API (api.primecamp.cloud).
+Sem reiniciar a API, o erro continua em **local e produção**, porque ambos usam a mesma API (api.ativafix).
 
 ---
 

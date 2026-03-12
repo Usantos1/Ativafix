@@ -18,7 +18,7 @@ git pull origin main
 npm run build
 
 # Detectar diretório do Nginx
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Limpar diretório
 sudo rm -rf "$NGINX_ROOT"/*
@@ -42,10 +42,10 @@ npm install && \
 pm2 restart primecamp-api && \
 cd .. && \
 npm run build && \
-sudo rm -rf /var/www/primecamp.cloud/* && \
-sudo cp -r dist/* /var/www/primecamp.cloud/ && \
-sudo chown -R www-data:www-data /var/www/primecamp.cloud && \
-sudo chmod -R 755 /var/www/primecamp.cloud && \
+sudo rm -rf /var/www/ativafix/* && \
+sudo cp -r dist/* /var/www/ativafix/ && \
+sudo chown -R www-data:www-data /var/www/ativafix && \
+sudo chmod -R 755 /var/www/ativafix && \
 sudo systemctl reload nginx && \
 echo "✅ Deploy concluído!"
 ```
@@ -53,7 +53,7 @@ echo "✅ Deploy concluído!"
 ## 4. Verificar se está Funcionando
 
 Após o deploy:
-1. Acesse: https://primecamp.cloud
+1. Acesse: https://app.ativafix.com
 2. Vá em Admin > Vagas > [Selecione uma vaga] > Candidatos
 3. Verifique se aparece o botão "Regenerar IA" ao lado de "Ver IA"
 4. Vá em Admin > Entrevistas

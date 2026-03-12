@@ -41,7 +41,7 @@ cat /etc/nginx/nginx.conf | grep root
 
 ### 6. Copiar arquivos build para Nginx
 ```bash
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Limpar diretório antigo
 sudo rm -rf $NGINX_ROOT/*
@@ -94,7 +94,7 @@ sudo journalctl -u <nome-do-servico> -f
 cd /root/primecamp-ofc && \
 git pull origin main && \
 npm run build && \
-NGINX_ROOT="/var/www/primecamp.cloud" && \
+NGINX_ROOT="/var/www/ativafix" && \
 sudo rm -rf "$NGINX_ROOT"/* && \
 sudo rm -rf /var/cache/nginx/* 2>/dev/null || true && \
 sudo rm -rf /var/lib/nginx/cache/* 2>/dev/null || true && \

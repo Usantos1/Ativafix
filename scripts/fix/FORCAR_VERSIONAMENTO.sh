@@ -4,7 +4,7 @@ echo "🔥 FORÇANDO VERSIONAMENTO DINÂMICO"
 echo "==================================="
 echo ""
 
-NGINX_ROOT="/var/www/primecamp.cloud"
+NGINX_ROOT="/var/www/ativafix"
 
 # Gerar timestamp único
 TIMESTAMP=$(date +%s)
