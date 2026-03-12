@@ -42,6 +42,7 @@ import AdminReseller from "./pages/admin/AdminReseller";
 import CompanyDashboardPage from "./pages/CompanyDashboardPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import EstruturaOrganizacional from "./pages/admin/EstruturaOrganizacional";
+import AdminDepartments from "./pages/admin/AdminDepartments";
 import CadastrosBase from "./pages/admin/CadastrosBase";
 import RH from "./pages/RH";
 import AdminJobSurveys from "./pages/admin/AdminJobSurveys";
@@ -143,7 +144,7 @@ const App = () => {
             <Route path="/metricas" element={<NotFound />} />
             <Route path="/admin/categories" element={<NotFound />} />
             <Route path="/admin/tags" element={<NotFound />} />
-            <Route path="/admin/departments" element={<NotFound />} />
+            <Route path="/admin/departments" element={<ProtectedRoute><AdminDepartments /></ProtectedRoute>} />
             <Route path="/notifications" element={<NotFound />} />
             <Route path="/search" element={<NotFound />} />
             <Route path="/productivity" element={<NotFound />} />

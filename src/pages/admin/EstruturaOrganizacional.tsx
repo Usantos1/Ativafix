@@ -1,6 +1,6 @@
 import { ModernLayout } from '@/components/ModernLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Building2, FolderOpen, Tag } from 'lucide-react';
+import { Users, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function EstruturaOrganizacional() {
@@ -20,20 +20,6 @@ export default function EstruturaOrganizacional() {
       icon: Building2,
       path: '/admin/departments',
       color: 'text-green-600',
-    },
-    {
-      title: 'Categorias',
-      description: 'Organize tarefas e processos com categorias',
-      icon: FolderOpen,
-      path: '/admin/categories',
-      color: 'text-orange-600',
-    },
-    {
-      title: 'Tags',
-      description: 'Crie e gerencie tags para classificação',
-      icon: Tag,
-      path: '/admin/tags',
-      color: 'text-pink-600',
     },
   ];
 
