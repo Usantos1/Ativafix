@@ -48,30 +48,11 @@ export function DemoBanner() {
   // Nunca exibir para quem não está em sessão de demonstração
   if (!visible || dismissed) return null;
 
-  const m = Math.floor(secondsLeft / 60);
-  const s = secondsLeft % 60;
-  const timerText = `${m}:${s.toString().padStart(2, '0')}`;
-
   return (
     <>
-      <div className="bg-[#00F7A5]/15 border-b border-[#00F7A5]/30 text-[#0B0F0D] flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-2.5 px-4 text-sm font-medium shrink-0">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 shrink-0 text-[#00C27F]" />
-          <span>
-            Você está na <strong>demonstração</strong>. Os dados são de exemplo. Para usar com seus dados, faça cadastro ou login.
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] uppercase tracking-wider text-[#0B0F0D]/80">Tempo restante</span>
-            <span className="font-mono font-bold tabular-nums text-base bg-[#00F7A5]/25 rounded-lg px-2.5 py-1 border border-[#00F7A5]/40">
-              {timerText}
-            </span>
-          </div>
-          <span className="text-xs text-[#0B0F0D]/90">
-            Após 1 minuto um aviso será exibido.
-          </span>
-        </div>
+      <div className="bg-[#00F7A5]/15 border-b border-[#00F7A5]/30 text-[#0B0F0D] flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium shrink-0">
+        <Sparkles className="w-4 h-4 shrink-0 text-[#00C27F]" />
+        <span>Demonstração — um clique para experimentar</span>
         <button
           type="button"
           onClick={handleDismiss}

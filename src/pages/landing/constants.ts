@@ -1,5 +1,5 @@
 export const CTA_WHATSAPP = 'https://wa.me/551991979912';
-export const CTA_MSG = 'Olá! Quero conhecer o Ativa FIX e organizar minha assistência técnica.';
+export const CTA_MSG = 'Olá! Quero assinar o Ativa FIX e organizar minha assistência técnica.';
 export const APP_URL = 'https://app.ativafix.com';
 
 export const LANDING_COLORS = {
