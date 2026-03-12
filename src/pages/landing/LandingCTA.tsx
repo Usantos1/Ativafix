@@ -1,14 +1,17 @@
 import { motion } from 'framer-motion';
-import { MessageCircle } from 'lucide-react';
-import { CTA_WHATSAPP, CTA_MSG } from './constants';
+import { FlaskConical } from 'lucide-react';
 
-export function LandingCTA() {
+interface LandingCTAProps {
+  onOpenDemo?: () => void;
+}
+
+export function LandingCTA({ onOpenDemo }: LandingCTAProps) {
   return (
     <section className="relative py-24 md:py-32 px-4 overflow-hidden">
-      {/* Background gradient + glow */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#07110D] via-[#030504] to-[#07110D]" />
       <div className="absolute inset-0 landing-bg-grid opacity-20" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-[#00F7A5] opacity-[0.08] blur-[100px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(0,247,165,0.06),transparent_60%)]" />
 
       <div className="relative z-10 max-w-3xl mx-auto text-center">
         <motion.h2
@@ -27,39 +30,30 @@ export function LandingCTA() {
           transition={{ delay: 0.1 }}
           className="text-[#9AA4A0] text-lg md:text-xl mb-10"
         >
-          Veja o Ativa FIX funcionando na prática.
+          Teste o sistema agora e veja como sua assistência pode funcionar de forma organizada.
         </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-          className="relative inline-block"
-        >
-          {/* Glow atrás do botão */}
-          <div className="absolute -inset-4 rounded-3xl bg-[#00F7A5]/20 blur-2xl" />
-          <motion.a
-            href={`${CTA_WHATSAPP}?text=${encodeURIComponent(CTA_MSG)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            className="landing-btn landing-btn-primary relative inline-flex items-center justify-center gap-3 px-10 py-5 font-bold text-lg md:text-xl border border-[#00F7A5]/40"
+        {onOpenDemo && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="relative inline-block"
           >
-            <MessageCircle className="w-6 h-6 shrink-0" />
-            Organizar minha assistência agora
-          </motion.a>
-        </motion.div>
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="text-[#6D7873] text-sm md:text-base mt-6"
-        >
-          Sem compromisso.
-        </motion.p>
+            <div className="absolute -inset-4 rounded-3xl bg-[#00F7A5]/20 blur-2xl" />
+            <motion.button
+              type="button"
+              onClick={onOpenDemo}
+              whileHover={{ scale: 1.03, boxShadow: '0 0 50px rgba(0,247,165,0.4)' }}
+              whileTap={{ scale: 0.98 }}
+              className="landing-btn landing-btn-primary relative inline-flex items-center justify-center gap-3 px-10 py-5 font-bold text-lg md:text-xl border border-[#00F7A5]/40"
+            >
+              <FlaskConical className="w-6 h-6 shrink-0" />
+              Experimentar o sistema
+            </motion.button>
+          </motion.div>
+        )}
       </div>
     </section>
   );

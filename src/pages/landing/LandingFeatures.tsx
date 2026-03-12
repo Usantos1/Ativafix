@@ -39,7 +39,7 @@ const FEATURES = [
 
 export function LandingFeatures() {
   return (
-    <section id="como-funciona" className="relative py-24 md:py-32 px-4 bg-[#07110D]">
+    <section className="relative py-24 md:py-32 px-4 bg-[#07110D]">
       <div className="absolute inset-0 landing-bg-grid opacity-30" />
       <div className="relative z-10 max-w-6xl mx-auto">
         <motion.h2

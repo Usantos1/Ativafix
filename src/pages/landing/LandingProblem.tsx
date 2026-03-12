@@ -4,7 +4,7 @@ import { MessageCircle, Package, Wallet, HelpCircle } from 'lucide-react';
 const PROBLEMS = [
   { title: 'Cliente perguntando status', desc: 'Ligação e WhatsApp o tempo todo.', Icon: HelpCircle },
   { title: 'Peça sumindo do estoque', desc: 'Não sabe o que tem nem o que falta.', Icon: Package },
-  { title: 'Financeiro sem controle', desc: 'Contas e caixa na cabeça ou no caderno.', Icon: Wallet },
+  { title: 'Financeiro bagunçado', desc: 'Contas e caixa na cabeça ou no caderno.', Icon: Wallet },
   { title: 'WhatsApp virando suporte manual', desc: 'Responde a mesma pergunta dezenas de vezes.', Icon: MessageCircle },
 ];
 
@@ -12,6 +12,7 @@ export function LandingProblem() {
   return (
     <section className="relative py-24 md:py-32 px-4 landing-bg-base">
       <div className="absolute inset-0 landing-bg-grid opacity-50" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_100%,rgba(0,247,165,0.04),transparent_60%)]" />
       <div className="relative z-10 max-w-6xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -42,10 +43,10 @@ export function LandingProblem() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ delay: i * 0.08, duration: 0.45 }}
-              className="landing-card-premium p-6 md:p-7 flex flex-col"
+              className="group landing-card-premium p-6 md:p-7 flex flex-col rounded-2xl border border-[#00F7A5]/15 hover:border-[#00F7A5]/35 hover:shadow-[0_0_40px_rgba(0,247,165,0.12)] transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-2xl bg-[#00F7A5]/10 border border-[#00F7A5]/20 flex items-center justify-center mb-4">
-                <item.Icon className="w-6 h-6 text-[#00F7A5]" />
+              <div className="w-14 h-14 rounded-2xl bg-[#00F7A5]/10 border border-[#00F7A5]/20 flex items-center justify-center mb-4 group-hover:bg-[#00F7A5]/15 group-hover:border-[#00F7A5]/30 transition-colors">
+                <item.Icon className="w-7 h-7 text-[#00F7A5]" />
               </div>
               <h3 className="font-bold text-[#F5F7F6] text-lg md:text-xl mb-2">{item.title}</h3>
               <p className="text-sm md:text-base text-[#6D7873] leading-relaxed">{item.desc}</p>

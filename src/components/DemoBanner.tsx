@@ -7,15 +7,38 @@ import { DEMO_SESSION_KEY } from '@/utils/demoMode';
 
 const DEMO_TIMER_SECONDS = 60;
 
+function isInIframe(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+function isEmbedded(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return new URLSearchParams(window.location.search).get('embed') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function DemoBanner() {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(DEMO_TIMER_SECONDS);
   const [showPostTimerModal, setShowPostTimerModal] = useState(false);
+  const inIframe = useState(() => isInIframe())[0];
+  const embedded = useState(() => isEmbedded())[0];
 
   useEffect(() => {
     try {
-      // Só exibe para quem entrou pela página /demo (sessionStorage definido apenas lá)
+      if (isInIframe()) {
+        setVisible(false);
+        return;
+      }
       setVisible(sessionStorage.getItem(DEMO_SESSION_KEY) === '1');
     } catch {
       setVisible(false);
@@ -45,7 +68,8 @@ export function DemoBanner() {
     setShowPostTimerModal(false);
   };
 
-  // Nunca exibir para quem não está em sessão de demonstração
+  // Quando está no iframe da LP (embed=1 ou inIframe), o banner já está na barra do modal — não duplicar
+  if (embedded || inIframe) return null;
   if (!visible || dismissed) return null;
 
   const m = Math.floor(secondsLeft / 60);

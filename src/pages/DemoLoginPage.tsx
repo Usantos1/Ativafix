@@ -40,7 +40,7 @@ export default function DemoLoginPage() {
         try {
           sessionStorage.setItem(DEMO_SESSION_KEY, '1');
         } catch {}
-        window.location.href = '/';
+        window.location.href = autoLogin ? '/?embed=1' : '/';
       })
       .catch((e: unknown) => {
         setError(e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Erro ao conectar.');

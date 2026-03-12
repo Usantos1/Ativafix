@@ -15,6 +15,17 @@ import { useAuth } from "@/contexts/AuthContext"
 /** Apenas a empresa 1 (administradora) pode alterar nome e cores do sistema. */
 const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
+/** True se o app está embutido no iframe da LP (não mostrar banner para não duplicar). */
+function isEmbeddedInLp(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    if (new URLSearchParams(window.location.search).get('embed') === '1') return true
+    return window.self !== window.top
+  } catch {
+    return true
+  }
+}
+
 interface ModernLayoutProps {
   children: React.ReactNode
   title?: string
@@ -35,11 +46,12 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
     return () => clearInterval(timer)
   }, [])
 
+  const hideDemoBanner = isEmbeddedInLp()
+
   return (
     <SidebarProvider>
       <div className="h-screen h-[100dvh] flex flex-col w-full bg-background overflow-hidden">
-        {/* Banner demo no preto fora do sistema (topo) */}
-        <DemoBanner />
+        {!hideDemoBanner && <DemoBanner />}
 
         <div className="flex-1 flex min-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out">
           <AppSidebar />

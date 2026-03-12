@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { LandingHeader } from './LandingHeader';
 import { LandingHero } from './LandingHero';
 import { LandingProblem } from './LandingProblem';
+import { LandingModulos } from './LandingModulos';
+import { LandingVisualSistema } from './LandingVisualSistema';
 import { LandingFeatures } from './LandingFeatures';
-import { LandingComparison } from './LandingComparison';
 import { LandingBenefits } from './LandingBenefits';
 import { LandingDemonstracao } from './LandingDemonstracao';
 import { LandingCTA } from './LandingCTA';
@@ -28,17 +29,20 @@ export default function LandingPage() {
     window.open(`${CTA_WHATSAPP}?text=${encodeURIComponent(CTA_MSG)}`, '_blank', 'noopener,noreferrer');
   };
 
+  const openDemo = () => setShowDemoModal(true);
+
   return (
     <div className="min-h-screen bg-[#030504] text-[#F5F7F6] overflow-x-hidden font-sans antialiased">
-      <LandingHeader onOpenDemo={() => setShowDemoModal(true)} />
+      <LandingHeader onOpenDemo={openDemo} />
       <main>
-        <LandingHero onOpenDemo={() => setShowDemoModal(true)} />
+        <LandingHero onOpenDemo={openDemo} />
         <LandingProblem />
+        <LandingModulos />
+        <LandingVisualSistema />
         <LandingFeatures />
-        <LandingComparison />
+        <LandingDemonstracao onOpenDemo={openDemo} />
         <LandingBenefits />
-        <LandingDemonstracao onOpenDemo={() => setShowDemoModal(true)} />
-        <LandingCTA />
+        <LandingCTA onOpenDemo={openDemo} />
         <LandingFooter />
       </main>
       <DemoFullscreenModalLP

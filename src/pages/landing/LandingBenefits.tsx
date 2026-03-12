@@ -13,6 +13,7 @@ export function LandingBenefits() {
   return (
     <section className="relative py-24 md:py-32 px-4 bg-[#07110D]">
       <div className="absolute inset-0 landing-bg-grid opacity-20" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(0,247,165,0.05),transparent_55%)]" />
       <div className="relative z-10 max-w-5xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -32,10 +33,10 @@ export function LandingBenefits() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.06, duration: 0.45 }}
-              className="landing-card-premium p-5 md:p-6 flex flex-col items-center text-center"
+              className="group rounded-2xl landing-card-premium p-5 md:p-6 flex flex-col items-center text-center hover:border-[#00F7A5]/35 hover:shadow-[0_0_35px_rgba(0,247,165,0.12)] transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-2xl bg-[#00F7A5]/10 border border-[#00F7A5]/20 flex items-center justify-center mb-3">
-                <item.Icon className="w-6 h-6 text-[#00F7A5]" />
+              <div className="w-14 h-14 rounded-2xl bg-[#00F7A5]/10 border border-[#00F7A5]/20 flex items-center justify-center mb-3 group-hover:bg-[#00F7A5]/15 group-hover:border-[#00F7A5]/30 transition-colors">
+                <item.Icon className="w-7 h-7 text-[#00F7A5]" />
               </div>
               <span className="font-semibold text-[#F5F7F6] text-base md:text-lg">{item.text}</span>
             </motion.div>
