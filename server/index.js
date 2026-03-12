@@ -2857,17 +2857,31 @@ app.get('/api/theme-config', async (req, res) => {
         return res.json(typeof val === 'string' ? JSON.parse(val) : val);
       }
     }
-    // 2) Fallback: tema do domínio (host)
+    // 2) Sem auth (tela de login): ativafix.com/localhost usam tema da empresa 1 (logo e cores corretos)
+    const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
+    const adminCompanyKey = `theme_config_company_${ADMIN_COMPANY_ID}`;
     let host = req.query.host;
     if (host == null && req.headers.origin) {
       try {
         host = new URL(req.headers.origin).hostname;
       } catch (_) {}
     }
+    const h = (host && host.toLowerCase().replace(/^www\./, '')) || '';
+    const isLoginHost = h === 'ativafix.com' || h === 'localhost' || h === '127.0.0.1';
+    if (isLoginHost) {
+      const company1Result = await pool.query('SELECT value FROM kv_store_2c4defad WHERE key = $1', [adminCompanyKey]);
+      if (company1Result.rows.length > 0 && company1Result.rows[0].value) {
+        const val = company1Result.rows[0].value;
+        return res.json(typeof val === 'string' ? JSON.parse(val) : val);
+      }
+    }
     const key = themeConfigKey(host);
     const result = await pool.query('SELECT value FROM kv_store_2c4defad WHERE key = $1', [key]);
     if (result.rows.length === 0 || !result.rows[0].value) {
-      return res.json(null);
+      const fallback = await pool.query('SELECT value FROM kv_store_2c4defad WHERE key = $1', [adminCompanyKey]);
+      if (fallback.rows.length === 0 || !fallback.rows[0].value) return res.json(null);
+      const val = fallback.rows[0].value;
+      return res.json(typeof val === 'string' ? JSON.parse(val) : val);
     }
     const value = result.rows[0].value;
     res.json(typeof value === 'string' ? JSON.parse(value) : value);

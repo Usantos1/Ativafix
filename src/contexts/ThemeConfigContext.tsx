@@ -34,10 +34,7 @@ const defaultConfigPrimeCamp: ThemeConfig = {
   companyName: 'Prime Camp',
 };
 
-// Cor padrão Ativa Fix (dourado) — HSL: 44 100% 53%
-const ATIVAFIX_PRIMARY_HSL = '44 100% 53%';
-
-/** Configuração padrão por domínio: ativafix.com e localhost (dev) usam branding Ativa FIX para evitar flash "Prime Camp" no F5. */
+/** Na tela de login e padrão: logo e cores da empresa 1 (sem amarelo). API pode sobrescrever com tema salvo. */
 export function getDefaultConfigByHost(): ThemeConfig {
   if (typeof window === 'undefined') return defaultConfigPrimeCamp;
   const h = window.location.hostname;
@@ -46,15 +43,15 @@ export function getDefaultConfigByHost(): ThemeConfig {
     const origin = window.location.origin;
     return {
       ...defaultConfigPrimeCamp,
-      logo: `${origin}/logo-ativafix.png`,
-      logoAlt: 'Ativa Fix',
-      companyName: 'Ativa FIX | Gestão de Assistência e Vendas',
+      logo: defaultConfigPrimeCamp.logo || `${origin}/logo-ativafix.png`,
+      logoAlt: defaultConfigPrimeCamp.logoAlt || 'Logo',
+      companyName: defaultConfigPrimeCamp.companyName || 'Sistema de Processos',
       colors: {
         ...defaultConfigPrimeCamp.colors,
-        primary: ATIVAFIX_PRIMARY_HSL,
-        accent: ATIVAFIX_PRIMARY_HSL,
-        sidebar: ATIVAFIX_PRIMARY_HSL,
-        button: ATIVAFIX_PRIMARY_HSL,
+        primary: defaultConfigPrimeCamp.colors.primary,
+        accent: defaultConfigPrimeCamp.colors.accent,
+        sidebar: defaultConfigPrimeCamp.colors.sidebar ?? defaultConfigPrimeCamp.colors.primary,
+        button: defaultConfigPrimeCamp.colors.button ?? defaultConfigPrimeCamp.colors.primary,
       },
     };
   }

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogIn, UserPlus, Phone, Palette, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useThemeConfig, getDefaultConfigByHost } from "@/contexts/ThemeConfigContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -216,13 +217,16 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/50 p-4 relative">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle variant="button" size="sm" aria-label="Alternar tema claro/escuro" />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <img src={logoUrl} alt={config.logoAlt || "Logo"} className="h-16 w-auto max-w-[200px] object-contain" loading="lazy" decoding="async" />
           </div>
-          <CardTitle className="text-2xl font-bold">Sistema de Processos</CardTitle>
+          <CardTitle className="text-2xl font-bold">{config.companyName || 'Sistema de Processos'}</CardTitle>
           <CardDescription>Faça login ou crie sua conta para continuar</CardDescription>
         </CardHeader>
         <CardContent>
