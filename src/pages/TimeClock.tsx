@@ -20,13 +20,13 @@ export default function TimeClock() {
             <TabsList className="grid w-full grid-cols-2 border-2 border-gray-300 bg-gray-50 h-auto">
               <TabsTrigger 
                 value="widget"
-                className="text-xs md:text-sm border-r-2 border-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white flex items-center justify-center py-2.5 md:py-3 px-2 md:px-4"
+                className="text-xs md:text-sm border-r-2 border-gray-300 data-[state=active]:bg-[#00C27F] data-[state=active]:text-white dark:data-[state=active]:bg-[#00C27F] flex items-center justify-center py-2.5 md:py-3 px-2 md:px-4"
               >
                 Registrar Ponto
               </TabsTrigger>
               <TabsTrigger 
                 value="timesheet"
-                className="text-xs md:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white flex items-center justify-center py-2.5 md:py-3 px-2 md:px-4"
+                className="text-xs md:text-sm data-[state=active]:bg-[#00C27F] data-[state=active]:text-white dark:data-[state=active]:bg-[#00C27F] flex items-center justify-center py-2.5 md:py-3 px-2 md:px-4"
               >
                 Espelho de Ponto
               </TabsTrigger>

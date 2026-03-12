@@ -251,8 +251,8 @@ export function TimeSheetManager() {
         <CardHeader className="pb-3 pt-3 md:pt-6 px-3 md:px-6 border-b-2 border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
-              <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-white border-2 border-gray-200">
-                <Clock className="h-4 w-4 md:h-5 md:w-5 text-indigo-600" />
+              <div className="p-1.5 md:p-2 rounded-lg bg-[#00F7A5]/15 border-2 border-[#00F7A5]/30">
+                <Clock className="h-4 w-4 md:h-5 md:w-5 text-[#00C27F]" />
               </div>
               Espelho de Ponto
             </CardTitle>
@@ -326,7 +326,7 @@ export function TimeSheetManager() {
                 return (
                   <Card 
                     key={date.toISOString()} 
-                    className={`p-2 md:p-3 min-h-[80px] md:min-h-24 border-2 ${isToday ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-300'} ${isSundayDay ? 'bg-gray-50' : ''} ${!isCurrentMonth ? 'opacity-30' : ''} shadow-sm`}
+                    className={`p-2 md:p-3 min-h-[80px] md:min-h-24 border-2 ${isToday ? 'border-[#00C27F] ring-2 ring-[#00F7A5]/30' : 'border-gray-300'} ${isSundayDay ? 'bg-gray-50' : ''} ${!isCurrentMonth ? 'opacity-30' : ''} shadow-sm`}
                   >
                     <div className="space-y-1.5 md:space-y-2">
                       <div className="flex items-center justify-between">

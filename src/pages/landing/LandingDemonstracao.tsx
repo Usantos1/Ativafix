@@ -51,10 +51,10 @@ export function LandingDemonstracao({ onOpenDemo }: LandingDemonstracaoProps) {
               onClick={onOpenDemo}
               whileHover={{ scale: 1.03, boxShadow: '0 0 50px rgba(0,247,165,0.35)' }}
               whileTap={{ scale: 0.98 }}
-              className="landing-btn landing-btn-primary inline-flex items-center gap-3 px-10 py-5 font-bold text-lg md:text-xl border border-[#00F7A5]/40"
+              className="landing-btn landing-btn-primary inline-flex items-center gap-3 px-10 py-5 font-bold text-lg md:text-xl border border-[#00F7A5]/40 rounded-full"
             >
               <FlaskConical className="w-6 h-6 shrink-0" />
-              Experimentar o sistema
+              Testar o Sistema
             </motion.button>
           </motion.div>
         )}

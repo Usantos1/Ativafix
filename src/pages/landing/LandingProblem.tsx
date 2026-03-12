@@ -81,10 +81,10 @@ export function LandingProblem({ onOpenDemo }: LandingProblemProps) {
               onClick={onOpenDemo}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="landing-btn landing-btn-primary inline-flex items-center gap-2 px-6 py-3.5 font-semibold text-base border border-[#00F7A5]/40 rounded-xl"
+              className="landing-btn landing-btn-primary inline-flex items-center gap-2 px-6 py-3.5 font-semibold text-base border border-[#00F7A5]/40 rounded-full"
             >
               <FlaskConical className="w-4 h-4 shrink-0" />
-              Experimentar o sistema
+              Acessar Demonstração
             </motion.button>
           </motion.div>
         )}

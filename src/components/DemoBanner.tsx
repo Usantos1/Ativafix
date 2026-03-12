@@ -110,21 +110,21 @@ export function DemoBanner() {
         </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-wider text-[#9AA4A0]">Tempo restante</span>
-          <span className="font-mono font-bold tabular-nums text-base bg-[#07110D] text-[#00F7A5] rounded-lg px-2.5 py-1 border border-[#00F7A5]/30">
+          <span className="font-mono font-bold tabular-nums text-sm bg-[#07110D] text-[#00F7A5] rounded-full px-3 py-1 border border-[#00F7A5]/30">
             {timerText}
           </span>
         </div>
         <Button
           size="sm"
           onClick={handleAssinarWhatsApp}
-          className="h-9 rounded-lg font-semibold bg-[#00C27F] hover:bg-[#00a86b] text-[#0B0F0D] shrink-0"
+          className="h-8 rounded-full font-semibold bg-[#00C27F] hover:opacity-90 text-[#0B0F0D] shrink-0 transition-opacity"
         >
           Assinar Agora
         </Button>
         <button
           type="button"
           onClick={handleDismiss}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-[#F5F7F6]"
+          className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-[#F5F7F6]"
           aria-label="Fechar demonstração"
         >
           <X className="w-4 h-4" />
@@ -153,14 +153,14 @@ export function DemoBanner() {
             <div className="flex flex-col gap-2">
               <Button
                 onClick={handleAssinarWhatsApp}
-                className="w-full h-12 rounded-xl font-semibold bg-[#00C27F] hover:bg-[#00a86b] text-white"
+                className="w-full h-12 rounded-full font-semibold bg-[#00C27F] hover:opacity-90 text-white transition-opacity"
               >
                 Assinar Agora
               </Button>
               <Button
                 variant="outline"
                 onClick={handleTestarMaisUmMinuto}
-                className="w-full h-12 rounded-xl font-semibold border-2 border-[#00F7A5]/50 bg-[#0B0F0D] text-[#F5F7F6] hover:bg-[#00F7A5]/15 hover:border-[#00F7A5]/70 dark:bg-[#0B0F0D] dark:text-[#F5F7F6]"
+                className="w-full h-12 rounded-full font-semibold border-2 border-[#00F7A5]/50 bg-[#0B0F0D] text-[#F5F7F6] hover:bg-[#00F7A5]/15 hover:border-[#00F7A5]/70 hover:text-white dark:bg-[#0B0F0D] dark:text-[#F5F7F6] dark:hover:text-white"
               >
                 Testar por mais 1 minuto
               </Button>

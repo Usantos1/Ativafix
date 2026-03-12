@@ -22,17 +22,17 @@ export function LandingHeader({ onOpenDemo }: LandingHeaderProps) {
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.2 }}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 [&_a]:min-h-8 [&_a]:h-8 [&_button]:min-h-8 [&_button]:h-8">
           {onOpenDemo && (
             <motion.button
               type="button"
               onClick={onOpenDemo}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="landing-btn landing-btn-secondary inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border border-[#00F7A5]/20 bg-[#0B0F0D]/80 hover:border-[#00F7A5]/40 transition-all duration-300"
+              className="landing-btn landing-btn-secondary inline-flex items-center justify-center gap-1.5 min-h-8 h-8 px-3 rounded-full text-xs font-semibold border border-[#00F7A5]/20 bg-[#0B0F0D]/80 hover:border-[#00F7A5]/40 transition-all duration-300 shrink-0"
             >
-              <FlaskConical className="w-4 h-4" />
-              Experimentar
+              <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+              Acessar Demonstração
             </motion.button>
           )}
           <motion.a
@@ -41,9 +41,9 @@ export function LandingHeader({ onOpenDemo }: LandingHeaderProps) {
             rel="noopener noreferrer"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="landing-btn landing-btn-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border border-[#00F7A5]/40 transition-all duration-300"
+            className="landing-btn landing-btn-primary inline-flex items-center justify-center gap-1.5 min-h-8 h-8 px-3 rounded-full text-xs font-semibold border border-[#00F7A5]/40 transition-all duration-300 shrink-0"
           >
-            <LogIn className="w-4 h-4" />
+            <LogIn className="w-3.5 h-3.5 shrink-0" />
             Acessar o sistema
           </motion.a>
         </div>

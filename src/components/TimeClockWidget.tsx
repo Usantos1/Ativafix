@@ -324,13 +324,13 @@ export const TimeClockWidget = () => {
       <Card className="w-full max-w-md mx-auto border-2 border-gray-300 shadow-sm">
         <CardHeader className="text-center pb-3 pt-3 md:pt-6 px-3 md:px-6 border-b-2 border-gray-200">
           <CardTitle className="flex items-center justify-center gap-2 text-base md:text-xl">
-            <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-white border-2 border-gray-200">
-              <Clock className="h-4 w-4 md:h-6 md:w-6 text-indigo-600" />
+            <div className="p-1.5 md:p-2 rounded-lg bg-[#00F7A5]/15 border-2 border-[#00F7A5]/30">
+              <Clock className="h-4 w-4 md:h-6 md:w-6 text-[#00C27F]" />
             </div>
             Ponto Eletrônico
           </CardTitle>
           <div className="space-y-2 mt-3 md:mt-4">
-            <div className="text-2xl md:text-3xl font-bold text-indigo-600 md:text-primary">
+            <div className="text-2xl md:text-3xl font-bold text-[#00C27F] md:text-primary">
               {format(currentTime, 'HH:mm:ss')}
             </div>
             <div className="text-xs md:text-sm text-muted-foreground">

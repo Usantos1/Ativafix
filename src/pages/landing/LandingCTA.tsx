@@ -47,10 +47,10 @@ export function LandingCTA({ onOpenDemo }: LandingCTAProps) {
               onClick={onOpenDemo}
               whileHover={{ scale: 1.03, boxShadow: '0 0 50px rgba(0,247,165,0.4)' }}
               whileTap={{ scale: 0.98 }}
-              className="landing-btn landing-btn-primary relative inline-flex items-center justify-center gap-3 px-10 py-5 font-bold text-lg md:text-xl border border-[#00F7A5]/40"
+              className="landing-btn landing-btn-primary relative inline-flex items-center justify-center gap-3 px-10 py-5 font-bold text-lg md:text-xl border border-[#00F7A5]/40 rounded-full"
             >
               <FlaskConical className="w-6 h-6 shrink-0" />
-              Experimentar o sistema
+              Conhecer o Sistema
             </motion.button>
           </motion.div>
         )}

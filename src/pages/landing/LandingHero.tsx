@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Play, FlaskConical } from 'lucide-react';
+import { FlaskConical } from 'lucide-react';
 import { HeroVisualProof } from './HeroVisualProof';
 
 const VALUE_LINE = 'OS • PDV • Estoque • Financeiro • Relatórios • Alertas';
@@ -46,34 +46,25 @@ export function LandingHero({ onOpenDemo }: LandingHeroProps) {
           {VALUE_LINE}
         </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto sm:flex-wrap"
-        >
-          {onOpenDemo && (
+        {onOpenDemo && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center w-full sm:w-auto"
+          >
             <motion.button
               type="button"
               onClick={onOpenDemo}
               whileHover={{ scale: 1.02, boxShadow: '0 0 40px rgba(0,247,165,0.35)' }}
               whileTap={{ scale: 0.98 }}
-              className="landing-btn landing-btn-primary inline-flex items-center justify-center gap-3 px-8 py-4 font-bold text-base border border-[#00F7A5]/40 w-full sm:w-auto"
+              className="landing-btn landing-btn-primary inline-flex items-center justify-center gap-3 px-8 py-4 font-bold text-base border border-[#00F7A5]/40 rounded-full w-full sm:w-auto"
             >
               <FlaskConical className="w-5 h-5 shrink-0" />
-              Experimentar o sistema
+              Testar o Sistema
             </motion.button>
-          )}
-          <motion.a
-            href="#como-funciona"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="landing-btn landing-btn-secondary inline-flex items-center justify-center gap-2 px-6 py-4 font-semibold text-base text-[#F5F7F6] border border-[#00F7A5]/20 bg-[#0B0F0D]/80 hover:border-[#00F7A5]/40 hover:bg-[#0B0F0D] transition-all duration-300 w-full sm:w-auto"
-          >
-            <Play className="w-4 h-4 shrink-0" />
-            Ver como funciona
-          </motion.a>
-        </motion.div>
+          </motion.div>
+        )}
       </div>
 
       <motion.div

@@ -72,14 +72,14 @@ export function DemoFullscreenModal({ onClose, onAssinar }: DemoFullscreenModalP
               <div className="flex flex-col sm:flex-row gap-3 w-full">
                 <Button
                   onClick={onAssinar}
-                  className="flex-1 h-12 rounded-xl text-base font-semibold bg-[#00C27F] hover:bg-[#00a86b] text-white"
+                  className="flex-1 h-12 rounded-full text-base font-semibold bg-[#00C27F] hover:opacity-90 text-white transition-opacity"
                 >
                   Assinar Agora
                 </Button>
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="flex-1 h-12 rounded-xl text-base font-semibold border-2"
+                  className="flex-1 h-12 rounded-full text-base font-semibold border-2"
                 >
                   Fechar e voltar à LP
                 </Button>
@@ -93,14 +93,14 @@ export function DemoFullscreenModal({ onClose, onAssinar }: DemoFullscreenModalP
               <div className="flex flex-col gap-3 w-full">
                 <Button
                   onClick={onAssinar}
-                  className="w-full h-12 rounded-xl font-semibold bg-[#00C27F] hover:bg-[#00a86b] text-white"
+                  className="w-full h-12 rounded-full font-semibold bg-[#00C27F] hover:opacity-90 text-white transition-opacity"
                 >
                   Assinar Agora
                 </Button>
                 <Button
                   variant="outline"
                   onClick={handleTestarMaisUmMinuto}
-                  className="w-full h-12 rounded-xl font-semibold border-2 border-[#00F7A5]/50 bg-[#0B0F0D] text-[#F5F7F6] hover:bg-[#00F7A5]/15 hover:border-[#00F7A5]/70 dark:bg-[#0B0F0D] dark:text-[#F5F7F6]"
+                  className="w-full h-12 rounded-full font-semibold border-2 border-[#00F7A5]/50 bg-[#0B0F0D] text-[#F5F7F6] hover:bg-[#00F7A5]/15 hover:border-[#00F7A5]/70 hover:text-white dark:bg-[#0B0F0D] dark:text-[#F5F7F6] dark:hover:text-white"
                 >
                   Testar por mais 1 minuto
                 </Button>
