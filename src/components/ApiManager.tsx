@@ -454,65 +454,93 @@ export function ApiManager() {
 
       {/* Dialog Logs */}
       <Dialog open={selectedToken !== null && !showDeleteDialog} onOpenChange={() => setSelectedToken(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-6xl max-h-[95vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <Activity className="h-5 w-5" />
               Logs de Acesso - {selectedToken?.nome}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Últimas 100 requisições feitas com este token
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="h-[400px]">
+          <ScrollArea className="h-[75vh] min-h-[360px]">
             {loadingLogs ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center py-8 text-base">
                 <RefreshCw className="h-5 w-5 animate-spin mr-2" />
                 Carregando logs...
               </div>
             ) : tokenLogs.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
+              <div className="text-center text-muted-foreground py-8 text-base">
                 Nenhum acesso registrado ainda
               </div>
             ) : (
               <div className="space-y-2">
-                {tokenLogs.map((log) => (
-                  <div key={log.id} className="p-3 border rounded text-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{log.method}</Badge>
-                        <code className="text-xs">{log.endpoint}</code>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(log.created_at), 'dd/MM HH:mm:ss')}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      IP: {log.ip_address} • {log.user_agent?.substring(0, 50)}...
-                    </div>
-                    {log.query_params && Object.keys(log.query_params).length > 0 && (
-                      <div className="mt-1">
-                        <div className="text-[10px] text-muted-foreground mb-1">Payload:</div>
-                        <code className="block text-[10px] bg-muted p-1 rounded">
-                          {JSON.stringify(log.query_params)}
-                        </code>
-                      </div>
-                    )}
-                    {log.response_body && (
-                      <div className="mt-2">
-                        <div className="text-[10px] text-muted-foreground mb-1">
-                          Resposta {log.response_status && `(${log.response_status})`}:
+                {tokenLogs.map((log) => {
+                  const payloadStr = log.request_body
+                    ? (typeof log.request_body === 'string' ? log.request_body : JSON.stringify(log.request_body, null, 2))
+                    : (log.query_params && Object.keys(log.query_params).length > 0 ? JSON.stringify(log.query_params, null, 2) : null);
+                  const responseStr = log.response_body
+                    ? (typeof log.response_body === 'string' ? log.response_body : JSON.stringify(log.response_body, null, 2))
+                    : null;
+                  return (
+                    <div key={log.id} className="p-4 border rounded text-base">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-sm">{log.method}</Badge>
+                          <code className="text-sm">{log.endpoint}</code>
                         </div>
-                        <code className="block text-[10px] bg-green-50 dark:bg-green-950 p-1 rounded max-h-32 overflow-auto">
-                          {log.response_body.length > 500 
-                            ? log.response_body.substring(0, 500) + '...' 
-                            : log.response_body}
-                        </code>
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(log.created_at), 'dd/MM HH:mm:ss')}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="mt-1.5 text-sm text-muted-foreground">
+                        IP: {log.ip_address} • {log.user_agent?.substring(0, 50)}...
+                      </div>
+                      {payloadStr && (
+                        <div className="mt-2.5">
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">Payload (Requisição):</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => navigator.clipboard.writeText(payloadStr)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre className="text-xs bg-muted p-3 rounded max-h-52 overflow-auto whitespace-pre-wrap break-all">
+                            {payloadStr}
+                          </pre>
+                        </div>
+                      )}
+                      {responseStr && (
+                        <div className="mt-2.5">
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Resposta {log.response_status && `(${log.response_status})`}:
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => navigator.clipboard.writeText(responseStr)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre className="text-xs bg-green-50 dark:bg-green-950 p-3 rounded max-h-52 overflow-auto whitespace-pre-wrap break-all">
+                            {responseStr}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
