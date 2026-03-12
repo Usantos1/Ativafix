@@ -935,7 +935,7 @@ router.get('/segmentos/:id/recursos', async (req, res) => {
        LEFT JOIN segmentos_recursos sr ON sr.recurso_id = r.id AND sr.segmento_id = $1
        WHERE r.modulo_id IN (SELECT modulo_id FROM segmentos_modulos WHERE segmento_id = $1 AND ativo)
        ORDER BY (SELECT ordem_menu FROM segmentos_modulos WHERE segmento_id = $1 AND modulo_id = r.modulo_id), r.nome`,
-      [id, id, id]
+      [id]
     );
     res.json({
       success: true,
