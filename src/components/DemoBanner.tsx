@@ -48,16 +48,35 @@ export function DemoBanner() {
   // Nunca exibir para quem não está em sessão de demonstração
   if (!visible || dismissed) return null;
 
+  const m = Math.floor(secondsLeft / 60);
+  const s = secondsLeft % 60;
+  const timerText = `${m}:${s.toString().padStart(2, '0')}`;
+
   return (
     <>
-      <div className="bg-[#00F7A5]/15 border-b border-[#00F7A5]/30 text-[#0B0F0D] flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium shrink-0">
-        <Sparkles className="w-4 h-4 shrink-0 text-[#00C27F]" />
-        <span>Demonstração — um clique para experimentar</span>
+      {/* Banner no preto fora do sistema (topo da página) */}
+      <div className="bg-[#0B0F0D] border-b border-[#00F7A5]/20 text-[#F5F7F6] flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-2.5 px-4 text-sm font-medium shrink-0">
+        <span className="text-center">
+          Você está na <strong className="text-[#00F7A5]">demonstração</strong>. Os dados são de exemplo. Para usar com seus dados, faça cadastro ou login.
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-[#9AA4A0]">Tempo restante</span>
+          <span className="font-mono font-bold tabular-nums text-base bg-[#07110D] text-[#00F7A5] rounded-lg px-2.5 py-1 border border-[#00F7A5]/30">
+            {timerText}
+          </span>
+        </div>
+        <Button
+          size="sm"
+          onClick={handleAssinarWhatsApp}
+          className="h-9 rounded-lg font-semibold bg-[#00C27F] hover:bg-[#00a86b] text-[#0B0F0D] shrink-0"
+        >
+          Assinar Agora
+        </Button>
         <button
           type="button"
           onClick={handleDismiss}
-          className="p-1.5 rounded-lg hover:bg-[#00F7A5]/20 transition-colors ml-1"
-          aria-label="Ocultar aviso"
+          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-[#F5F7F6]"
+          aria-label="Fechar demonstração"
         >
           <X className="w-4 h-4" />
         </button>

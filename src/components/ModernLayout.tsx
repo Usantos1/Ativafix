@@ -37,10 +37,13 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
 
   return (
     <SidebarProvider>
-      <div className="h-screen h-[100dvh] flex w-full bg-background overflow-hidden">
-        <AppSidebar />
-        
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out">
+      <div className="h-screen h-[100dvh] flex flex-col w-full bg-background overflow-hidden">
+        {/* Banner demo no preto fora do sistema (topo) */}
+        <DemoBanner />
+
+        <div className="flex-1 flex min-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Mobile Header — título + AppBar (navegação DRE, Contas etc. no financeiro) */}
           <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-40 md:hidden flex flex-col border-b border-gray-100 dark:border-gray-800 shrink-0">
             <div className="h-10 flex items-center px-2 min-h-[40px]">
@@ -117,8 +120,6 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
             </div>
           </header>
 
-          <DemoBanner />
-
           {/* Main Content — mobile: página rola; desktop: scroll interno */}
           <main className="flex-1 flex flex-col min-h-0 overflow-x-hidden overflow-y-auto md:overflow-hidden">
             <div 
@@ -127,6 +128,7 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
               {children}
             </div>
           </main>
+          </div>
         </div>
       </div>
       
