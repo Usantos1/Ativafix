@@ -1,12 +1,14 @@
 /**
  * Painel de Alertas — Uma categoria de alertas (Operacional, Financeiro, Comercial, Gestão).
  * Rota: /painel-alertas/alertas/:categoria
+ * Segmento Comércio não tem acesso à aba Operacional (redireciona para Financeiro).
  */
 import { useMemo } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { ModernLayout } from '@/components/ModernLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAlertsCatalog, useAlertsConfigs, useAlertsPreview, useAlertsFire } from '@/hooks/useAlerts';
+import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { Activity } from 'lucide-react';
 import { AlertRow } from './AlertRow';
 import { PainelAlertasNav } from './PainelAlertasNav';
@@ -16,6 +18,7 @@ const CATEGORIAS_VALIDAS: CategoriaSlug[] = ['operacional', 'financeiro', 'comer
 
 export default function PainelAlertasCategoria() {
   const { categoria } = useParams<{ categoria: string }>();
+  const { segmentoSlug } = useCompanySegment();
   const { catalog, catalogLoading } = useAlertsCatalog();
   const { configs, configsLoading, saveOneConfig } = useAlertsConfigs();
   const { preview } = useAlertsPreview();
@@ -23,6 +26,11 @@ export default function PainelAlertasCategoria() {
 
   const slug = (categoria ?? '').toLowerCase() as CategoriaSlug;
   const isValid = CATEGORIAS_VALIDAS.includes(slug);
+
+  // Comércio não vê Operacional: redirecionar para Financeiro
+  if (slug === 'operacional' && segmentoSlug === 'comercio') {
+    return <Navigate to="/painel-alertas/alertas/financeiro" replace />;
+  }
 
   const configByCodigo = useMemo(() => {
     const map: Record<string, (typeof configs)[0]> = {};
@@ -38,7 +46,8 @@ export default function PainelAlertasCategoria() {
   const tituloCategoria = CATEGORIAS[slug] ?? slug;
 
   if (categoria && !isValid) {
-    return <Navigate to="/painel-alertas/alertas/operacional" replace />;
+    const defaultCategoria = segmentoSlug === 'comercio' ? 'financeiro' : 'operacional';
+    return <Navigate to={`/painel-alertas/alertas/${defaultCategoria}`} replace />;
   }
 
   return (

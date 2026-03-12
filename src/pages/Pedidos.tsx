@@ -137,44 +137,19 @@ export default function Pedidos() {
       const fields = 'id,nome,created_at,created_by,created_by_nome,recebido,received_at,received_by,received_by_nome';
       const byId = new Map<string, any>();
 
-      // 1) Se tiver company_id, busca por empresa
-      if (companyId) {
-        const resCompany = await from('pedidos')
-          .select(fields)
-          .eq('company_id', companyId)
-          .order('created_at', { ascending: false })
-          .execute();
-        if (resCompany.error) throw resCompany.error;
-        for (const r of (resCompany.data || []) as any[]) byId.set(r.id, r);
+      // Sempre filtrar por company_id: cada empresa vê apenas seus pedidos (isolamento multi-tenant)
+      if (!companyId) {
+        setPedidos([]);
+        setLoadingPedidos(false);
+        return;
       }
-
-      // 2) Se ainda vazio, tenta pedidos legados (company_id NULL)
-      if (byId.size === 0) {
-        try {
-          const resNull = await from('pedidos')
-            .select(fields)
-            .is('company_id', null)
-            .order('created_at', { ascending: false })
-            .execute();
-          if (!resNull.error && resNull.data?.length) {
-            for (const r of (resNull.data || []) as any[]) byId.set(r.id, r);
-          }
-        } catch {
-          // API pode não suportar IS NULL
-        }
-      }
-
-      // 3) Se ainda vazio, fallback: busca sem filtro de empresa (API pode já filtrar por tenant)
-      if (byId.size === 0) {
-        const resAll = await from('pedidos')
-          .select(fields)
-          .order('created_at', { ascending: false })
-          .limit(500)
-          .execute();
-        if (!resAll.error && resAll.data?.length) {
-          for (const r of (resAll.data || []) as any[]) byId.set(r.id, r);
-        }
-      }
+      const resCompany = await from('pedidos')
+        .select(fields)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .execute();
+      if (resCompany.error) throw resCompany.error;
+      for (const r of (resCompany.data || []) as any[]) byId.set(r.id, r);
 
       const list = Array.from(byId.values()).sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

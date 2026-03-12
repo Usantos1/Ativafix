@@ -154,8 +154,16 @@ export default function AdminReseller() {
   useEffect(() => {
     if (user && isAdmin && profile?.role === 'admin') {
       loadPlans();
+      loadSegmentos();
     }
   }, [user, isAdmin, profile]);
+
+  // Quando o modal de empresa (criar/editar) abre e segmentos está vazio, tenta carregar de novo
+  useEffect(() => {
+    if (dialogOpen && segmentos.length === 0) {
+      loadSegmentos();
+    }
+  }, [dialogOpen]);
 
   const loadSegmentos = async () => {
     try {
@@ -805,7 +813,7 @@ export default function AdminReseller() {
                       <SelectTrigger>
                         <SelectValue placeholder="Nenhum plano (só cadastrar empresa)" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[110]">
                         <SelectItem value="none">Nenhum plano (só cadastrar empresa)</SelectItem>
                         {plans.filter(p => p.active !== false).map((plan) => (
                           <SelectItem key={plan.id} value={plan.id}>
@@ -825,7 +833,7 @@ export default function AdminReseller() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[110]">
                           <SelectItem value="monthly">Mensal</SelectItem>
                           <SelectItem value="yearly">Anual</SelectItem>
                         </SelectContent>
@@ -844,7 +852,7 @@ export default function AdminReseller() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[110]">
                       <SelectItem value="active">Ativa</SelectItem>
                       <SelectItem value="trial">Trial</SelectItem>
                       <SelectItem value="suspended">Suspensa</SelectItem>
@@ -853,30 +861,40 @@ export default function AdminReseller() {
                   </Select>
                 </div>
               )}
-              {segmentos.length > 0 && (
-                <div className="space-y-2">
-                  <Label htmlFor="segmento_id">Segmento de negócio</Label>
-                  <Select
-                    value={formData.segmento_id || 'none'}
-                    onValueChange={(value) => setFormData({ ...formData, segmento_id: value === 'none' ? undefined : value })}
-                  >
-                    <SelectTrigger id="segmento_id">
-                      <SelectValue placeholder="Nenhum (padrão)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum (padrão)</SelectItem>
-                      {segmentos.filter((s) => s.ativo).map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Define o menu e os recursos disponíveis para esta empresa. Pode ser alterado ao criar ou editar.
-                  </p>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="segmento_id">Segmento de negócio</Label>
+                {segmentos.length === 0 ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">Carregando segmentos...</p>
+                    <Button type="button" variant="outline" size="sm" onClick={() => loadSegmentos()}>
+                      Carregar segmentos
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Select
+                      key={`segmento-${segmentos.length}`}
+                      value={formData.segmento_id || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, segmento_id: value === 'none' ? undefined : value }))}
+                    >
+                      <SelectTrigger id="segmento_id">
+                        <SelectValue placeholder="Nenhum (padrão)" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[110]">
+                        <SelectItem value="none">Nenhum (padrão)</SelectItem>
+                        {segmentos.filter((s) => s.ativo).map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Define o menu e os recursos disponíveis para esta empresa. Pode ser alterado ao criar ou editar.
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>

@@ -1276,16 +1276,17 @@ app.post('/api/auth/logout', authenticateToken, (req, res) => {
 app.get('/api/me/segment-menu', authenticateToken, async (req, res) => {
   try {
     const companyId = req.user?.company_id;
-    if (!companyId) return res.json({ segmento_id: null, segmento_nome: null, menu: [] });
+    if (!companyId) return res.json({ segmento_id: null, segmento_nome: null, segmento_slug: null, menu: [] });
     const hasSegmentoCol = await pool.query(
       `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'companies' AND column_name = 'segmento_id'`
     );
-    if (hasSegmentoCol.rows.length === 0) return res.json({ segmento_id: null, segmento_nome: null, menu: [] });
+    if (hasSegmentoCol.rows.length === 0) return res.json({ segmento_id: null, segmento_nome: null, segmento_slug: null, menu: [] });
     const company = await pool.query('SELECT segmento_id FROM companies WHERE id = $1', [companyId]);
-    if (company.rows.length === 0 || !company.rows[0].segmento_id) return res.json({ segmento_id: null, segmento_nome: null, menu: [] });
+    if (company.rows.length === 0 || !company.rows[0].segmento_id) return res.json({ segmento_id: null, segmento_nome: null, segmento_slug: null, menu: [] });
     const segmentoId = company.rows[0].segmento_id;
     const seg = await pool.query('SELECT id, nome, slug FROM segmentos WHERE id = $1', [segmentoId]);
     const segmentoNome = seg.rows[0]?.nome || null;
+    const segmentoSlug = seg.rows[0]?.slug || null;
     const menuResult = await pool.query(
       `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, m.icone, sm.ordem_menu
        FROM modulos m
@@ -1297,11 +1298,12 @@ app.get('/api/me/segment-menu', authenticateToken, async (req, res) => {
     res.json({
       segmento_id: segmentoId,
       segmento_nome: segmentoNome,
+      segmento_slug: segmentoSlug,
       menu: (menuResult.rows || []).map((r) => ({ id: r.id, path: r.path, label_menu: r.label_menu || r.nome, slug: r.slug, icone: r.icone })),
     });
   } catch (err) {
     console.error('[segment-menu]', err);
-    res.json({ segmento_id: null, segmento_nome: null, menu: [] });
+    res.json({ segmento_id: null, segmento_nome: null, segmento_slug: null, menu: [] });
   }
 });
 
@@ -1580,6 +1582,8 @@ app.post('/api/query/:table', async (req, res) => {
       'os_pagamentos', 'os_config_status',
       // Devoluções e inventário
       'refunds', 'refund_items',
+      // Pedidos de compra (isolamento por empresa)
+      'pedidos',
       // Logs do sistema, DISC, integrações e Academy
       'user_activity_logs', 'audit_logs', 'disc_responses',
       'telegram_config',
@@ -1738,6 +1742,7 @@ app.post('/api/insert/:table', async (req, res) => {
       'cupom_config',
       'os_pagamentos', 'os_config_status', 'fornecedores',
       'refunds', 'refund_items',
+      'pedidos',
       'user_activity_logs', 'audit_logs', 'disc_responses',
       'telegram_config',
       'trainings', 'training_assignments',

@@ -32,6 +32,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PermissionGate } from '@/components/PermissionGate';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { toast } from 'sonner';
 
 const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
@@ -39,6 +40,7 @@ const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 export default function Configuracoes() {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
+  const { segmentoSlug } = useCompanySegment();
   const [showDashboardConfig, setShowDashboardConfig] = useState(false);
   const [showOSConfig, setShowOSConfig] = useState(false);
   const [osNumeroInicial, setOsNumeroInicial] = useState<string>('');
@@ -91,7 +93,7 @@ export default function Configuracoes() {
       path: '/pdv/configuracao-cupom',
       permission: 'vendas.manage',
     },
-    {
+    ...(segmentoSlug === 'comercio' ? [] : [{
       title: 'Configurar Status OS',
       description: 'Gerencie status de ordens de serviço e checklists',
       icon: Wrench,
@@ -99,8 +101,7 @@ export default function Configuracoes() {
       hoverColor: 'hover:from-purple-600 hover:to-pink-600',
       path: '/pdv/configuracao-status',
       permission: 'os.config.status',
-    },
-    {
+    }, {
       title: 'Ajustes da OS',
       description: 'Configure número inicial das ordens de serviço',
       icon: Hash,
@@ -108,7 +109,7 @@ export default function Configuracoes() {
       hoverColor: 'hover:from-orange-600 hover:to-amber-600',
       action: () => setShowOSConfig(true),
       permission: 'admin.view',
-    },
+    }]),
     {
       title: 'Formas de Pagamento e Taxas',
       description: 'Configure formas de pagamento, taxas e parcelamentos',
@@ -164,7 +165,8 @@ export default function Configuracoes() {
       path: '/admin/estrutura',
       permission: 'admin.view',
     },
-    {
+    // Cadastros Base: apenas empresa 1 (reseller) pode ver
+    ...(user?.company_id === ADMIN_COMPANY_ID ? [{
       title: 'Cadastros Base',
       description: 'Departamentos, categorias, tags e cadastros gerais',
       icon: FolderOpen,
@@ -172,8 +174,9 @@ export default function Configuracoes() {
       hoverColor: 'hover:from-violet-600 hover:to-purple-600',
       path: '/admin/cadastros',
       permission: 'admin.view',
-    },
-    {
+    }] : []),
+    // Marcas e Modelos (celulares): oculto para Comércio
+    ...(segmentoSlug === 'comercio' ? [] : [{
       title: 'Marcas e Modelos',
       description: 'Gerencie marcas e modelos de produtos',
       icon: FileText,
@@ -181,7 +184,7 @@ export default function Configuracoes() {
       hoverColor: 'hover:from-slate-700 hover:to-gray-700',
       path: '/pdv/marcas-modelos',
       permission: 'produtos.manage',
-    },
+    }]),
   ];
 
   return (

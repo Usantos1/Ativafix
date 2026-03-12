@@ -39,9 +39,21 @@ import {
   Book
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+
+const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function CadastrosBase() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Cadastros Base: apenas a empresa 1 (reseller) pode acessar
+  useEffect(() => {
+    if (user?.company_id && user.company_id !== ADMIN_COMPANY_ID) {
+      navigate('/admin/configuracoes', { replace: true });
+    }
+  }, [user?.company_id, navigate]);
 
   const cadastrosSections = [
     {
@@ -278,6 +290,11 @@ export default function CadastrosBase() {
       color: 'text-amber-700',
     },
   ];
+
+  // Só empresa 1 (reseller) pode acessar; useEffect redireciona os demais
+  if (user && user.company_id !== ADMIN_COMPANY_ID) {
+    return null;
+  }
 
   return (
     <ModernLayout title="Cadastros Base" subtitle="Configurações e cadastros fundamentais">
