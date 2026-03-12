@@ -30,9 +30,37 @@ npm install --production
 pm2 restart primecamp-api
 cd ..
 echo "Deploy concluido!"
+# (Opcional) Se for a primeira vez com multi-segmento: rode a migration no banco de produção (veja seção "Multi-segmento" abaixo)
 ```
 
 Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd` para o caminho correto. Se o nome do app no PM2 for outro, use `pm2 list` para ver o nome e troque `primecamp-api` no `pm2 restart`.
+
+### Multi-segmento (Revenda)
+
+Para a aba **Segmentos** em **https://app.ativafix.com/admin/revenda** funcionar (e sumir os 404 de `segmentos`, `modulos` e `segment-menu`):
+
+1. **Deploy do código** – o bloco acima já atualiza a API; `pm2 restart primecamp-api` ativa as rotas `/api/admin/revenda/segmentos`, `/api/admin/revenda/modulos` e `/api/me/segment-menu`.
+2. **Migration no banco de produção (uma vez)** – no PostgreSQL que a API usa em produção, execute o script `db/migrations/manual/REVENDA_MULTI_SEGMENTO.sql` (pgAdmin, DBeaver, `psql -f`, etc.). Sem isso a API devolve 503 ou lista vazia e o front mostra "Nenhum segmento cadastrado".
+
+**Se continuar 404 após o deploy:** na VPS confira se o código está atualizado (`cd /root/primecamp-ofc && git log -1 --oneline` deve mostrar o commit do multi-segmento) e se a API reiniciou (`pm2 restart primecamp-api`). Teste direto: `curl -s -o /dev/null -w "%{http_code}" https://api.ativafix.com/api/admin/revenda/segmentos` — com o código novo deve retornar 401 (não autenticado) e não 404.
+
+**Se na VPS o curl retorna 401 mas no navegador (ou em aba anônima) continua 404:** a requisição “de fora” pode estar indo para outro lugar ou cache. Na VPS:
+1. Recarregar o Nginx (pode estar em cache): `sudo systemctl reload nginx`
+2. Se usar `proxy_cache` no Nginx para a API, limpar cache ou desativar para `/api` e testar de novo
+3. No seu **PC** (fora da VPS) testar: `curl -s -o /dev/null -w "%{http_code}" https://api.ativafix.com/api/admin/revenda/segmentos`  
+   - Se retornar **404** no PC e **401** na VPS, o Nginx pode estar respondendo 404 para requisições externas (ex.: outro `server` ou `location`). Confira `server_name api.ativafix.com` e que não há outro bloco com `default_server` ou ordem que capture primeiro. Garanta que o bloco de `api.ativafix.com` tem `location / { proxy_pass http://127.0.0.1:3000; ... }` e que a porta é a do PM2 (`pm2 list`).
+4. Testar direto na porta do Node (só na VPS): `curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/admin/revenda/segmentos` — deve dar 401. Se der 401, o Node está certo e o 404 vem do Nginx ou de algo na frente.
+
+**Rodar a migration no banco de produção pela VPS:** na pasta do projeto, com o `.env` do `server` (ou as variáveis `DB_*` definidas), use:
+```bash
+cd /root/primecamp-ofc
+export PGPASSWORD="$DB_PASSWORD"
+psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -f db/migrations/manual/REVENDA_MULTI_SEGMENTO.sql
+unset PGPASSWORD
+```
+Se o `.env` está em `server/.env`, carregue antes: `set -a && source server/.env && set +a` (ou `export $(grep -v '^#' server/.env | xargs)`).
+
+**Desenvolvimento local:** se o app em `localhost:8080` chama a API de produção e dá 404 nas rotas de segmentos, defina no `.env`: `VITE_API_URL=http://localhost:3000` (porta do seu backend) e reinicie o Vite.
 
 ## Ordem dos passos
 
@@ -43,7 +71,8 @@ Se a pasta do projeto for outra (ex.: `/root/primecamp`), troque o primeiro `cd`
 5. Limpa e copia `dist/*` para `/var/www/ativafix/`  
 6. Ajusta dono e permissões  
 7. Limpa cache do Nginx e recarrega  
-8. `cd server` → `npm install --production` → `pm2 restart primecamp-api` → `cd ..`
+8. `cd server` → `npm install --production` → `pm2 restart primecamp-api` → `cd ..`  
+9. *(Multi-segmento)* Se for a primeira vez: rodar `REVENDA_MULTI_SEGMENTO.sql` no banco de produção (ver seção **Multi-segmento** acima).
 
 ## Verificação após o deploy (LP + páginas legais)
 
