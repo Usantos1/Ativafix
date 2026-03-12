@@ -1,8 +1,12 @@
 import { motion } from 'framer-motion';
-import { LogIn } from 'lucide-react';
+import { LogIn, FlaskConical } from 'lucide-react';
 import { APP_URL } from './constants';
 
-export function LandingHeader() {
+interface LandingHeaderProps {
+  onOpenDemo?: () => void;
+}
+
+export function LandingHeader({ onOpenDemo }: LandingHeaderProps) {
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -18,17 +22,31 @@ export function LandingHeader() {
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.2 }}
         />
-        <motion.a
-          href={APP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="landing-btn landing-btn-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border border-[#00F7A5]/40 transition-all duration-300"
-        >
-          <LogIn className="w-4 h-4" />
-          Acessar o sistema
-        </motion.a>
+        <div className="flex items-center gap-2">
+          {onOpenDemo && (
+            <motion.button
+              type="button"
+              onClick={onOpenDemo}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="landing-btn landing-btn-secondary inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border border-[#00F7A5]/20 bg-[#0B0F0D]/80 hover:border-[#00F7A5]/40 transition-all duration-300"
+            >
+              <FlaskConical className="w-4 h-4" />
+              Experimentar
+            </motion.button>
+          )}
+          <motion.a
+            href={APP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="landing-btn landing-btn-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border border-[#00F7A5]/40 transition-all duration-300"
+          >
+            <LogIn className="w-4 h-4" />
+            Acessar o sistema
+          </motion.a>
+        </div>
       </div>
     </motion.header>
   );

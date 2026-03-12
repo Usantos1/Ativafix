@@ -9,10 +9,10 @@ const PREVIEWS = [
 ];
 
 interface LandingDemonstracaoProps {
-  demoUrl?: string;
+  onOpenDemo?: () => void;
 }
 
-export function LandingDemonstracao({ demoUrl }: LandingDemonstracaoProps) {
+export function LandingDemonstracao({ onOpenDemo }: LandingDemonstracaoProps) {
   return (
     <section className="relative py-24 md:py-32 px-4 landing-bg-base">
       <div className="absolute inset-0 landing-bg-grid opacity-30" />
@@ -76,24 +76,23 @@ export function LandingDemonstracao({ demoUrl }: LandingDemonstracaoProps) {
           ))}
         </div>
 
-        {demoUrl && (
+        {onOpenDemo && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="flex justify-center"
           >
-            <motion.a
-              href={demoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <motion.button
+              type="button"
+              onClick={onOpenDemo}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="landing-btn landing-btn-secondary inline-flex items-center gap-2 px-6 py-4 font-semibold text-base text-[#F5F7F6] border border-[#00F7A5]/20 bg-[#0B0F0D]/80 hover:border-[#00F7A5]/40 hover:bg-[#0B0F0D] transition-all duration-300"
             >
               <FlaskConical className="w-4 h-4 shrink-0" />
               Experimentar o sistema
-            </motion.a>
+            </motion.button>
           </motion.div>
         )}
       </div>

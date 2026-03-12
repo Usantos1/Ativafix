@@ -6,10 +6,10 @@ import { HeroVisualProof } from './HeroVisualProof';
 const VALUE_LINE = 'OS • Estoque • Financeiro • Vendas • Alertas';
 
 interface LandingHeroProps {
-  demoUrl?: string;
+  onOpenDemo?: () => void;
 }
 
-export function LandingHero({ demoUrl }: LandingHeroProps) {
+export function LandingHero({ onOpenDemo }: LandingHeroProps) {
   return (
     <section className="relative min-h-screen flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 px-4 pt-28 pb-20 overflow-hidden">
       {/* Fundo com profundidade + grid + ruído */}
@@ -65,18 +65,17 @@ export function LandingHero({ demoUrl }: LandingHeroProps) {
             <MessageCircle className="w-5 h-5 shrink-0" />
             Organizar minha assistência agora
           </motion.a>
-          {demoUrl && (
-            <motion.a
-              href={demoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          {onOpenDemo && (
+            <motion.button
+              type="button"
+              onClick={onOpenDemo}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="landing-btn landing-btn-secondary inline-flex items-center justify-center gap-2 px-6 py-4 font-semibold text-base text-[#F5F7F6] border border-[#00F7A5]/20 bg-[#0B0F0D]/80 hover:border-[#00F7A5]/40 hover:bg-[#0B0F0D] transition-all duration-300 w-full sm:w-auto"
             >
               <FlaskConical className="w-4 h-4 shrink-0" />
               Experimentar o sistema
-            </motion.a>
+            </motion.button>
           )}
           <motion.a
             href="#como-funciona"
