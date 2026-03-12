@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Bell, Settings } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { NotificationPanel } from "./NotificationPanel"
 import { SettingsModal } from "./SettingsModal"
 import { PermissionGate } from "./PermissionGate"
 import { DemoBanner } from "./DemoBanner"
+import { DemoFullscreenModal } from "./DemoFullscreenModal"
 import { useAuth } from "@/contexts/AuthContext"
+import { isDemoSession, DEMO_SESSION_KEY } from "@/utils/demoMode"
 
 /** Apenas a empresa 1 (administradora) pode alterar nome e cores do sistema. */
 const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
@@ -27,8 +30,24 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [notificationCount, setNotificationCount] = useState(3)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const { user, profile } = useAuth()
+  const { user, profile, signOut } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const isAdminCompany = user?.company_id === ADMIN_COMPANY_ID
+
+  const isSalesPage = location.pathname === '/pdv' || location.pathname.startsWith('/pdv/')
+  const showDemoModal = isDemoSession() && isSalesPage
+
+  const handleDemoClose = () => {
+    try {
+      sessionStorage.removeItem(DEMO_SESSION_KEY)
+    } catch {}
+    signOut().then(() => navigate('/lp', { replace: true }))
+  }
+
+  const handleDemoAssinar = () => {
+    navigate('/assinatura', { replace: true })
+  }
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
@@ -140,6 +159,10 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
       />
+
+      {showDemoModal && (
+        <DemoFullscreenModal onClose={handleDemoClose} onAssinar={handleDemoAssinar} />
+      )}
     </SidebarProvider>
   )
 }
