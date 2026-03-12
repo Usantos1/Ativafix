@@ -123,6 +123,19 @@ Pode rodar mais de uma vez; ele evita conflito de números. Para mais dados, use
 1. `node server/scripts/create-demo-user.js` — cria usuário e empresa demo.
 2. `node server/scripts/seed-demo-data.js` — popula clientes, OS e vendas de exemplo.
 
+### Onde ver as OS e os dados da demo no app
+
+Depois de entrar na demo (app.ativafix.com/demo), os dados aparecem assim:
+
+| Onde | O que ver |
+|------|-----------|
+| **Dashboard (página inicial)** | Cards de receita, vendas, OS por status (abertas, em andamento, finalizadas etc.) e gráficos. |
+| **Assistência → Ordens de Serviço** | Lista completa das OS de exemplo (número, cliente, status, valor). Clique em uma linha para abrir. |
+| **Assistência → Clientes** | Clientes de teste inseridos pelo seed. |
+| **PDV / Vendas** | Vendas de exemplo; o dashboard usa essas vendas para receita e totais. |
+
+Se você rodou o seed várias vezes, o total de OS (e vendas) aumenta a cada execução (ex.: 60, 120, 288…). Tudo fica na mesma empresa demo.
+
 ## Fluxo na landing
 
 1. Visitante clica em **"Experimentar o sistema"** (hero ou seção “Veja o Ativa FIX funcionando”).
@@ -193,6 +206,19 @@ node server/scripts/create-demo-user.js
 ```
 
 O visitante da demo passará a ver apenas dados da empresa "Ativa FIX - Demonstração" (vazia ou com dados de exemplo que você colocar nela).
+
+### Lista de OS (ou dashboard) vazios mesmo após o seed
+
+O seed inseriu OS na empresa "Ativa FIX - Demonstração". Se a lista **Assistência → Ordens de Serviço** ou o dashboard continuam vazios:
+
+1. **Garanta que o usuário demo está nessa empresa:** na VPS, rode de novo o script que vincula o usuário à empresa demo:
+   ```bash
+   cd /root/primecamp-ofc
+   node server/scripts/create-demo-user.js
+   ```
+2. **Saia da demo e entre de novo:** no app, faça logout (ou abra uma aba anônima), acesse de novo `https://app.ativafix.com/demo` e clique em "Entrar na demonstração". O token antigo pode estar com `company_id` desatualizado.
+
+Se ainda não aparecer nada, confira no banco se as OS estão na mesma empresa do usuário demo (o script de seed e o create-demo-user usam a empresa de nome "Ativa FIX - Demonstração").
 
 ## Resumo
 

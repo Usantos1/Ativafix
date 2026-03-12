@@ -25,6 +25,7 @@ import { useThemeConfig } from '@/contexts/ThemeConfigContext';
 import { useCupomConfig } from '@/hooks/useCupomConfig';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 type ProductDestination = 'stock' | 'exchange' | 'loss';
 
@@ -731,19 +732,37 @@ export default function Devolucoes() {
           </CardContent>
         </Card>
 
-      <Tabs defaultValue="vouchers" className="w-full min-w-0">
-        <TabsList className="grid w-full grid-cols-2 h-10 md:h-10 rounded-lg p-1 touch-manipulation">
-          <TabsTrigger value="vouchers" className="flex items-center justify-center gap-1.5 rounded-lg text-xs sm:text-sm py-2">
-            <ReceiptText className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-            <span className="truncate">Vouchers ({stats.totalVouchers})</span>
-          </TabsTrigger>
-          <TabsTrigger value="refunds" className="flex items-center justify-center gap-1.5 rounded-lg text-xs sm:text-sm py-2">
-            <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-            <span className="truncate">Devoluções ({stats.totalRefunds})</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs — mesmo estilo de Relatórios: centralizado, sem corte, botões visíveis */}
+      <div className="w-full min-w-0 overflow-visible">
+        <Tabs defaultValue="vouchers" className="w-full min-w-0 space-y-4 overflow-visible">
+          <TabsList className="h-auto grid w-full grid-cols-2 gap-2 p-2 pb-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl min-h-[3.25rem] items-center justify-items-center overflow-visible bg-muted/40 mb-1 shadow-sm">
+            <TabsTrigger
+              value="vouchers"
+              className={cn(
+                "w-full min-h-11 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm",
+                "data-[state=inactive]:bg-gray-200 data-[state=inactive]:text-gray-800 data-[state=inactive]:shadow-sm",
+                "dark:data-[state=inactive]:bg-gray-700 dark:data-[state=inactive]:text-gray-100",
+                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+              )}
+            >
+              <ReceiptText className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="truncate text-center">Vouchers ({stats.totalVouchers})</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="refunds"
+              className={cn(
+                "w-full min-h-11 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm",
+                "data-[state=inactive]:bg-gray-200 data-[state=inactive]:text-gray-800 data-[state=inactive]:shadow-sm",
+                "dark:data-[state=inactive]:bg-gray-700 dark:data-[state=inactive]:text-gray-100",
+                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+              )}
+            >
+              <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="truncate text-center">Devoluções ({stats.totalRefunds})</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="vouchers" className="mt-3">
+          <TabsContent value="vouchers" className="mt-3 overflow-visible min-h-0">
           <Card className="rounded-lg md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 pt-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
               <div className="min-w-0">
@@ -880,7 +899,7 @@ export default function Devolucoes() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="refunds" className="mt-3">
+        <TabsContent value="refunds" className="mt-3 overflow-visible min-h-0">
           <Card className="rounded-lg md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <CardHeader className="py-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
               <CardTitle className="text-sm sm:text-lg">Histórico de Devoluções</CardTitle>
@@ -991,7 +1010,8 @@ export default function Devolucoes() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
       </div>
 
       {/* Dialog de Detalhes do Voucher */}
