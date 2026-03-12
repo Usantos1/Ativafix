@@ -32,7 +32,7 @@ Na raiz do projeto (onde está o `.env` com `DEMO_EMAIL` e `DEMO_PASSWORD`):
 node server/scripts/create-demo-user.js
 ```
 
-O script lê o `.env`, usa a primeira empresa do banco como empresa demo, cria o usuário e o perfil. Se o usuário já existir, não faz nada.
+O script lê o `.env`, **cria ou usa a empresa "Ativa FIX - Demonstração"** (isolada da sua empresa real), cria o usuário demo nela ou **move** o usuário demo existente para essa empresa. Assim o visitante da demo nunca vê dados da sua empresa.
 
 **Opção C – Direto no banco (SQL)**
 
@@ -164,6 +164,18 @@ node server/scripts/create-demo-user.js
 ```
 
 O script usa o `DEMO_EMAIL` e `DEMO_PASSWORD` do `.env` e vincula o usuário à primeira empresa. Depois disso, tente "Entrar na demonstração" de novo.
+
+### Demo está vendo dados da minha empresa
+
+O usuário demo deve estar **só na empresa "Ativa FIX - Demonstração"**. Se ele foi criado antes (vinculado à primeira empresa do banco), rode de novo o script — ele move o usuário para a empresa de demonstração:
+
+```bash
+cd /root/primecamp-ofc
+git pull origin main
+node server/scripts/create-demo-user.js
+```
+
+O visitante da demo passará a ver apenas dados da empresa "Ativa FIX - Demonstração" (vazia ou com dados de exemplo que você colocar nela).
 
 ## Resumo
 

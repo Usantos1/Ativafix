@@ -33,20 +33,38 @@ const pool = new pg.Pool({
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });
 
+/** Nome da empresa usada só para a demo — dados isolados da sua empresa real. */
+const DEMO_COMPANY_NAME = 'Ativa FIX - Demonstração';
+
+async function getOrCreateDemoCompany(client) {
+  let r = await client.query(
+    `SELECT id FROM companies WHERE name = $1 AND (deleted_at IS NULL) LIMIT 1`,
+    [DEMO_COMPANY_NAME]
+  );
+  if (r.rows.length > 0) return r.rows[0].id;
+
+  r = await client.query(
+    `INSERT INTO companies (name, email, status) VALUES ($1, $2, 'trial') RETURNING id`,
+    [DEMO_COMPANY_NAME, 'demo@ativafix.com']
+  );
+  return r.rows[0].id;
+}
+
 async function main() {
   const client = await pool.connect();
   try {
-    const existing = await client.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
-      console.log('✅ Usuário demo já existe:', email);
-      return;
-    }
+    const demoCompanyId = await getOrCreateDemoCompany(client);
 
-    const companies = await client.query('SELECT id FROM companies ORDER BY created_at ASC LIMIT 1');
-    const companyId = companies.rows[0]?.id;
-    if (!companyId) {
-      console.error('❌ Nenhuma empresa encontrada. Crie uma empresa antes de rodar este script.');
-      process.exit(1);
+    const existing = await client.query('SELECT id, company_id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      const user = existing.rows[0];
+      if (user.company_id !== demoCompanyId) {
+        await client.query('UPDATE users SET company_id = $1 WHERE id = $2', [demoCompanyId, user.id]);
+        console.log('✅ Usuário demo movido para a empresa de demonstração (dados isolados).');
+      } else {
+        console.log('✅ Usuário demo já existe e já está na empresa de demonstração:', email);
+      }
+      return;
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -54,7 +72,7 @@ async function main() {
       `INSERT INTO users (id, email, password_hash, email_verified, company_id, created_at)
        VALUES (gen_random_uuid(), $1, $2, true, $3, NOW())
        RETURNING id`,
-      [email, passwordHash, companyId]
+      [email, passwordHash, demoCompanyId]
     );
     const userId = userResult.rows[0].id;
 
@@ -64,7 +82,7 @@ async function main() {
       [userId]
     );
 
-    console.log('✅ Usuário demo criado:', email, '(company_id:', companyId + ')');
+    console.log('✅ Usuário demo criado:', email, '(apenas empresa demonstração, company_id:', demoCompanyId + ')');
   } finally {
     client.release();
     await pool.end();
