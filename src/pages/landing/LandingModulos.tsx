@@ -12,6 +12,13 @@ import {
   Archive,
   BarChart3,
   Bell,
+  UserCog,
+  Clock,
+  Plug,
+  Percent,
+  CreditCard,
+  MessageCircle,
+  Send,
 } from 'lucide-react';
 
 const MODULOS = [
@@ -28,6 +35,13 @@ const MODULOS = [
   { nome: 'Financeiro', desc: 'Contas a pagar, receber, DRE e fluxo de caixa.', Icon: BarChart3 },
   { nome: 'Relatórios', desc: 'Vendas, tendências e produtividade.', Icon: BarChart3 },
   { nome: 'Painel de Alertas', desc: 'Alertas automáticos no WhatsApp.', Icon: Bell },
+  { nome: 'Recursos Humanos', desc: 'Gestão de pessoas, cargos e estrutura.', Icon: UserCog },
+  { nome: 'Ponto Eletrônico', desc: 'Registro de ponto e controle de jornada.', Icon: Clock },
+  { nome: 'Integrações', desc: 'APIs, webhooks e conexões com outros sistemas.', Icon: Plug },
+  { nome: 'Taxas de pagamento', desc: 'Config de taxas para saber o lucro nos centavos.', Icon: Percent },
+  { nome: 'Carteiras por forma de pagamento', desc: 'Carteira separada por forma de pagamento.', Icon: CreditCard },
+  { nome: 'Integração WhatsApp (Ativa CRM)', desc: 'Conexão com WhatsApp para atendimento e alertas.', Icon: MessageCircle },
+  { nome: 'Integração Telegram', desc: 'Alertas e notificações via Telegram.', Icon: Send },
 ];
 
 export function LandingModulos() {
