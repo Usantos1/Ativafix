@@ -108,7 +108,7 @@ async function seedOrdensServico(client, companyId, clienteIds) {
     } catch (e) {
       try {
         await client.query(
-          `INSERT INTO ordens_servico (company_id, numero, cliente_nome, defeito_relatado, status, valor_total, data_entrada, created_at, updated_at)
+          `INSERT INTO ordens_servico (company_id, numero, cliente_nome, descricao_problema, status, valor_total, data_entrada, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, NOW() - ($7::int || ' days')::interval, NOW(), NOW())`,
           [companyId, numero, 'Cliente ' + (i % 5 + 1), descricao, status, valorTotal, i % 90]
         );
