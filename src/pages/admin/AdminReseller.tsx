@@ -121,6 +121,7 @@ export default function AdminReseller() {
   const [segmentoModulos, setSegmentoModulos] = useState<Modulo[]>([]);
   const [segmentoRecursos, setSegmentoRecursos] = useState<{ modulos: Modulo[]; recursos: Recurso[] }>({ modulos: [], recursos: [] });
   const [menuPreview, setMenuPreview] = useState<Modulo[]>([]);
+  const [segmentoEditLoading, setSegmentoEditLoading] = useState(false);
   const [modulosGlobal, setModulosGlobal] = useState<Modulo[]>([]);
   const [recursosGlobal, setRecursosGlobal] = useState<Recurso[]>([]);
   const [moduloForm, setModuloForm] = useState<Partial<Modulo>>({});
@@ -1322,16 +1323,28 @@ export default function AdminReseller() {
                         setSegmentoForm({ nome: seg.nome, slug: seg.slug, descricao: seg.descricao ?? '', icone: seg.icone ?? 'briefcase', cor: seg.cor ?? '#3b82f6', ativo: seg.ativo });
                         setSegmentoEditOpen(true);
                         setSegmentoTab('info');
+                        setSegmentoModulos([]);
+                        setSegmentoRecursos({ modulos: [], recursos: [] });
+                        setMenuPreview([]);
+                        setSegmentoEditLoading(true);
                         try {
                           const [mods, recs, menu] = await Promise.all([
                             getSegmentoModulos(seg.id),
                             getSegmentoRecursos(seg.id),
                             getSegmentoMenuPreview(seg.id),
                           ]);
-                          setSegmentoModulos(mods);
-                          setSegmentoRecursos(recs);
-                          setMenuPreview(menu);
-                        } catch (_) {}
+                          setSegmentoModulos(Array.isArray(mods) ? mods : []);
+                          setSegmentoRecursos(
+                            recs && typeof recs === 'object' && Array.isArray(recs.modulos) && Array.isArray(recs.recursos)
+                              ? recs
+                              : { modulos: [], recursos: [] }
+                          );
+                          setMenuPreview(Array.isArray(menu) ? menu : []);
+                        } catch (e: unknown) {
+                          toast.error(e instanceof Error ? e.message : 'Erro ao carregar módulos e recursos do segmento.');
+                        } finally {
+                          setSegmentoEditLoading(false);
+                        }
                       }}>
                         <CardContent className="pt-4">
                           <div className="flex items-start justify-between">
@@ -1442,7 +1455,37 @@ export default function AdminReseller() {
                 {selectedSegmento ? 'Altere as informações e os módulos/recursos do segmento.' : 'Preencha os dados do novo segmento.'}
               </DialogDescription>
             </DialogHeader>
-            <Tabs value={segmentoTab} onValueChange={setSegmentoTab} className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <Tabs
+              value={segmentoTab}
+              onValueChange={(tab) => {
+                setSegmentoTab(tab);
+                if (tab !== 'info' && selectedSegmento && !segmentoEditLoading) {
+                  const emptyModulos = tab === 'modulos' && segmentoModulos.length === 0;
+                  const emptyRecursos = tab === 'recursos' && segmentoRecursos.modulos.length === 0;
+                  const emptyPreview = tab === 'preview' && menuPreview.length === 0;
+                  if (emptyModulos || emptyRecursos || emptyPreview) {
+                    setSegmentoEditLoading(true);
+                    Promise.all([
+                      getSegmentoModulos(selectedSegmento.id),
+                      getSegmentoRecursos(selectedSegmento.id),
+                      getSegmentoMenuPreview(selectedSegmento.id),
+                    ])
+                      .then(([mods, recs, menu]) => {
+                        setSegmentoModulos(Array.isArray(mods) ? mods : []);
+                        setSegmentoRecursos(
+                          recs && typeof recs === 'object' && Array.isArray(recs.modulos) && Array.isArray(recs.recursos)
+                            ? recs
+                            : { modulos: [], recursos: [] }
+                        );
+                        setMenuPreview(Array.isArray(menu) ? menu : []);
+                      })
+                      .catch(() => toast.error('Erro ao recarregar dados do segmento.'))
+                      .finally(() => setSegmentoEditLoading(false));
+                  }
+                }
+              }}
+              className="flex-1 overflow-hidden flex flex-col min-h-0"
+            >
               <TabsList className="grid grid-cols-4">
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 <TabsTrigger value="modulos">Módulos</TabsTrigger>
@@ -1506,6 +1549,11 @@ export default function AdminReseller() {
                   {selectedSegmento && (
                     <>
                       <p className="text-sm text-muted-foreground mb-4">Ative os módulos que este segmento possui e defina a ordem no menu.</p>
+                      {segmentoEditLoading ? (
+                        <p className="text-sm text-muted-foreground py-6">Carregando módulos...</p>
+                      ) : segmentoModulos.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4">Nenhum módulo disponível. Execute a migration REVENDA_MULTI_SEGMENTO.sql no banco ou verifique a conexão.</p>
+                      ) : (
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {segmentoModulos.map((m, idx) => (
                           <div key={m.id} className="flex items-center gap-3 p-2 rounded border">
@@ -1531,6 +1579,7 @@ export default function AdminReseller() {
                           </div>
                         ))}
                       </div>
+                      )}
                       <p className="text-xs text-muted-foreground mt-2">Ordem do menu: módulos ativos são exibidos na ordem definida no servidor (ordem_menu).</p>
                     </>
                   )}
@@ -1540,6 +1589,11 @@ export default function AdminReseller() {
                   {selectedSegmento && (
                     <>
                       <p className="text-sm text-muted-foreground mb-4">Recursos liberados para este segmento (por módulo).</p>
+                      {segmentoEditLoading ? (
+                        <p className="text-sm text-muted-foreground py-6">Carregando recursos...</p>
+                      ) : (segmentoRecursos.modulos?.length ?? 0) === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4">Nenhum recurso disponível. Ative módulos na aba Módulos primeiro.</p>
+                      ) : (
                       <div className="space-y-4 max-h-[300px] overflow-y-auto">
                         {segmentoRecursos.modulos.map((mod) => (
                           <div key={mod.id}>
@@ -1556,6 +1610,7 @@ export default function AdminReseller() {
                           </div>
                         ))}
                       </div>
+                      )}
                       <p className="text-xs text-muted-foreground mt-2">Os recursos seguem os módulos ativos do segmento. Para alterar, ative/desative módulos na aba Módulos.</p>
                     </>
                   )}
@@ -1563,12 +1618,18 @@ export default function AdminReseller() {
                 </TabsContent>
                 <TabsContent value="preview" className="mt-0">
                   <p className="text-sm text-muted-foreground mb-4">Como o menu do sistema aparecerá para empresas deste segmento:</p>
-                  <ul className="space-y-1 list-disc list-inside">
-                    {menuPreview.map((m, i) => (
-                      <li key={m.id}><strong>{m.label_menu || m.nome}</strong> — {m.path || m.slug}</li>
-                    ))}
-                  </ul>
-                  {menuPreview.length === 0 && selectedSegmento && <p className="text-muted-foreground">Nenhum módulo ativo no segmento.</p>}
+                  {segmentoEditLoading ? (
+                    <p className="text-sm text-muted-foreground py-6">Carregando prévia...</p>
+                  ) : (
+                    <>
+                      <ul className="space-y-1 list-disc list-inside">
+                        {menuPreview.map((m) => (
+                          <li key={m.id}><strong>{m.label_menu || m.nome}</strong> — {m.path || m.slug}</li>
+                        ))}
+                      </ul>
+                      {menuPreview.length === 0 && selectedSegmento && <p className="text-muted-foreground mt-2">Nenhum módulo ativo no segmento. Ative módulos na aba Módulos.</p>}
+                    </>
+                  )}
                 </TabsContent>
               </div>
             </Tabs>
