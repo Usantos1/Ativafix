@@ -108,8 +108,27 @@ export function AppSidebar() {
     enabled: !!user?.company_id,
     staleTime: 1000 * 60 * 5, // 5 min
   });
+  const { data: roleMenuData } = useQuery({
+    queryKey: ['role-menu', user?.id],
+    queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return { menu: [], home_path: null };
+      const res = await fetch(`${apiBase}/me/role-menu`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      return { menu: data.menu || [], home_path: data.home_path || null };
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
+  });
   const segmentMenu = segmentMenuData?.menu ?? [];
   const hasSegmentMenu = Array.isArray(segmentMenu) && segmentMenu.length > 0;
+  const roleMenu = roleMenuData?.menu ?? [];
+  const hasRoleMenu = Array.isArray(roleMenu) && roleMenu.length > 0;
+  const homePath = roleMenuData?.home_path || null;
+  const menuToUse = hasRoleMenu ? roleMenu : segmentMenu;
+  const useRoleMenu = hasRoleMenu;
   
   // Função para verificar permissão
   const checkPermission = (permission: string): boolean => {
@@ -185,26 +204,26 @@ export function AppSidebar() {
     permission: undefined as string | undefined,
   });
 
-  // Quando há menu por segmento: agrupar por categoria (Operação, Estoque, Relatórios/Gestão)
+  // Menu por cargo (role) ou por segmento: agrupar por categoria
   const segmentByCategory = React.useMemo(() => {
-    if (!hasSegmentMenu || segmentMenu.length === 0) return { operacao: [], estoque: [], gestao: [] };
+    if (!menuToUse.length) return { operacao: [], estoque: [], gestao: [] };
     const mapOne = (m: { path: string; label_menu: string; slug?: string; icone?: string }) => ({
       label: m.path === '/inventario' ? 'Inventário' : m.label_menu,
       path: m.path || '/',
       icon: iconMap[m.icone || ''] || Home,
       exact: true as const,
-      permission: undefined as string | undefined,
+      permission: useRoleMenu ? undefined : (undefined as string | undefined),
     });
     const cat = (m: { categoria?: string }) => m.categoria || 'operacao';
-    const operacao = segmentMenu.filter((m: { categoria?: string }) => cat(m) === 'operacao').map(mapOne);
-    const estoque = segmentMenu.filter((m: { categoria?: string }) => cat(m) === 'estoque').map(mapOne);
-    const gestao = segmentMenu.filter((m: { categoria?: string }) => cat(m) === 'gestao').map(mapOne);
+    const operacao = menuToUse.filter((m: { categoria?: string }) => cat(m) === 'operacao').map(mapOne);
+    const estoque = menuToUse.filter((m: { categoria?: string }) => cat(m) === 'estoque').map(mapOne);
+    const gestao = menuToUse.filter((m: { categoria?: string }) => cat(m) === 'gestao').map(mapOne);
     return { operacao, estoque, gestao };
-  }, [hasSegmentMenu, segmentMenu]);
+  }, [menuToUse, useRoleMenu]);
 
   const operacaoItemsFromSegment = segmentByCategory.operacao;
-  const operacaoItems = (hasSegmentMenu ? operacaoItemsFromSegment : operacaoItemsBase).filter(
-    item => !item.permission || checkPermission(item.permission)
+  const operacaoItems = (hasSegmentMenu || hasRoleMenu ? operacaoItemsFromSegment : operacaoItemsBase).filter(
+    item => useRoleMenu || !item.permission || checkPermission(item.permission)
   );
 
   // ═══════════════════════════════════════════════════════════════
@@ -215,7 +234,9 @@ export function AppSidebar() {
     { label: "Pedidos", path: "/pedidos", icon: List, exact: true, permission: "produtos.view" },
     { label: "Inventário", path: "/inventario", icon: Boxes, exact: true, permission: "produtos.view" },
   ];
-  const estoqueItems = (hasSegmentMenu ? segmentByCategory.estoque : estoqueItemsBase).filter(item => !item.permission || checkPermission(item.permission));
+  const estoqueItems = (hasSegmentMenu || hasRoleMenu ? segmentByCategory.estoque : estoqueItemsBase).filter(
+    item => useRoleMenu || !item.permission || checkPermission(item.permission)
+  );
 
   // ═══════════════════════════════════════════════════════════════
   // RELATÓRIOS - (menu segmento: itens com categoria gestao)
@@ -225,7 +246,9 @@ export function AppSidebar() {
     { label: "Financeiro", path: "/financeiro", icon: BarChart3, permission: "relatorios.financeiro" },
     { label: "Painel de Alertas", path: "/painel-alertas", icon: Activity, permission: "relatorios.financeiro" },
   ];
-  const relatoriosItems = (hasSegmentMenu ? segmentByCategory.gestao : relatoriosItemsBase).filter(item => !item.permission || checkPermission(item.permission));
+  const relatoriosItems = (hasSegmentMenu || hasRoleMenu ? segmentByCategory.gestao : relatoriosItemsBase).filter(
+    item => useRoleMenu || !item.permission || checkPermission(item.permission)
+  );
 
   // ═══════════════════════════════════════════════════════════════
   // GESTÃO - RH, Ponto (vazio quando menu por segmento; segmento não costuma ter categoria gestao para RH)
@@ -234,7 +257,9 @@ export function AppSidebar() {
     { label: "Recursos Humanos", path: "/rh", icon: Users, permission: "rh.view" },
     { label: "Ponto Eletrônico", path: "/ponto", icon: Clock, permission: "rh.ponto" },
   ];
-  const gestaoItems = (hasSegmentMenu ? [] : gestaoItemsBase).filter(item => !item.permission || checkPermission(item.permission));
+  const gestaoItems = (hasSegmentMenu || hasRoleMenu ? [] : gestaoItemsBase).filter(
+    item => useRoleMenu || !item.permission || checkPermission(item.permission)
+  );
 
   // ═══════════════════════════════════════════════════════════════
   // ADMINISTRAÇÃO - Apenas para admins

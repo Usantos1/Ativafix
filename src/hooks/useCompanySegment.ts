@@ -14,11 +14,15 @@ export function useCompanySegment() {
       const res = await fetch(`${apiUrl}/me/segment-menu`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!res.ok) return { segmento_slug: null as string | null };
+      if (!res.ok) return { segmento_slug: null as string | null, segmento_id: null as string | null };
       const json = await res.json();
-      return { segmento_slug: json.segmento_slug ?? null };
+      return { segmento_slug: json.segmento_slug ?? null, segmento_id: json.segmento_id ?? null };
     },
     staleTime: 1000 * 60 * 5, // 5 min
   });
-  return { segmentoSlug: data?.segmento_slug ?? null, isLoading: !!isLoading };
+  return {
+    segmentoSlug: data?.segmento_slug ?? null,
+    segmentoId: data?.segmento_id ?? null,
+    isLoading: !!isLoading,
+  };
 }

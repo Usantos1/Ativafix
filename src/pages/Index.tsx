@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { format, subDays, startOfMonth, endOfMonth, subMonths, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ModernLayout } from '@/components/ModernLayout';
@@ -17,14 +17,20 @@ import { OSStatusCards } from '@/components/dashboard/OSStatusCards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { DashboardPeriodFilter } from '@/components/dashboard/DashboardPeriodFilter';
 import { PresentationMode } from '@/components/dashboard/PresentationMode';
+import { useQuery } from '@tanstack/react-query';
 import { useOrdensServicoSupabase as useOrdensServico } from '@/hooks/useOrdensServicoSupabase';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import type { DashboardTrendData } from '@/hooks/useDashboardData';
 
+const apiBase = (import.meta.env.VITE_API_URL && !String(import.meta.env.VITE_API_URL).includes('localhost'))
+  ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '')
+  : 'https://api.ativafix.com/api';
+
 const Index = () => {
   const navigate = useNavigate();
-  const { isAdmin, profile, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const { isAdmin, profile, user, loading: authLoading } = useAuth();
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { financialData, osData, alerts, trendData, trendPeriod, setTrendPeriod, customDateRange, loading: dataLoading, refetch } = useDashboardData();
   const { config, loading: configLoading } = useDashboardConfig();
@@ -33,6 +39,26 @@ const Index = () => {
   const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
 
   const stats = getEstatisticas();
+
+  const { data: roleMenuData } = useQuery({
+    queryKey: ['role-menu', user?.id],
+    queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return { menu: [], home_path: null };
+      const res = await fetch(`${apiBase}/me/role-menu`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      return { menu: data.menu || [], home_path: data.home_path || null };
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
+  });
+  const homePath = roleMenuData?.home_path || null;
+  useEffect(() => {
+    if (location.pathname !== '/' || !homePath || homePath === '/') return;
+    navigate(homePath, { replace: true });
+  }, [location.pathname, homePath, navigate]);
 
   // Verificar se é gestor/admin (só verifica se não estiver carregando)
   const isGestor = !permissionsLoading && (isAdmin || hasPermission('admin.view') || hasPermission('financeiro.view'));

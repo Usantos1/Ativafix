@@ -1307,6 +1307,212 @@ app.get('/api/me/segment-menu', authenticateToken, async (req, res) => {
   }
 });
 
+// Recursos do segmento da empresa (para editor de permissões por segmento, como em empresas)
+app.get('/api/me/segment-recursos', authenticateToken, async (req, res) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.json({ modulos: [], recursos: [] });
+    const hasSegmentoCol = await pool.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'companies' AND column_name = 'segmento_id'`
+    );
+    if (hasSegmentoCol.rows.length === 0) return res.json({ modulos: [], recursos: [] });
+    const company = await pool.query('SELECT segmento_id FROM companies WHERE id = $1', [companyId]);
+    if (company.rows.length === 0 || !company.rows[0].segmento_id) return res.json({ modulos: [], recursos: [] });
+    const segmentoId = company.rows[0].segmento_id;
+    const modulosResult = await pool.query(
+      `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, sm.ordem_menu
+       FROM modulos m
+       INNER JOIN segmentos_modulos sm ON sm.modulo_id = m.id AND sm.segmento_id = $1 AND sm.ativo
+       WHERE m.ativo
+       ORDER BY sm.ordem_menu, m.nome`,
+      [segmentoId]
+    );
+    const recursosResult = await pool.query(
+      `SELECT r.id, r.modulo_id, r.nome, r.slug, r.permission_key
+       FROM recursos r
+       INNER JOIN segmentos_modulos sm ON sm.modulo_id = r.modulo_id AND sm.segmento_id = $1 AND sm.ativo
+       INNER JOIN segmentos_recursos sr ON sr.recurso_id = r.id AND sr.segmento_id = $1 AND sr.ativo
+       WHERE r.ativo
+       ORDER BY (SELECT ordem_menu FROM segmentos_modulos WHERE segmento_id = $1 AND modulo_id = r.modulo_id), r.nome`,
+      [segmentoId]
+    );
+    res.json({
+      modulos: (modulosResult.rows || []).map((m) => ({ id: m.id, nome: m.nome, slug: m.slug, path: m.path, label_menu: m.label_menu || m.nome, ordem_menu: m.ordem_menu })),
+      recursos: (recursosResult.rows || []).map((r) => ({ id: r.id, modulo_id: r.modulo_id, nome: r.nome, slug: r.slug, permission_key: r.permission_key })),
+    });
+  } catch (err) {
+    console.error('[segment-recursos]', err);
+    res.json({ modulos: [], recursos: [] });
+  }
+});
+
+// Menu e tela inicial por cargo (role): se o cargo tiver role_modulos, usa ordem e home_path do cargo
+app.get('/api/me/role-menu', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.json({ menu: [], home_path: null });
+    const hasTable = await pool.query(
+      `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'role_modulos'`
+    );
+    if (hasTable.rows.length === 0) return res.json({ menu: [], home_path: null });
+    const upd = await pool.query(
+      `SELECT role_id FROM user_position_departments WHERE user_id = $1 AND is_primary = true AND role_id IS NOT NULL LIMIT 1`,
+      [userId]
+    );
+    const roleId = upd.rows[0]?.role_id;
+    if (!roleId) return res.json({ menu: [], home_path: null });
+    const count = await pool.query(
+      `SELECT 1 FROM role_modulos WHERE role_id = $1 AND ativo = true LIMIT 1`,
+      [roleId]
+    );
+    if (count.rows.length === 0) return res.json({ menu: [], home_path: null });
+    const menuResult = await pool.query(
+      `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, m.icone, m.categoria, rm.ordem_menu
+       FROM role_modulos rm
+       INNER JOIN modulos m ON m.id = rm.modulo_id AND m.ativo
+       WHERE rm.role_id = $1 AND rm.ativo
+       ORDER BY rm.ordem_menu, m.nome`,
+      [roleId]
+    );
+    const roleRow = await pool.query(
+      `SELECT home_path FROM roles WHERE id = $1`,
+      [roleId]
+    );
+    const home_path = roleRow.rows[0]?.home_path || null;
+    res.json({
+      menu: (menuResult.rows || []).map((r) => ({
+        id: r.id,
+        path: r.path || '/',
+        label_menu: r.label_menu || r.nome,
+        slug: r.slug,
+        icone: r.icone,
+        categoria: r.categoria || 'operacao',
+      })),
+      home_path: home_path || null,
+    });
+  } catch (err) {
+    console.error('[role-menu]', err);
+    res.json({ menu: [], home_path: null });
+  }
+});
+
+// Configuração de menu do cargo (módulos, recursos, tela inicial) — filtrada pelo segmento da empresa
+app.get('/api/roles/:roleId/menu-config', authenticateToken, async (req, res) => {
+  try {
+    const roleId = req.params.roleId;
+    const companyId = req.user?.company_id;
+    const hasTable = await pool.query(
+      `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'role_modulos'`
+    );
+    if (hasTable.rows.length === 0) return res.json({ modulos: [], recursos: [], home_path: null });
+    const role = await pool.query(`SELECT id, home_path FROM roles WHERE id = $1`, [roleId]);
+    if (role.rows.length === 0) return res.status(404).json({ error: 'Role não encontrado' });
+    let segmentoId = null;
+    if (companyId) {
+      const comp = await pool.query(
+        `SELECT segmento_id FROM companies WHERE id = $1`,
+        [companyId]
+      );
+      segmentoId = comp.rows[0]?.segmento_id || null;
+    }
+    const modulosResult = segmentoId
+      ? await pool.query(
+          `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, rm.ativo as link_ativo, rm.ordem_menu
+           FROM segmentos_modulos sm
+           INNER JOIN modulos m ON m.id = sm.modulo_id AND m.ativo AND sm.segmento_id = $2 AND sm.ativo
+           LEFT JOIN role_modulos rm ON rm.modulo_id = m.id AND rm.role_id = $1
+           ORDER BY COALESCE(rm.ordem_menu, sm.ordem_menu, 999), m.nome`,
+          [roleId, segmentoId]
+        )
+      : await pool.query(
+          `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, rm.ativo as link_ativo, rm.ordem_menu
+           FROM modulos m
+           LEFT JOIN role_modulos rm ON rm.modulo_id = m.id AND rm.role_id = $1
+           WHERE m.ativo
+           ORDER BY COALESCE(rm.ordem_menu, 999), m.nome`,
+          [roleId]
+        );
+    const recursosResult = segmentoId
+      ? await pool.query(
+          `SELECT r.id, r.modulo_id, r.nome, r.slug, r.permission_key, rr.ativo as link_ativo
+           FROM segmentos_recursos sr
+           INNER JOIN recursos r ON r.id = sr.recurso_id AND r.ativo AND sr.segmento_id = $2 AND sr.ativo
+           LEFT JOIN role_recursos rr ON rr.recurso_id = r.id AND rr.role_id = $1
+           ORDER BY (SELECT COALESCE(rm.ordem_menu, 999) FROM role_modulos rm WHERE rm.role_id = $1 AND rm.modulo_id = r.modulo_id LIMIT 1), r.nome`,
+          [roleId, segmentoId]
+        )
+      : await pool.query(
+          `SELECT r.id, r.modulo_id, r.nome, r.slug, r.permission_key, rr.ativo as link_ativo
+           FROM recursos r
+           INNER JOIN modulos m ON m.id = r.modulo_id AND m.ativo
+           LEFT JOIN role_recursos rr ON rr.recurso_id = r.id AND rr.role_id = $1
+           WHERE r.ativo
+           ORDER BY (SELECT ordem_menu FROM role_modulos WHERE role_id = $1 AND modulo_id = r.modulo_id LIMIT 1), r.nome`,
+          [roleId]
+        );
+    res.json({
+      modulos: (modulosResult.rows || []).map((m) => ({
+        id: m.id,
+        nome: m.nome,
+        slug: m.slug,
+        path: m.path,
+        label_menu: m.label_menu || m.nome,
+        link_ativo: !!m.link_ativo,
+        ordem_menu: m.ordem_menu,
+      })),
+      recursos: (recursosResult.rows || []).map((r) => ({
+        id: r.id,
+        modulo_id: r.modulo_id,
+        nome: r.nome,
+        slug: r.slug,
+        permission_key: r.permission_key,
+        link_ativo: !!r.link_ativo,
+      })),
+      home_path: role.rows[0].home_path || null,
+    });
+  } catch (err) {
+    console.error('[roles menu-config GET]', err);
+    res.status(500).json({ error: 'Erro ao carregar configuração do cargo' });
+  }
+});
+
+app.put('/api/roles/:roleId/menu-config', authenticateToken, async (req, res) => {
+  try {
+    const roleId = req.params.roleId;
+    const { modulos = [], recursos = [], home_path } = req.body || {};
+    const hasTable = await pool.query(
+      `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'role_modulos'`
+    );
+    if (hasTable.rows.length === 0) return res.status(400).json({ error: 'Tabelas role_modulos não existem' });
+    await pool.query(`UPDATE roles SET home_path = $1, updated_at = NOW() WHERE id = $2`, [home_path || null, roleId]);
+    await pool.query(`DELETE FROM role_modulos WHERE role_id = $1`, [roleId]);
+    for (let i = 0; i < (modulos || []).length; i++) {
+      const m = modulos[i];
+      if (m.modulo_id && m.ativo) {
+        await pool.query(
+          `INSERT INTO role_modulos (role_id, modulo_id, ativo, ordem_menu) VALUES ($1, $2, true, $3)
+           ON CONFLICT (role_id, modulo_id) DO UPDATE SET ativo = true, ordem_menu = $3, updated_at = NOW()`,
+          [roleId, m.modulo_id, m.ordem_menu != null ? m.ordem_menu : i]
+        );
+      }
+    }
+    await pool.query(`DELETE FROM role_recursos WHERE role_id = $1`, [roleId]);
+    for (const r of recursos || []) {
+      if (r.recurso_id && r.ativo) {
+        await pool.query(
+          `INSERT INTO role_recursos (role_id, recurso_id, ativo) VALUES ($1, $2, true)
+           ON CONFLICT (role_id, recurso_id) DO UPDATE SET ativo = true, updated_at = NOW()`,
+          [roleId, r.recurso_id]
+        );
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[roles menu-config PUT]', err);
+    res.status(500).json({ error: 'Erro ao salvar configuração do cargo' });
+  }
+});
+
 // Request Password Reset (Solicitar reset de senha)
 app.post('/api/auth/request-password-reset', async (req, res) => {
   try {
