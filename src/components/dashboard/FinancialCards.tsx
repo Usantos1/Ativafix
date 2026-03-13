@@ -11,7 +11,7 @@ interface FinancialCardsProps {
   financeiroKpis?: DashboardExecutivo['kpis'];
   /** Exibir valores em R$ (false = ocultar como em bancos) */
   valuesVisible?: boolean;
-  /** Renderizar sem grid próprio (para colocar 4 + 2 alertas na mesma linha de 6) */
+  /** Renderizar sem grid próprio (para o pai controlar a grid; ex.: 6 cards no dashboard) */
   inline?: boolean;
   /** Cards mais compactos (menos largos) */
   compact?: boolean;
@@ -70,14 +70,15 @@ export function ValuesVisibilityToggle({
 export function FinancialCards({ data, financeiroKpis, valuesVisible = true, inline = false, compact = false }: FinancialCardsProps) {
   const cards = financeiroKpis
     ? (() => {
-        const total = financeiroKpis.quantidadePDV + financeiroKpis.quantidadeOS;
+        const totalVendas = financeiroKpis.quantidadePDV + financeiroKpis.quantidadeOS;
         const pctPDV = financeiroKpis.totalGeral > 0 ? ((financeiroKpis.totalPDV / financeiroKpis.totalGeral) * 100).toFixed(1) : '0';
         const pctOS = financeiroKpis.totalGeral > 0 ? ((financeiroKpis.totalOS / financeiroKpis.totalGeral) * 100).toFixed(1) : '0';
+        const ticketMedioTotal = totalVendas > 0 ? financeiroKpis.totalGeral / totalVendas : 0;
         return [
           {
             title: 'Receita Total',
             value: currencyFormatters.brl(financeiroKpis.totalGeral),
-            subtitle: `${total} vendas`,
+            subtitle: `${totalVendas} vendas`,
             subtitleWhenMasked: undefined,
             icon: DollarSign,
             color: 'bg-green-500',
@@ -99,10 +100,26 @@ export function FinancialCards({ data, financeiroKpis, valuesVisible = true, inl
             color: 'bg-emerald-500',
           },
           {
-            title: 'Ticket Médio',
-            value: currencyFormatters.brl((financeiroKpis.ticketMedioPDV + financeiroKpis.ticketMedioOS) / 2),
-            subtitle: `PDV: ${currencyFormatters.brl(financeiroKpis.ticketMedioPDV)} | OS: ${currencyFormatters.brl(financeiroKpis.ticketMedioOS)}`,
-            subtitleWhenMasked: 'PDV: R$ ••••••• | OS: R$ •••••••',
+            title: 'Ticket Médio OS',
+            value: currencyFormatters.brl(financeiroKpis.ticketMedioOS),
+            subtitle: `${financeiroKpis.quantidadeOS} vendas`,
+            subtitleWhenMasked: undefined,
+            icon: Wrench,
+            color: 'bg-emerald-500',
+          },
+          {
+            title: 'Ticket Médio PDV',
+            value: currencyFormatters.brl(financeiroKpis.ticketMedioPDV),
+            subtitle: `${financeiroKpis.quantidadePDV} vendas`,
+            subtitleWhenMasked: undefined,
+            icon: ShoppingCart,
+            color: 'bg-blue-500',
+          },
+          {
+            title: 'Ticket Médio Total',
+            value: currencyFormatters.brl(ticketMedioTotal),
+            subtitle: `${totalVendas} vendas`,
+            subtitleWhenMasked: undefined,
             icon: TrendingUp,
             color: 'bg-purple-500',
           },

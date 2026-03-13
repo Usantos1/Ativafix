@@ -3,9 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { format, subDays, startOfMonth, endOfMonth, subMonths, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ModernLayout } from '@/components/ModernLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Wallet, Wrench, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -335,7 +334,7 @@ const Index = () => {
                 </Button>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2 md:gap-3">
               <FinancialCards
                 data={financialData}
                 financeiroKpis={trendPeriod === 'day' ? (kpisFromDaySummary ?? undefined) : financeiroDashboard?.kpis}
@@ -343,40 +342,6 @@ const Index = () => {
                 inline
                 compact
               />
-              {alerts && (
-                <>
-                  <Card
-                    className="border-2 border-orange-300 dark:border-orange-600 shadow-sm hover:shadow-md transition-all cursor-pointer min-w-0 bg-orange-50 dark:bg-orange-950/30 py-1 px-2 rounded-xl min-h-[72px] sm:min-h-0 sm:rounded-lg touch-manipulation active:scale-[0.99]"
-                    onClick={() => navigate('/produtos?filter=estoque_baixo')}
-                  >
-                    <CardHeader className="pb-1 pt-2 px-2">
-                      <CardTitle className="text-xs sm:text-xs font-semibold flex items-center gap-1 text-orange-700 dark:text-orange-400">
-                        <Package className="h-5 w-5 shrink-0" />
-                        Estoque Baixo
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-2 pb-2 pt-0">
-                      <div className="text-sm sm:text-base font-bold">{alerts.estoqueBaixo}</div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Produtos com menos de 5 unidades</p>
-                    </CardContent>
-                  </Card>
-                  <Card
-                    className={`border-2 shadow-sm hover:shadow-md transition-all cursor-pointer min-w-0 py-1 px-2 rounded-xl min-h-[72px] sm:min-h-0 sm:rounded-lg touch-manipulation active:scale-[0.99] ${alerts.caixaAberto ? 'border-green-300 bg-green-50 dark:border-green-600 dark:bg-green-950/30' : 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-900/50'}`}
-                    onClick={() => navigate('/pdv/caixa')}
-                  >
-                    <CardHeader className="pb-1 pt-2 px-2">
-                      <CardTitle className="text-xs sm:text-xs font-semibold flex items-center gap-1 text-gray-700 dark:text-gray-300">
-                        <Wallet className="h-5 w-5 shrink-0" />
-                        Caixa Aberto
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-2 pb-2 pt-0">
-                      <div className="text-sm sm:text-base font-bold">{alerts.caixaAberto ? 'Sim' : 'Não'}</div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{alerts.caixaAberto ? 'Caixa está aberto' : 'Caixa está fechado'}</p>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
             </div>
           </div>
         )}
