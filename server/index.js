@@ -1559,7 +1559,7 @@ app.post('/api/query/:table', async (req, res) => {
     // CRÍTICO: Garante isolamento de dados entre empresas
     const tablesWithCompanyId = [
       // Dados de negócio principais
-      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico',
+      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico', 'veiculos',
       'sale_items', 'os_items', 'fornecedores', 'produto_movimentacoes',
       // Ponto eletrônico
       'time_clock',
@@ -1584,6 +1584,7 @@ app.post('/api/query/:table', async (req, res) => {
       'refunds', 'refund_items',
       // Pedidos de compra (isolamento por empresa)
       'pedidos',
+      'quotes',
       // Logs do sistema, DISC, integrações e Academy
       'user_activity_logs', 'audit_logs', 'disc_responses',
       'telegram_config',
@@ -1729,7 +1730,7 @@ app.post('/api/insert/:table', async (req, res) => {
     // Lista COMPLETA de tabelas que precisam de company_id no INSERT
     // CRÍTICO: Garante isolamento de dados entre empresas
     const tablesWithCompanyId = [
-      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico',
+      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico', 'veiculos',
       'sale_items', 'os_items', 'fornecedores', 'produto_movimentacoes',
       'time_clock', 'users',
       'nps_surveys', 'nps_responses',
@@ -1743,6 +1744,7 @@ app.post('/api/insert/:table', async (req, res) => {
       'os_pagamentos', 'os_config_status', 'fornecedores',
       'refunds', 'refund_items',
       'pedidos',
+      'quotes',
       'user_activity_logs', 'audit_logs', 'disc_responses',
       'telegram_config',
       'trainings', 'training_assignments',
@@ -2156,7 +2158,7 @@ app.post('/api/update/:table', async (req, res) => {
     // Lista COMPLETA de tabelas que precisam filtrar por company_id no UPDATE
     // CRÍTICO: Garante isolamento de dados entre empresas
     const tablesWithCompanyId = [
-      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico',
+      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico', 'veiculos',
       'sale_items', 'os_items', 'fornecedores', 'produto_movimentacoes',
       'time_clock', 'users',
       'nps_surveys', 'nps_responses',
@@ -2169,6 +2171,7 @@ app.post('/api/update/:table', async (req, res) => {
       'cupom_config',
       'os_pagamentos', 'os_config_status', 'fornecedores',
       'refunds', 'refund_items',
+      'pedidos', 'quotes',
       'user_activity_logs', 'audit_logs', 'disc_responses',
       'telegram_config',
       'trainings', 'training_assignments',
@@ -2718,7 +2721,7 @@ app.post('/api/delete/:table', async (req, res) => {
     // Lista COMPLETA de tabelas que precisam filtrar por company_id no DELETE
     // CRÍTICO: Garante isolamento de dados entre empresas
     const tablesWithCompanyId = [
-      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico',
+      'produtos', 'vendas', 'sales', 'clientes', 'ordens_servico', 'veiculos',
       'sale_items', 'os_items', 'fornecedores', 'produto_movimentacoes',
       'time_clock', 'users',
       'nps_surveys', 'nps_responses',
@@ -2731,6 +2734,7 @@ app.post('/api/delete/:table', async (req, res) => {
       'cupom_config',
       'os_pagamentos', 'os_config_status', 'fornecedores',
       'refunds', 'refund_items',
+      'pedidos', 'quotes',
       'user_activity_logs', 'audit_logs', 'disc_responses',
       'telegram_config',
       'trainings', 'training_assignments',

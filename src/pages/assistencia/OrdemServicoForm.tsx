@@ -3369,19 +3369,21 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                 </CardContent>
               </Card>
 
-              {/* Widget 2: Senha e Áreas com Defeito */}
+              {/* Widget 2: Senha/Chave e Áreas com Defeito (veículo: só chave/código e referência; celular: senha + deslizar + referência) */}
               <Card className="border border-gray-200/80 shadow-sm rounded-xl bg-white">
                 <CardHeader className="py-3 px-4 border-b border-gray-100 bg-gray-50/50 rounded-t-xl">
                   <CardTitle className="text-sm font-semibold text-gray-800 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    Senha e Defeitos
+                    {isOficinaMecanica ? 'Chave/Código e Defeitos' : 'Senha e Defeitos'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
-                  {/* Seção Senha — obrigatório: perguntar ao cliente antes de salvar */}
+                  {/* Seção Senha/Chave — obrigatório; oficina: só chave/código (sem opção deslizar) */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label className={cn("text-xs font-medium text-gray-600", camposFaltandoState.has('possui_senha') && "font-bold text-red-600")}>Possui senha *</Label>
+                      <Label className={cn("text-xs font-medium text-gray-600", camposFaltandoState.has('possui_senha') && "font-bold text-red-600")}>
+                        {isOficinaMecanica ? 'Possui chave ou código? *' : 'Possui senha *'}
+                      </Label>
                       {camposFaltandoState.has('possui_senha') && (
                         <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Obrigatório</Badge>
                       )}
@@ -3401,20 +3403,20 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                       }}
                     >
                       <SelectTrigger className={cn("w-full h-10 text-sm border-gray-200 rounded-lg", camposFaltandoState.has('possui_senha') && "border-red-500 border-2 bg-red-50")}>
-                        <SelectValue placeholder={isOficinaMecanica ? 'Selecione se o veículo possui chave/senha' : 'Selecione se o aparelho possui senha'}>
-                          {formData.possui_senha_tipo === 'sim' && 'SIM'}
-                          {formData.possui_senha_tipo === 'deslizar' && 'SIM - DESLIZAR (DESENHO)'}
+                        <SelectValue placeholder={isOficinaMecanica ? 'Selecione se deixou chave/código do veículo' : 'Selecione se o aparelho possui senha'}>
+                          {(formData.possui_senha_tipo === 'sim' || (isOficinaMecanica && formData.possui_senha_tipo === 'deslizar')) && 'SIM'}
+                          {formData.possui_senha_tipo === 'deslizar' && !isOficinaMecanica && 'SIM - DESLIZAR (DESENHO)'}
                           {formData.possui_senha_tipo === 'nao' && 'NÃO'}
                           {formData.possui_senha_tipo === 'nao_sabe' && 'NÃO SABE'}
-                          {formData.possui_senha_tipo === 'nao_autorizou' && 'NÃO AUTORIZOU'}
+                          {formData.possui_senha_tipo === 'nao_autorizou' && (isOficinaMecanica ? 'NÃO QUIS DEIXAR' : 'NÃO AUTORIZOU')}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
                         <SelectItem value="sim" className="text-sm">SIM</SelectItem>
-                        <SelectItem value="deslizar" className="text-sm">SIM - DESLIZAR (DESENHO)</SelectItem>
+                        {!isOficinaMecanica && <SelectItem value="deslizar" className="text-sm">SIM - DESLIZAR (DESENHO)</SelectItem>}
                         <SelectItem value="nao" className="text-sm">NÃO</SelectItem>
-                        <SelectItem value="nao_sabe" className="text-sm">NÃO SABE, VAI PASSAR DEPOIS</SelectItem>
-                        <SelectItem value="nao_autorizou" className="text-sm">CLIENTE NÃO QUIS DEIXAR SENHA</SelectItem>
+                        <SelectItem value="nao_sabe" className="text-sm">{isOficinaMecanica ? 'NÃO SABE / VAI PASSAR DEPOIS' : 'NÃO SABE, VAI PASSAR DEPOIS'}</SelectItem>
+                        <SelectItem value="nao_autorizou" className="text-sm">{isOficinaMecanica ? 'CLIENTE NÃO QUIS DEIXAR CHAVE/CÓDIGO' : 'CLIENTE NÃO QUIS DEIXAR SENHA'}</SelectItem>
                       </SelectContent>
                     </Select>
 
@@ -3442,8 +3444,8 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                       </div>
                     )}
 
-                    {/* Senha - PatternLock quando DESLIZAR */}
-                    {formData.possui_senha_tipo === 'deslizar' && (
+                    {/* Senha - PatternLock quando DESLIZAR (apenas celular; oficina não usa) */}
+                    {!isOficinaMecanica && formData.possui_senha_tipo === 'deslizar' && (
                       <div className="space-y-2">
                         <div className="flex justify-center p-2 bg-gray-50 rounded-lg">
                           <PatternLock

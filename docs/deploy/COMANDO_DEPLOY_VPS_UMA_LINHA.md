@@ -41,7 +41,9 @@ Para a aba **Segmentos** em **https://app.ativafix.com/admin/revenda** funcionar
 
 1. **Deploy do código** – o bloco acima já atualiza a API; `pm2 restart primecamp-api` ativa as rotas `/api/admin/revenda/segmentos`, `/api/admin/revenda/modulos` e `/api/me/segment-menu`.
 2. **Migration no banco de produção (uma vez)** – no PostgreSQL que a API usa em produção, execute o script `db/migrations/manual/REVENDA_MULTI_SEGMENTO.sql` (pgAdmin, DBeaver, `psql -f`, etc.). Sem isso a API devolve 503 ou lista vazia e o front mostra "Nenhum segmento cadastrado".  
-   **Oficina Mecânica:** se o menu não mostrar **Orçamentos** (/orcamentos) ou a página não estiver disponível, execute também `db/migrations/manual/REVENDA_OFICINA_ADD_ORCAMENTOS.sql` no mesmo banco.
+   **Oficina Mecânica:** se o menu não mostrar **Orçamentos** (/orcamentos) ou a página não estiver disponível, execute também `db/migrations/manual/REVENDA_OFICINA_ADD_ORCAMENTOS.sql` no mesmo banco. Para a página de orçamentos da oficina (formulário com peças, mão de obra, veículo, PDF A4/térmica): se a tabela `quotes` ainda não existir, execute antes `db/migrations/manual/CRIAR_TABELAS_ORCAMENTOS.sql`; em seguida execute `db/migrations/manual/ADD_QUOTES_OFICINA_AND_COMPANY.sql` (adiciona `company_id` em `quotes` e campos de veículo/condições/garantias).
+
+**Cadastro de veículos (/veiculos):** para a página de veículos da oficina (cadastro por cliente, prazos de revisão e manutenção, filtros e contato), execute no banco `db/migrations/manual/CRIAR_TABELA_VEICULOS.sql`.
 
 **Se continuar 404 após o deploy:** na VPS confira se o código está atualizado (`cd /root/primecamp-ofc && git log -1 --oneline` deve mostrar o commit do multi-segmento) e se a API reiniciou (`pm2 restart primecamp-api`). Teste direto: `curl -s -o /dev/null -w "%{http_code}" https://api.ativafix.com/api/admin/revenda/segmentos` — com o código novo deve retornar 401 (não autenticado) e não 404.
 
