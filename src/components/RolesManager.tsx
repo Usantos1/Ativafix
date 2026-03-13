@@ -691,7 +691,7 @@ export function RolesManager() {
 
       {/* Dialog de criar/editar role */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingRole ? 'Editar cargo' : 'Novo cargo'}
@@ -777,7 +777,7 @@ export function RolesManager() {
                 <p className="text-sm text-muted-foreground py-4">Carregando módulos do segmento...</p>
               ) : (
                 <>
-                  <div className="space-y-2 max-h-[240px] overflow-y-auto">
+                  <div className="space-y-2 max-h-[380px] overflow-y-auto">
                     {(() => {
                       const activeOrdered = roleModulos.filter((m) => m.link_ativo).sort((a, b) => (a.ordem_menu ?? 999) - (b.ordem_menu ?? 999));
                       return roleModulos.map((m) => {
