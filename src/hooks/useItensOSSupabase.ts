@@ -184,6 +184,15 @@ export function useItensOSSupabase(osId: string) {
     return v;
   };
 
+  // Encontra a chave da grade por cor no produto (case-insensitive), para devolução bater com o cadastro
+  const findGradeCorKey = (itens: Record<string, number>, itemCor: string): string | null => {
+    if (!itemCor || !itens || typeof itens !== 'object') return null;
+    const busca = String(itemCor).trim().toLowerCase();
+    if (!busca) return null;
+    const key = Object.keys(itens).find((k) => k.trim().toLowerCase() === busca);
+    return key ?? null;
+  };
+
   // Remover item: primeiro deletar da OS (para não bloquear em falha de estoque); depois devolver estoque na grade correta
   const removeItem = useMutation({
     mutationFn: async (id: string): Promise<void> => {
@@ -231,7 +240,7 @@ export function useItensOSSupabase(osId: string) {
               gradeKey = comAroToGradeKey(itemAny.com_aro);
             }
             if (grade.tipo === 'cor' && itemAny?.grade_cor) {
-              gradeKey = String(itemAny.grade_cor).trim() || null;
+              gradeKey = findGradeCorKey(grade.itens, itemAny.grade_cor);
             }
             if (gradeKey != null && grade.itens[gradeKey] != null) {
               const valorAtual = Number(grade.itens[gradeKey]) || 0;
