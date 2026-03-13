@@ -184,10 +184,9 @@ export function useItensOSSupabase(osId: string) {
     return v;
   };
 
-  // Remover item
+  // Remover item: primeiro deletar da OS (para não bloquear em falha de estoque); depois devolver estoque na grade correta
   const removeItem = useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      // Buscar o item antes de deletar (incluir grade para devolver na chave certa)
       const { data: item, error: fetchError } = await from('os_items')
         .select('id, produto_id, quantidade, tipo, ordem_servico_id, com_aro, grade_cor')
         .eq('id', id)
@@ -198,7 +197,14 @@ export function useItensOSSupabase(osId: string) {
 
       const itemAny = item as any;
 
-      // Se tiver produto_id (peça ou serviço com produto), devolver ao estoque na grade correta
+      // 1) Deletar o item da OS primeiro — assim a remoção nunca falha por causa da devolução de estoque
+      const { error: deleteError } = await from('os_items')
+        .eq('id', id)
+        .delete();
+
+      if (deleteError) throw deleteError;
+
+      // 2) Se tinha produto_id, devolver ao estoque na grade correta (best-effort; falha não bloqueia)
       if (item.produto_id) {
         try {
           const { data: produto, error: produtoError } = await from('produtos')
@@ -206,83 +212,88 @@ export function useItensOSSupabase(osId: string) {
             .eq('id', item.produto_id)
             .single();
 
-          if (!produtoError && produto) {
-            const quantidadeDevolver = Number(item.quantidade || 0);
-            const prodAny = produto as any;
-            const grade = prodAny?.estoque_grade && typeof prodAny.estoque_grade === 'object'
-              ? { tipo: prodAny.estoque_grade.tipo || 'aro', itens: prodAny.estoque_grade.itens || {} }
-              : null;
+          if (produtoError || !produto) {
+            console.warn('Devolução estoque: produto não encontrado ou erro ao buscar:', produtoError);
+            return;
+          }
 
-            let payload: { quantidade: number; estoque_grade?: { tipo: string; itens: Record<string, number> } };
+          const quantidadeDevolver = Number(item.quantidade || 0);
+          const prodAny = produto as any;
+          const grade = prodAny?.estoque_grade && typeof prodAny.estoque_grade === 'object'
+            ? { tipo: String(prodAny.estoque_grade.tipo || 'aro'), itens: prodAny.estoque_grade.itens || {} }
+            : null;
 
-            if (grade?.itens && Object.keys(grade.itens).length > 0 && quantidadeDevolver > 0) {
-              let gradeKey: string | null = null;
-              if (grade.tipo === 'aro' && itemAny?.com_aro) {
-                gradeKey = comAroToGradeKey(itemAny.com_aro);
+          let payload: { quantidade: number; estoque_grade?: { tipo: string; itens: Record<string, number> } };
+
+          if (grade?.itens && Object.keys(grade.itens).length > 0 && quantidadeDevolver > 0) {
+            let gradeKey: string | null = null;
+            if (grade.tipo === 'aro' && itemAny?.com_aro) {
+              gradeKey = comAroToGradeKey(itemAny.com_aro);
+            }
+            if (grade.tipo === 'cor' && itemAny?.grade_cor) {
+              gradeKey = String(itemAny.grade_cor).trim() || null;
+            }
+            if (gradeKey != null && grade.itens[gradeKey] != null) {
+              const valorAtual = Number(grade.itens[gradeKey]) || 0;
+              const novoValor = valorAtual + quantidadeDevolver;
+              const newItens: Record<string, number> = {};
+              for (const k of Object.keys(grade.itens)) {
+                newItens[k] = k === gradeKey ? novoValor : (Number(grade.itens[k]) || 0);
               }
-              if (grade.tipo === 'cor' && itemAny?.grade_cor) {
-                gradeKey = String(itemAny.grade_cor).trim() || null;
-              }
-              if (gradeKey != null && grade.itens[gradeKey] != null) {
-                const valorAtual = Number(grade.itens[gradeKey]) || 0;
-                const novoValor = valorAtual + quantidadeDevolver;
-                const newItens = { ...grade.itens, [gradeKey]: novoValor };
-                const newTotal = Object.values(newItens).reduce((a, b) => a + (Number(b) || 0), 0);
-                payload = { quantidade: newTotal, estoque_grade: { tipo: grade.tipo, itens: newItens } };
-              } else {
-                const quantidadeAtual = Number(produto.quantidade || 0);
-                payload = { quantidade: quantidadeAtual + quantidadeDevolver };
-              }
+              const newTotal = Object.values(newItens).reduce((a, b) => a + b, 0);
+              payload = { quantidade: newTotal, estoque_grade: { tipo: grade.tipo, itens: newItens } };
             } else {
               const quantidadeAtual = Number(produto.quantidade || 0);
               payload = { quantidade: quantidadeAtual + quantidadeDevolver };
             }
-
-            await from('produtos')
-              .update(payload)
-              .eq('id', item.produto_id)
-              .execute();
-
-            const quantidadeAntes = Number(produto.quantidade || 0);
-            const quantidadeDepois = payload.quantidade;
-
-            let osNumero = 0;
-            try {
-              const { data: os } = await from('ordens_servico')
-                .select('numero')
-                .eq('id', item.ordem_servico_id)
-                .single();
-              osNumero = os?.numero || 0;
-            } catch (e) {
-              console.warn('Erro ao buscar número da OS:', e);
-            }
-
-            const userNome = user?.user_metadata?.name || user?.email || 'Sistema';
-            await from('produto_movimentacoes')
-              .insert({
-                produto_id: item.produto_id,
-                tipo: 'devolucao_os',
-                motivo: `Item removido da OS #${osNumero || '?'}`,
-                quantidade_antes: quantidadeAntes,
-                quantidade_depois: quantidadeDepois,
-                quantidade_delta: quantidadeDevolver,
-                user_id: user?.id || null,
-                user_nome: userNome,
-              })
-              .execute();
-
-            console.log(`✅ Estoque devolvido (grade): produto ${item.produto_id}, ${quantidadeAntes} → ${quantidadeDepois} (+${quantidadeDevolver})`);
+          } else {
+            const quantidadeAtual = Number(produto.quantidade || 0);
+            payload = { quantidade: quantidadeAtual + quantidadeDevolver };
           }
+
+          const updateResult = await from('produtos')
+            .update(payload)
+            .eq('id', item.produto_id)
+            .execute();
+
+          if ((updateResult as any)?.error) {
+            console.warn('Devolução estoque: falha ao atualizar produto (grade/quantidade):', (updateResult as any).error);
+            return;
+          }
+
+          const quantidadeAntes = Number(produto.quantidade || 0);
+          const quantidadeDepois = payload.quantidade;
+
+          let osNumero = 0;
+          try {
+            const { data: os } = await from('ordens_servico')
+              .select('numero')
+              .eq('id', item.ordem_servico_id)
+              .single();
+            osNumero = os?.numero || 0;
+          } catch (e) {
+            console.warn('Erro ao buscar número da OS:', e);
+          }
+
+          const userNome = user?.user_metadata?.name || user?.email || 'Sistema';
+          await from('produto_movimentacoes')
+            .insert({
+              produto_id: item.produto_id,
+              tipo: 'devolucao_os',
+              motivo: `Item removido da OS #${osNumero || '?'}`,
+              quantidade_antes: quantidadeAntes,
+              quantidade_depois: quantidadeDepois,
+              quantidade_delta: quantidadeDevolver,
+              user_id: user?.id || null,
+              user_nome: userNome,
+            })
+            .execute();
+
+          console.log(`✅ Estoque devolvido (grade): produto ${item.produto_id}, ${quantidadeAntes} → ${quantidadeDepois} (+${quantidadeDevolver})`);
         } catch (estoqueError) {
-          console.error('Erro ao devolver estoque:', estoqueError);
+          console.error('Erro ao devolver estoque (item já removido da OS):', estoqueError);
         }
       }
-
-      const { error } = await from('os_items')
-        .eq('id', id)
-        .delete();
-
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['os_items', osId] });
