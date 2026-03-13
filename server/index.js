@@ -1370,7 +1370,8 @@ app.get('/api/me/role-menu', authenticateToken, async (req, res) => {
     const roleName = (roleRow.rows[0]?.name || '').toLowerCase();
     const roleDisplayName = roleRow.rows[0]?.display_name || roleRow.rows[0]?.name || null;
     const home_path = roleRow.rows[0]?.home_path || null;
-    const isVendedor = roleName === 'vendedor' || roleDisplayName?.toLowerCase() === 'vendedor';
+    const roleLabel = (roleDisplayName || '').toLowerCase();
+    const isVendedor = roleName === 'vendedor' || roleName === 'vendedora' || roleLabel === 'vendedor' || roleLabel === 'vendedora';
 
     const count = await pool.query(
       `SELECT 1 FROM role_modulos WHERE role_id = $1 AND ativo = true LIMIT 1`,
@@ -1420,7 +1421,9 @@ app.get('/api/me/role-menu', authenticateToken, async (req, res) => {
           icone: r.icone,
           categoria: r.categoria || 'operacao',
         }));
-        return res.json({ menu, home_path: home_path || null, role_display_name: roleDisplayName });
+        // Vendedor(a) sem PDV no menu: não abrir em /pdv; forçar Dashboard
+        const safeHome = (isVendedor && home_path === '/pdv') ? null : (home_path || null);
+        return res.json({ menu, home_path: safeHome, role_display_name: roleDisplayName });
       }
     }
 
