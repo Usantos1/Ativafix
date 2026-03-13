@@ -132,12 +132,33 @@ export function AppSidebar() {
   const hasRoleMenu = Array.isArray(roleMenu) && roleMenu.length > 0;
   const homePath = roleMenuData?.home_path || null;
   const roleDisplayName = roleMenuData?.role_display_name || null;
-  // Se o cargo tem "Módulos e menu" configurado, usa esse menu (inclusive para admin de empresa que não deve ver Orçamentos, etc.)
+  // Se o cargo tem "Módulos e menu" configurado, usa esse menu
   const useRoleMenu = hasRoleMenu;
-  const menuToUse = useRoleMenu ? roleMenu : segmentMenu;
-  // Quando não há menu por cargo, usa lista do segmento (ou menu base se admin e segmento vazio)
+  // Menu padrão quando empresa sem segmento (ex.: PRIME CAMP LTDA) — mesmo conjunto do segmento Assistência
+  const DEFAULT_MENU_WHEN_NO_SEGMENT: { path: string; label_menu: string; icone?: string; categoria: string }[] = [
+    { path: "/", label_menu: "Dashboard", icone: "home", categoria: "operacao" },
+    { path: "/pdv", label_menu: "PDV", icone: "shopping-cart", categoria: "operacao" },
+    { path: "/pdv/vendas", label_menu: "Vendas", icone: "receipt", categoria: "operacao" },
+    { path: "/pdv/devolucoes", label_menu: "Devoluções", icone: "refresh-cw", categoria: "operacao" },
+    { path: "/os", label_menu: "Ordem de Serviço", icone: "wrench", categoria: "operacao" },
+    { path: "/pdv/caixa", label_menu: "Caixa", icone: "wallet", categoria: "operacao" },
+    { path: "/clientes", label_menu: "Clientes", icone: "users", categoria: "operacao" },
+    { path: "/produtos", label_menu: "Produtos", icone: "package", categoria: "estoque" },
+    { path: "/pedidos", label_menu: "Pedidos", icone: "list", categoria: "estoque" },
+    { path: "/inventario", label_menu: "Inventário", icone: "list", categoria: "estoque" },
+  ];
+  const segmentLoaded = segmentMenuData !== undefined;
+  const usingDefaultSegment = segmentLoaded && !hasSegmentMenu && !hasRoleMenu;
+  const menuToUse = useRoleMenu
+    ? roleMenu
+    : hasSegmentMenu
+      ? segmentMenu
+      : segmentLoaded
+        ? DEFAULT_MENU_WHEN_NO_SEGMENT
+        : segmentMenu;
+  // Usar lista filtrada (segmento, cargo ou padrão) em vez da lista completa; sem segmento = menu padrão (Assistência)
   const useSegmentOrRoleList =
-    (hasSegmentMenu || hasRoleMenu) && (hasSegmentMenu || !userIsAdmin);
+    hasSegmentMenu || hasRoleMenu || usingDefaultSegment;
   
   // Função para verificar permissão
   const checkPermission = (permission: string): boolean => {
@@ -255,9 +276,13 @@ export function AppSidebar() {
     { label: "Financeiro", path: "/financeiro", icon: BarChart3, permission: "relatorios.financeiro" },
     { label: "Painel de Alertas", path: "/painel-alertas", icon: Activity, permission: "relatorios.financeiro" },
   ];
-  // Só exibir Relatórios quando permissões e menu por cargo estiverem prontos (evita flash "todos" e depois sumir)
-  const menuNotReady = permissionsLoading || (!!user?.id && roleMenuPending);
-  const relatoriosItemsRaw = useSegmentOrRoleList ? segmentByCategory.gestao : relatoriosItemsBase;
+  // Com usuário logado: só exibir após menu por cargo ter respondido; nunca mostrar lista base antes disso (evita flash)
+  const roleMenuSettled = !user?.id || roleMenuData !== undefined;
+  const menuNotReady = permissionsLoading || !roleMenuSettled;
+  const relatoriosItemsRaw =
+    user?.id
+      ? (hasRoleMenu ? segmentByCategory.gestao : relatoriosItemsBase)
+      : (useSegmentOrRoleList ? segmentByCategory.gestao : relatoriosItemsBase);
   const relatoriosItems = menuNotReady
     ? []
     : relatoriosItemsRaw.filter((item) => {
