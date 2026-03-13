@@ -175,39 +175,77 @@ export function useItensOSSupabase(osId: string) {
     },
   });
 
+  // Mapeia com_aro do item para a chave da grade no produto (Com Aro / Sem Aro)
+  const comAroToGradeKey = (v: string | null): string | null => {
+    if (!v) return null;
+    const k = String(v).toLowerCase();
+    if (k === 'com_aro') return 'Com Aro';
+    if (k === 'sem_aro') return 'Sem Aro';
+    return v;
+  };
+
   // Remover item
   const removeItem = useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      // Buscar o item antes de deletar para devolver estoque
+      // Buscar o item antes de deletar (incluir grade para devolver na chave certa)
       const { data: item, error: fetchError } = await from('os_items')
-        .select('id, produto_id, quantidade, tipo, ordem_servico_id')
+        .select('id, produto_id, quantidade, tipo, ordem_servico_id, com_aro, grade_cor')
         .eq('id', id)
         .single();
 
       if (fetchError) throw fetchError;
       if (!item) throw new Error('Item não encontrado');
 
-      // Se tiver produto_id (peça ou serviço com produto), devolver ao estoque e registrar movimentação
+      const itemAny = item as any;
+
+      // Se tiver produto_id (peça ou serviço com produto), devolver ao estoque na grade correta
       if (item.produto_id) {
         try {
-          // Buscar produto atual
           const { data: produto, error: produtoError } = await from('produtos')
-            .select('id, quantidade')
+            .select('id, quantidade, estoque_grade')
             .eq('id', item.produto_id)
             .single();
 
           if (!produtoError && produto) {
-            const quantidadeAtual = Number(produto.quantidade || 0);
             const quantidadeDevolver = Number(item.quantidade || 0);
-            const novaQuantidade = quantidadeAtual + quantidadeDevolver;
+            const prodAny = produto as any;
+            const grade = prodAny?.estoque_grade && typeof prodAny.estoque_grade === 'object'
+              ? { tipo: prodAny.estoque_grade.tipo || 'aro', itens: prodAny.estoque_grade.itens || {} }
+              : null;
 
-            // Atualizar estoque
+            let payload: { quantidade: number; estoque_grade?: { tipo: string; itens: Record<string, number> } };
+
+            if (grade?.itens && Object.keys(grade.itens).length > 0 && quantidadeDevolver > 0) {
+              let gradeKey: string | null = null;
+              if (grade.tipo === 'aro' && itemAny?.com_aro) {
+                gradeKey = comAroToGradeKey(itemAny.com_aro);
+              }
+              if (grade.tipo === 'cor' && itemAny?.grade_cor) {
+                gradeKey = String(itemAny.grade_cor).trim() || null;
+              }
+              if (gradeKey != null && grade.itens[gradeKey] != null) {
+                const valorAtual = Number(grade.itens[gradeKey]) || 0;
+                const novoValor = valorAtual + quantidadeDevolver;
+                const newItens = { ...grade.itens, [gradeKey]: novoValor };
+                const newTotal = Object.values(newItens).reduce((a, b) => a + (Number(b) || 0), 0);
+                payload = { quantidade: newTotal, estoque_grade: { tipo: grade.tipo, itens: newItens } };
+              } else {
+                const quantidadeAtual = Number(produto.quantidade || 0);
+                payload = { quantidade: quantidadeAtual + quantidadeDevolver };
+              }
+            } else {
+              const quantidadeAtual = Number(produto.quantidade || 0);
+              payload = { quantidade: quantidadeAtual + quantidadeDevolver };
+            }
+
             await from('produtos')
-              .update({ quantidade: novaQuantidade })
+              .update(payload)
               .eq('id', item.produto_id)
               .execute();
 
-            // Buscar número da OS para registrar movimentação
+            const quantidadeAntes = Number(produto.quantidade || 0);
+            const quantidadeDepois = payload.quantidade;
+
             let osNumero = 0;
             try {
               const { data: os } = await from('ordens_servico')
@@ -219,30 +257,27 @@ export function useItensOSSupabase(osId: string) {
               console.warn('Erro ao buscar número da OS:', e);
             }
 
-            // Registrar movimentação de devolução
             const userNome = user?.user_metadata?.name || user?.email || 'Sistema';
             await from('produto_movimentacoes')
               .insert({
                 produto_id: item.produto_id,
                 tipo: 'devolucao_os',
                 motivo: `Item removido da OS #${osNumero || '?'}`,
-                quantidade_antes: quantidadeAtual,
-                quantidade_depois: novaQuantidade,
+                quantidade_antes: quantidadeAntes,
+                quantidade_depois: quantidadeDepois,
                 quantidade_delta: quantidadeDevolver,
                 user_id: user?.id || null,
                 user_nome: userNome,
               })
               .execute();
 
-            console.log(`✅ Estoque devolvido: produto ${item.produto_id}, ${quantidadeAtual} → ${novaQuantidade} (+${quantidadeDevolver})`);
+            console.log(`✅ Estoque devolvido (grade): produto ${item.produto_id}, ${quantidadeAntes} → ${quantidadeDepois} (+${quantidadeDevolver})`);
           }
         } catch (estoqueError) {
           console.error('Erro ao devolver estoque:', estoqueError);
-          // Não falhar a remoção se a devolução de estoque falhar
         }
       }
 
-      // Deletar o item
       const { error } = await from('os_items')
         .eq('id', id)
         .delete();
@@ -253,6 +288,8 @@ export function useItensOSSupabase(osId: string) {
       queryClient.invalidateQueries({ queryKey: ['os_items', osId] });
       queryClient.invalidateQueries({ queryKey: ['os_items_all'] });
       queryClient.invalidateQueries({ queryKey: ['produto_movimentacoes'] });
+      queryClient.invalidateQueries({ queryKey: ['produtos'] });
+      queryClient.invalidateQueries({ queryKey: ['produtos-paginated'] });
     },
   });
 
