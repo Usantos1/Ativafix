@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,6 +30,7 @@ interface Role {
   display_name: string;
   description: string | null;
   is_system: boolean;
+  segmento_slug?: string | null;
 }
 
 interface UserPermission {
@@ -58,6 +60,7 @@ interface PermissionHistory {
 export function UserPermissionsManager({ userId, onClose, onSave }: Props) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { segmentoSlug } = useCompanySegment();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
@@ -68,7 +71,7 @@ export function UserPermissionsManager({ userId, onClose, onSave }: Props) {
 
   useEffect(() => {
     loadData();
-  }, [userId]);
+  }, [userId, segmentoSlug]);
 
   const getDefaultDepartmentName = async (): Promise<string> => {
     const { data: profileData } = await from('profiles')
@@ -169,14 +172,18 @@ export function UserPermissionsManager({ userId, onClose, onSave }: Props) {
         setPermissions(permsData as Permission[]);
       }
 
-      // Carregar todos os roles
+      // Carregar roles (globais + do segmento da empresa)
       const { data: rolesData } = await from('roles')
         .select('*')
         .order('display_name', { ascending: true })
         .execute();
 
       if (rolesData) {
-        setRoles(rolesData as Role[]);
+        const allRoles = rolesData as Role[];
+        const filtered = allRoles.filter(
+          (r) => r.segmento_slug == null || r.segmento_slug === segmentoSlug
+        );
+        setRoles(filtered);
       }
 
       // Carregar role atual do usuário

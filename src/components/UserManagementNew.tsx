@@ -16,6 +16,7 @@ import { UserPlus, Shield, User, Trash2, Edit, Search, Filter, Lock, Unlock, Mai
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useQuery } from '@tanstack/react-query';
 import { useDepartments } from '@/hooks/useDepartments';
+import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDemoAwareErrorMessage, isDemoSession } from '@/utils/demoMode';
 
@@ -122,16 +123,20 @@ export const UserManagementNew = () => {
     password: '',
   });
 
-  // Funções vêm da mesma tabela da aba "Funções" (roles)
+  const { segmentoSlug } = useCompanySegment();
+
+  // Funções vêm da mesma tabela da aba "Funções" (roles); filtradas pelo segmento da empresa
   const { data: rolesFromApi = [] } = useQuery({
-    queryKey: ['roles-for-user-form'],
-    queryFn: async () => {
+    queryKey: ['roles-for-user-form', segmentoSlug],
+    queryFn: async ({ queryKey }) => {
+      const seg = queryKey[1] as string | null | undefined;
       const { data, error } = await from('roles')
-        .select('id, name, display_name, description')
+        .select('id, name, display_name, description, segmento_slug')
         .order('display_name', { ascending: true })
         .execute();
       if (error) throw error;
-      return (data || []) as { id: string; name: string; display_name: string; description?: string }[];
+      const list = (data || []) as { id: string; name: string; display_name: string; description?: string; segmento_slug?: string | null }[];
+      return list.filter((r) => r.segmento_slug == null || r.segmento_slug === seg);
     },
   });
 

@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { Plus, Edit, Trash2, Shield, Users } from 'lucide-react';
 
 interface Role {
@@ -22,9 +23,16 @@ interface Role {
   display_name: string;
   description: string | null;
   is_system: boolean;
+  segmento_slug?: string | null;
   created_at: string;
   updated_at: string;
 }
+
+const SEGMENTO_LABELS: Record<string, string> = {
+  oficina_mecanica: 'Oficina Mecânica',
+  assistencia_tecnica: 'Assistência Técnica',
+  comercio: 'Comércio',
+};
 
 interface Permission {
   id: string;
@@ -37,6 +45,7 @@ interface Permission {
 export function RolesManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { segmentoSlug } = useCompanySegment();
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolesPermissionsMap, setRolesPermissionsMap] = useState<Map<string, number>>(new Map());
@@ -54,20 +63,24 @@ export function RolesManager() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [segmentoSlug]);
 
   const loadData = async () => {
     try {
       setLoading(true);
 
-      // Carregar roles
+      // Carregar roles (globais + do segmento atual)
       const { data: rolesData, error: rolesError } = await from('roles')
         .select('*')
         .order('display_name', { ascending: true })
         .execute();
 
       if (rolesError) throw rolesError;
-      setRoles(rolesData || []);
+      const allRoles = (rolesData || []) as Role[];
+      const filtered = allRoles.filter(
+        (r) => r.segmento_slug == null || r.segmento_slug === segmentoSlug
+      );
+      setRoles(filtered);
 
       // Carregar permissões
       const { data: permsData, error: permsError } = await from('permissions')
@@ -195,23 +208,27 @@ export function RolesManager() {
         if (error) throw error;
         roleId = data.id;
       } else {
-        // Verificar se já existe um role com o mesmo nome
-        const { data: existingRole } = await from('roles')
-          .select('id, name')
+        // Verificar se já existe um role com o mesmo nome no mesmo segmento
+        const { data: existingRoles } = await from('roles')
+          .select('id, name, segmento_slug')
           .eq('name', formData.name)
-          .maybeSingle();
+          .execute();
 
-        if (existingRole) {
-          throw new Error(`Já existe uma função com o nome "${formData.name}". Por favor, escolha outro nome.`);
+        const sameSegment = (existingRoles || []).find(
+          (r: Role) => (r.segmento_slug ?? null) === (segmentoSlug ?? null)
+        );
+        if (sameSegment) {
+          throw new Error(`Já existe uma função com o nome "${formData.name}" neste segmento. Por favor, escolha outro nome.`);
         }
 
-        // Criar role
+        // Criar role (vinculado ao segmento atual quando houver)
         const { data, error } = await from('roles')
           .insert({
             name: formData.name,
             display_name: formData.display_name,
             description: formData.description || null,
             is_system: false,
+            segmento_slug: segmentoSlug || null,
           })
           .select('*')
           .single();
@@ -438,6 +455,9 @@ export function RolesManager() {
           <CardTitle>Funções do Sistema</CardTitle>
           <CardDescription>
             As permissões definidas aqui aplicam-se aos usuários que tiverem a função correspondente (definida ao editar o usuário).
+            {segmentoSlug && (
+              <> Exibidos apenas roles globais e do segmento <strong>{SEGMENTO_LABELS[segmentoSlug] || segmentoSlug}</strong>.</>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -446,6 +466,7 @@ export function RolesManager() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Segmento</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Permissões</TableHead>
                 <TableHead>Ações</TableHead>
@@ -455,11 +476,17 @@ export function RolesManager() {
               {roles.map((role) => {
                 // Contar permissões do role
                 const permCount = rolesPermissionsMap.get(role.id) || 0;
+                const segmentoLabel = role.segmento_slug
+                  ? (SEGMENTO_LABELS[role.segmento_slug] || role.segmento_slug)
+                  : 'Global';
                 return (
                   <TableRow key={role.id}>
                     <TableCell className="font-medium">{role.display_name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {role.description || '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {segmentoLabel}
                     </TableCell>
                     <TableCell>
                       {role.is_system ? (
@@ -514,6 +541,11 @@ export function RolesManager() {
               {editingRole
                 ? 'Edite as informações do role e suas permissões'
                 : 'Crie um novo role e defina suas permissões'}
+              {!editingRole && segmentoSlug && (
+                <span className="block mt-1 text-muted-foreground">
+                  Este role será do segmento: <strong>{SEGMENTO_LABELS[segmentoSlug] || segmentoSlug}</strong>
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
