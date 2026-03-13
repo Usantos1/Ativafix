@@ -48,19 +48,14 @@ CREATE INDEX IF NOT EXISTS idx_veiculos_proxima_revisao ON public.veiculos(proxi
 CREATE INDEX IF NOT EXISTS idx_veiculos_proxima_manutencao ON public.veiculos(proxima_manutencao_data);
 CREATE INDEX IF NOT EXISTS idx_veiculos_created_at ON public.veiculos(created_at DESC);
 
--- Trigger updated_at
-DO $$
+-- Trigger updated_at (usa $func$ para não conflitar com o $$ do DO)
+CREATE OR REPLACE FUNCTION update_veiculos_updated_at()
+RETURNS TRIGGER AS $func$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'update_veiculos_updated_at') THEN
-    CREATE OR REPLACE FUNCTION update_veiculos_updated_at()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      NEW.updated_at = NOW();
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-  END IF;
-END $$;
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$func$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trigger_veiculos_updated_at ON public.veiculos;
 CREATE TRIGGER trigger_veiculos_updated_at
