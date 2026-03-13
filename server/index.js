@@ -1290,7 +1290,7 @@ app.get('/api/me/segment-menu', authenticateToken, async (req, res) => {
     const menuResult = await pool.query(
       `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, m.icone, m.categoria, sm.ordem_menu
        FROM modulos m
-       INNER JOIN segmentos_modulos sm ON sm.modulo_id = m.id AND sm.segmento_id = $1 AND sm.ativo
+       INNER JOIN segmentos_modulos sm ON sm.modulo_id = m.id AND sm.segmento_id = $1 AND sm.ativo = true
        WHERE m.ativo
        ORDER BY sm.ordem_menu, m.nome`,
       [segmentoId]
@@ -1378,14 +1378,30 @@ app.get('/api/me/role-menu', authenticateToken, async (req, res) => {
       [roleId]
     );
     if (count.rows.length > 0) {
-      const menuResult = await pool.query(
-        `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, m.icone, m.categoria, rm.ordem_menu
-         FROM role_modulos rm
-         INNER JOIN modulos m ON m.id = rm.modulo_id AND m.ativo
-         WHERE rm.role_id = $1 AND rm.ativo
-         ORDER BY rm.ordem_menu, m.nome`,
-        [roleId]
-      );
+      let menuResult;
+      const comp = companyId ? (await pool.query('SELECT segmento_id FROM companies WHERE id = $1', [companyId])).rows[0] : null;
+      const segmentoId = comp?.segmento_id;
+      if (segmentoId) {
+        // Só incluir módulos que estão ativos no segmento da empresa (ex.: Orçamentos inativo em Assistência não aparece)
+        menuResult = await pool.query(
+          `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, m.icone, m.categoria, rm.ordem_menu
+           FROM role_modulos rm
+           INNER JOIN modulos m ON m.id = rm.modulo_id AND m.ativo
+           INNER JOIN segmentos_modulos sm ON sm.modulo_id = m.id AND sm.segmento_id = $2 AND sm.ativo = true
+           WHERE rm.role_id = $1 AND rm.ativo
+           ORDER BY rm.ordem_menu, m.nome`,
+          [roleId, segmentoId]
+        );
+      } else {
+        menuResult = await pool.query(
+          `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, m.icone, m.categoria, rm.ordem_menu
+           FROM role_modulos rm
+           INNER JOIN modulos m ON m.id = rm.modulo_id AND m.ativo
+           WHERE rm.role_id = $1 AND rm.ativo
+           ORDER BY rm.ordem_menu, m.nome`,
+          [roleId]
+        );
+      }
       return res.json({
         menu: (menuResult.rows || []).map((r) => ({
           id: r.id,
