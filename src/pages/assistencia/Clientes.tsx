@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 // Tabs removidas - formulário único sem abas
 import { 
   Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User, ExternalLink, Wrench, ShoppingCart, Cake, Settings, Upload,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Car
 } from 'lucide-react';
 import { ImportarClientes } from '@/components/ImportarClientes';
 import { useClientesSupabase as useClientes } from '@/hooks/useClientesSupabase';
@@ -23,8 +23,9 @@ import { Cliente, ClienteFormData } from '@/types/assistencia';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingButton } from '@/components/LoadingButton';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { from } from '@/integrations/db/client';
+import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { currencyFormatters, dateFormatters } from '@/utils/formatters';
 import { getDemoAwareErrorMessage } from '@/utils/demoMode';
 import { STATUS_OS_LABELS, STATUS_OS_COLORS } from '@/types/assistencia';
@@ -59,13 +60,44 @@ const SEARCH_FIELD_LABELS: Record<SearchFieldType, string> = {
   email: 'Email',
 };
 
+interface VeiculoFormRow {
+  id?: string;
+  placa: string;
+  marca_id: string | null;
+  modelo_id: string | null;
+  marca_nome: string;
+  modelo_nome: string;
+  ano: string;
+  versao: string;
+  chassi: string;
+  cor: string;
+  km_atual: string;
+}
+
+const emptyVeiculoRow = (): VeiculoFormRow => ({
+  placa: '',
+  marca_id: null,
+  modelo_id: null,
+  marca_nome: '',
+  modelo_nome: '',
+  ano: '',
+  versao: '',
+  chassi: '',
+  cor: '',
+  km_atual: '',
+});
+
 export default function Clientes() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { segmentoSlug } = useCompanySegment();
+  const isOficina = segmentoSlug === 'oficina_mecanica';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState<SearchFieldType>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [formData, setFormData] = useState<ClienteFormData>(INITIAL_FORM);
+  const [veiculosForm, setVeiculosForm] = useState<VeiculoFormRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAniversarioConfig, setShowAniversarioConfig] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -111,6 +143,64 @@ export default function Clientes() {
     },
     enabled: !!editingCliente?.id && showForm,
   });
+
+  // Buscar veículos do cliente (oficina)
+  const { data: clienteVeiculos = [] } = useQuery({
+    queryKey: ['cliente_veiculos', editingCliente?.id],
+    queryFn: async () => {
+      if (!editingCliente?.id) return [];
+      const { data, error } = await from('veiculos').select('*').eq('cliente_id', editingCliente.id).execute();
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!editingCliente?.id && showForm && isOficina,
+  });
+
+  // Marcas/Modelos para o formulário de veículos (oficina)
+  const { data: marcasList = [] } = useQuery({
+    queryKey: ['marcas-clientes'],
+    queryFn: async () => {
+      const { data, error } = await from('marcas').select('id, nome').eq('situacao', 'ativo').order('nome', { ascending: true }).execute();
+      if (error) throw error;
+      return (data || []) as { id: string; nome: string }[];
+    },
+    enabled: isOficina && showForm,
+  });
+  const { data: modelosList = [] } = useQuery({
+    queryKey: ['modelos-clientes', veiculosForm.map(v => v.marca_id).filter(Boolean).join(',')],
+    queryFn: async () => {
+      const marcaIds = [...new Set(veiculosForm.map(v => v.marca_id).filter(Boolean))] as string[];
+      if (marcaIds.length === 0) return [];
+      const all: { id: string; nome: string; marca_id: string }[] = [];
+      for (const mid of marcaIds) {
+        const { data, error } = await from('modelos').select('id, nome, marca_id').eq('marca_id', mid).eq('situacao', 'ativo').order('nome', { ascending: true }).execute();
+        if (!error && data) all.push(...(data as any));
+      }
+      return all;
+    },
+    enabled: isOficina && showForm && veiculosForm.some(v => v.marca_id),
+  });
+
+  useEffect(() => {
+    if (!showForm || !isOficina) return;
+    if (!editingCliente) {
+      setVeiculosForm([]);
+      return;
+    }
+    setVeiculosForm(clienteVeiculos.map((v: any) => ({
+      id: v.id,
+      placa: v.placa || '',
+      marca_id: v.marca_id || null,
+      modelo_id: v.modelo_id || null,
+      marca_nome: v.marca_nome || '',
+      modelo_nome: v.modelo_nome || '',
+      ano: v.ano || '',
+      versao: v.versao || '',
+      chassi: v.chassi || '',
+      cor: v.cor || '',
+      km_atual: v.km_atual != null ? String(v.km_atual) : '',
+    })));
+  }, [editingCliente?.id, showForm, isOficina, clienteVeiculos]);
 
   // Buscar vendas do cliente
   const { data: clienteVendas = [], isLoading: loadingVendas } = useQuery({
@@ -185,6 +275,7 @@ export default function Clientes() {
   const handleNew = () => {
     setEditingCliente(null);
     setFormData(INITIAL_FORM);
+    setVeiculosForm([]);
     setShowForm(true);
   };
 
@@ -212,6 +303,25 @@ export default function Clientes() {
       estado: cliente.estado || cliente.uf || '',
     });
     setShowForm(true);
+  };
+
+  const addVeiculoRow = () => setVeiculosForm(prev => [...prev, emptyVeiculoRow()]);
+  const updateVeiculoRow = (index: number, patch: Partial<VeiculoFormRow>) => {
+    setVeiculosForm(prev => prev.map((row, i) => i === index ? { ...row, ...patch } : row));
+  };
+  const removeVeiculoRow = async (index: number) => {
+    const row = veiculosForm[index];
+    if (row?.id) {
+      try {
+        await from('veiculos').delete().eq('id', row.id).execute();
+        queryClient.invalidateQueries({ queryKey: ['cliente_veiculos', editingCliente?.id] });
+        queryClient.invalidateQueries({ queryKey: ['veiculos'] });
+      } catch (e: any) {
+        toast({ title: e?.message || 'Erro ao excluir veículo', variant: 'destructive' });
+        return;
+      }
+    }
+    setVeiculosForm(prev => prev.filter((_, i) => i !== index));
   };
 
   // Buscar CEP
@@ -247,19 +357,46 @@ export default function Clientes() {
 
     setIsLoading(true);
     try {
+      let clienteId: string;
       if (editingCliente) {
         const payload: Record<string, unknown> = { ...formData };
         if (payload.estado !== undefined) payload.uf = payload.estado;
         await updateCliente(editingCliente.id, payload as any);
+        clienteId = editingCliente.id;
         toast({ title: 'Cliente atualizado!' });
       } else {
-        await createCliente(formData as any);
+        const newCliente = await createCliente(formData as any);
+        clienteId = newCliente.id;
         toast({ title: 'Cliente cadastrado com sucesso!' });
-        // Limpar busca e definir para buscar o cliente recém criado
-        setSearchTerm(formData.nome.split(' ')[0]); // Buscar pelo primeiro nome
+        setSearchTerm(formData.nome.split(' ')[0]);
       }
+
+      if (isOficina && veiculosForm.length > 0) {
+        for (const v of veiculosForm) {
+          if (editingCliente && v.id) continue;
+          const marca = marcasList.find(m => m.id === v.marca_id);
+          const modelo = modelosList.find(m => m.id === v.modelo_id);
+          await from('veiculos').insert({
+            cliente_id: clienteId,
+            placa: v.placa.trim() || null,
+            marca_id: v.marca_id || null,
+            modelo_id: v.modelo_id || null,
+            marca_nome: marca?.nome || v.marca_nome || null,
+            modelo_nome: modelo?.nome || v.modelo_nome || null,
+            ano: v.ano.trim() || null,
+            versao: v.versao.trim() || null,
+            chassi: v.chassi.trim() || null,
+            cor: v.cor.trim() || null,
+            km_atual: v.km_atual.trim() ? parseFloat(v.km_atual.replace(/,/g, '.')) : null,
+          }).execute();
+        }
+        queryClient.invalidateQueries({ queryKey: ['veiculos'] });
+        queryClient.invalidateQueries({ queryKey: ['cliente_veiculos', clienteId] });
+      }
+
       setShowForm(false);
       setFormData(INITIAL_FORM);
+      setVeiculosForm([]);
     } catch (error: any) {
       console.error('Erro ao salvar cliente:', error);
       toast({
@@ -655,7 +792,7 @@ export default function Clientes() {
                       <SelectTrigger className="h-10">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[110]">
                         <SelectItem value="fisica">Pessoa Física</SelectItem>
                         <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
                       </SelectContent>
@@ -859,6 +996,79 @@ export default function Clientes() {
                   </div>
                 </div>
               </div>
+
+              {/* Veículos (oficina) - cadastro no perfil do cliente */}
+              {isOficina && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-2 flex items-center gap-2">
+                    <Car className="h-4 w-4" />
+                    Veículos do cliente
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Cadastre os carros vinculados a este cliente (placa, marca, modelo, chassi, etc.).</p>
+                  <div className="space-y-3">
+                    {veiculosForm.map((v, idx) => (
+                      <div key={v.id || idx} className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-medium text-muted-foreground">Veículo {idx + 1}</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeVeiculoRow(idx)} aria-label="Remover veículo">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Placa</Label>
+                            <Input className="h-9" placeholder="ABC-1D23" value={v.placa} onChange={(e) => updateVeiculoRow(idx, { placa: e.target.value })} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Marca</Label>
+                            <Select value={v.marca_id || '__none__'} onValueChange={(val) => updateVeiculoRow(idx, { marca_id: val === '__none__' ? null : val, modelo_id: null, modelo_nome: '' })}>
+                              <SelectTrigger className="h-9"><SelectValue placeholder="Marca" /></SelectTrigger>
+                              <SelectContent className="z-[110]">
+                                <SelectItem value="__none__">—</SelectItem>
+                                {marcasList.map(m => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Modelo</Label>
+                            <Select value={v.modelo_id || '__none__'} onValueChange={(val) => updateVeiculoRow(idx, { modelo_id: val === '__none__' ? null : val })} disabled={!v.marca_id}>
+                              <SelectTrigger className="h-9"><SelectValue placeholder="Modelo" /></SelectTrigger>
+                              <SelectContent className="z-[110]">
+                                <SelectItem value="__none__">—</SelectItem>
+                                {modelosList.filter(m => m.marca_id === v.marca_id).map(m => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Ano</Label>
+                            <Input className="h-9" placeholder="2020" value={v.ano} onChange={(e) => updateVeiculoRow(idx, { ano: e.target.value })} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Versão</Label>
+                            <Input className="h-9" placeholder="1.0" value={v.versao} onChange={(e) => updateVeiculoRow(idx, { versao: e.target.value })} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Chassi</Label>
+                            <Input className="h-9" placeholder="Chassi" value={v.chassi} onChange={(e) => updateVeiculoRow(idx, { chassi: e.target.value })} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Cor</Label>
+                            <Input className="h-9" placeholder="Cor" value={v.cor} onChange={(e) => updateVeiculoRow(idx, { cor: e.target.value })} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Km atual</Label>
+                            <Input className="h-9" type="number" placeholder="Km" value={v.km_atual} onChange={(e) => updateVeiculoRow(idx, { km_atual: e.target.value })} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={addVeiculoRow} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Adicionar veículo
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Histórico (apenas na edição) - links e dados das OS e Vendas */}
               {editingCliente && (

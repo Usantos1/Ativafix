@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { from } from '@/integrations/db/client';
+import { useCompanySegment } from '@/hooks/useCompanySegment';
+import { CHECKLIST_ITENS_OFICINA } from '@/types/assistencia';
 
 export interface ChecklistConfigItem {
   id: string;
@@ -15,9 +17,11 @@ export interface ChecklistConfigItem {
 
 export function useChecklistConfig(tipo?: 'entrada' | 'saida') {
   const queryClient = useQueryClient();
+  const { segmentoSlug } = useCompanySegment();
+  const isOficina = segmentoSlug === 'oficina_mecanica';
 
   // Buscar todos os itens de checklist
-  const { data: items = [], isLoading } = useQuery({
+  const { data: itemsFromApi = [], isLoading } = useQuery({
     queryKey: ['checklist_config', tipo],
     queryFn: async () => {
       let query = from('os_checklist_config')
@@ -81,6 +85,21 @@ export function useChecklistConfig(tipo?: 'entrada' | 'saida') {
       queryClient.invalidateQueries({ queryKey: ['checklist_config'] });
     },
   });
+
+  // Oficina: quando não há itens no banco, usar checklist de veículo
+  const items: ChecklistConfigItem[] = isOficina && itemsFromApi.length === 0
+    ? CHECKLIST_ITENS_OFICINA.map((it, idx) => ({
+        id: `oficina_${it.id}`,
+        tipo: 'entrada' as const,
+        item_id: it.id,
+        nome: it.nome,
+        categoria: it.categoria,
+        ordem: idx,
+        ativo: true,
+        created_at: '',
+        updated_at: '',
+      }))
+    : itemsFromApi;
 
   // Filtrar por tipo e categoria (all vs ativos)
   const itemsEntradaAll = items.filter(i => i.tipo === 'entrada');

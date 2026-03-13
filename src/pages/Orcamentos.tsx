@@ -488,7 +488,7 @@ export default function Orcamentos() {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[110]">
                     {clientesList.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.nome}
@@ -545,10 +545,10 @@ export default function Orcamentos() {
                         value={item.tipo}
                         onValueChange={(v) => updateItem(item.id, { tipo: v as 'peca' | 'mao_de_obra' })}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
+<SelectTrigger>
+                        <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[110]">
                           {TIPOS_ITEM.map((t) => (
                             <SelectItem key={t.value} value={t.value}>
                               {t.label}

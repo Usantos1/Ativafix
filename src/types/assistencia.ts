@@ -164,6 +164,30 @@ export const CHECKLIST_ITENS: ChecklistItem[] = [
   { id: 'vibracall_ok', nome: 'Vibracall Funcionando', categoria: 'funcional' },
 ];
 
+/** Checklist de entrada para OFICINA MECÂNICA (veículo) — problemas e itens funcionais */
+export const CHECKLIST_ITENS_OFICINA: ChecklistItem[] = [
+  // Problemas encontrados (físico)
+  { id: 'lataria_amassada', nome: 'Lataria amassada', categoria: 'fisico' },
+  { id: 'lataria_riscada', nome: 'Lataria riscada', categoria: 'fisico' },
+  { id: 'parachoque_danificado', nome: 'Para-choque danificado', categoria: 'fisico' },
+  { id: 'farol_trincado', nome: 'Farol trincado/queimado', categoria: 'fisico' },
+  { id: 'luneta_trincada', nome: 'Luneta/vidro trincado', categoria: 'fisico' },
+  { id: 'porta_amassada', nome: 'Porta amassada', categoria: 'fisico' },
+  { id: 'pneu_desgastado', nome: 'Pneu desgastado', categoria: 'fisico' },
+  { id: 'interior_danificado', nome: 'Interior danificado', categoria: 'fisico' },
+  // Funcional OK
+  { id: 'motor_ok', nome: 'Motor funcionando', categoria: 'funcional' },
+  { id: 'freios_ok', nome: 'Freios em ordem', categoria: 'funcional' },
+  { id: 'direcao_ok', nome: 'Direção em ordem', categoria: 'funcional' },
+  { id: 'eletrica_ok', nome: 'Parte elétrica OK', categoria: 'funcional' },
+  { id: 'ar_condicionado_ok', nome: 'Ar-condicionado funcionando', categoria: 'funcional' },
+  { id: 'iluminacao_ok', nome: 'Iluminação funcionando', categoria: 'funcional' },
+  { id: 'buzina_ok', nome: 'Buzina funcionando', categoria: 'funcional' },
+  { id: 'limpador_ok', nome: 'Limpador de parabrisa OK', categoria: 'funcional' },
+  { id: 'oleo_ok', nome: 'Nível de óleo OK', categoria: 'funcional' },
+  { id: 'refrigerante_ok', nome: 'Nível de refrigerante OK', categoria: 'funcional' },
+];
+
 // ==================== CLIENTE ====================
 
 export interface Cliente {

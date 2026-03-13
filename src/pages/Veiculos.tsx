@@ -29,8 +29,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dateFormatters } from '@/utils/formatters';
 import { Badge } from '@/components/ui/badge';
 
+const ALL_FILTER_VALUE = '__all__'; // Radix Select não aceita value vazio
+
 const PERIODO_OPCOES = [
-  { value: '', label: 'Todos' },
+  { value: ALL_FILTER_VALUE, label: 'Todos' },
   { value: 'vencidos', label: 'Revisão vencida' },
   { value: 'este_mes', label: 'Revisão este mês' },
   { value: 'proximo_mes', label: 'Revisão próximo mês' },
@@ -410,44 +412,44 @@ export default function Veiculos() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="max-w-sm"
               />
-              <Select value={filtroMarcaId || ''} onValueChange={(v) => { setFiltroMarcaId(v || null); setFiltroModeloId(null); }}>
+              <Select value={filtroMarcaId || ALL_FILTER_VALUE} onValueChange={(v) => { setFiltroMarcaId(v === ALL_FILTER_VALUE ? null : v); setFiltroModeloId(null); }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Marca" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value={ALL_FILTER_VALUE}>Todas</SelectItem>
                   {marcasList.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filtroModeloId || ''} onValueChange={(v) => setFiltroModeloId(v || null)}>
+              <Select value={filtroModeloId || ALL_FILTER_VALUE} onValueChange={(v) => setFiltroModeloId(v === ALL_FILTER_VALUE ? null : v)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Modelo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value={ALL_FILTER_VALUE}>Todos</SelectItem>
                   {modelosParaFiltro.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+              <Select value={filtroPeriodo || ALL_FILTER_VALUE} onValueChange={(v) => setFiltroPeriodo(v === ALL_FILTER_VALUE ? '' : v)}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Período revisão" />
                 </SelectTrigger>
                 <SelectContent>
                   {PERIODO_OPCOES.map((p) => (
-                    <SelectItem key={p.value || 'todos'} value={p.value}>{p.label}</SelectItem>
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filtroManutencaoTipo} onValueChange={setFiltroManutencaoTipo}>
+              <Select value={filtroManutencaoTipo || ALL_FILTER_VALUE} onValueChange={(v) => setFiltroManutencaoTipo(v === ALL_FILTER_VALUE ? '' : v)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Tipo manutenção" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value={ALL_FILTER_VALUE}>Todos</SelectItem>
                   {tiposManutencao.map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}

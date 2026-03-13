@@ -908,7 +908,7 @@ export function ProductFormOptimized({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-4xl w-[95vw] sm:w-full max-h-[90dvh] sm:max-h-[90vh] overflow-hidden flex flex-col rounded-xl border-2 border-gray-300 dark:border-gray-600 p-4 sm:p-6 gap-3 sm:gap-4"
+        className="z-[100] max-w-4xl w-[95vw] sm:w-full max-h-[90dvh] sm:max-h-[90vh] overflow-hidden flex flex-col rounded-xl border-2 border-gray-300 dark:border-gray-600 p-4 sm:p-6 gap-3 sm:gap-4"
         aria-describedby="product-form-description"
       >
         <DialogHeader className="space-y-0 pb-1">
@@ -1041,7 +1041,7 @@ export function ProductFormOptimized({
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
+                    <PopoverContent className="z-[110] w-full p-0" align="start">
                       <Command>
                         <CommandInput placeholder="Buscar marca..." />
                         <CommandList>
@@ -1144,7 +1144,7 @@ export function ProductFormOptimized({
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <PopoverContent className="z-[110] w-full p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                       <Command className="overflow-visible">
                         <CommandInput placeholder="Buscar modelo..." />
                         <CommandList
