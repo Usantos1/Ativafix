@@ -262,10 +262,15 @@ export function AppSidebar() {
   ];
   const roleMenuSettled = !user?.id || roleMenuData !== undefined;
   const menuNotReady = permissionsLoading || !roleMenuSettled;
+  // Sempre incluir Relatórios e Financeiro na lista (quando tiver permissão); se menu por cargo/segmento, mesclar com itens de gestão da API
   const relatoriosItemsRaw =
-    user?.id
-      ? (hasRoleMenu ? segmentByCategory.gestao : relatoriosItemsBase)
-      : (useSegmentOrRoleList ? segmentByCategory.gestao : relatoriosItemsBase);
+    hasRoleMenu || useSegmentOrRoleList
+      ? (() => {
+          const basePaths = new Set(relatoriosItemsBase.map((b) => b.path));
+          const extraFromGestao = segmentByCategory.gestao.filter((g: { path: string }) => !basePaths.has(g.path));
+          return [...relatoriosItemsBase, ...extraFromGestao];
+        })()
+      : relatoriosItemsBase;
   const relatoriosItems = menuNotReady
     ? []
     : relatoriosItemsRaw.filter((item) => {
@@ -409,23 +414,6 @@ export function AppSidebar() {
 
               {/* ══════ ADMINISTRAÇÃO ══════ */}
               {renderSection("Administração", Shield, adminItems)}
-
-              {/* Painel de Alertas — alertas por WhatsApp */}
-              {checkPermission('relatorios.financeiro') && (
-                <>
-                  {renderSeparator()}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Painel de Alertas">
-                      <NavLink to="/painel-alertas" end>
-                        <div className={getItemClasses('/painel-alertas', false)}>
-                          <Activity className="h-5 w-5 flex-shrink-0" />
-                          {!collapsed && <span className="text-sm font-medium">Painel de Alertas</span>}
-                        </div>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
-              )}
 
             </SidebarMenu>
           </SidebarGroupContent>

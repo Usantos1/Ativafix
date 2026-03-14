@@ -1117,14 +1117,14 @@ export default function NovaVenda() {
       return;
     }
 
-    // Validar se o caixa está aberto
+    // Validar se o caixa está aberto — abrir modal de abrir caixa no próprio PDV (agilidade)
     if (!cashSession || cashSession.status !== 'open') {
       toast({ 
         title: 'Caixa fechado', 
-        description: 'É necessário abrir o caixa antes de realizar vendas.',
+        description: 'Abra o caixa no modal abaixo para continuar.',
         variant: 'destructive' 
       });
-      navigate('/pdv/caixa');
+      setShowOpenCashDialog(true);
       return;
     }
 
