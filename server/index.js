@@ -1372,6 +1372,7 @@ app.get('/api/me/role-menu', authenticateToken, async (req, res) => {
     const home_path = roleRow.rows[0]?.home_path || null;
     const roleLabel = (roleDisplayName || '').toLowerCase();
     const isVendedor = roleName === 'vendedor' || roleName === 'vendedora' || roleLabel === 'vendedor' || roleLabel === 'vendedora';
+    const isAdminRole = roleName === 'admin' || roleLabel.includes('administrador');
 
     const count = await pool.query(
       `SELECT 1 FROM role_modulos WHERE role_id = $1 AND ativo = true LIMIT 1`,
@@ -1409,6 +1410,12 @@ app.get('/api/me/role-menu', authenticateToken, async (req, res) => {
           const p = (r.path || '').replace(/\/$/, '') || '/';
           const bloqueado = bloqueadosVendedor.includes(p) || (r.categoria || '') === 'gestao';
           return !bloqueado;
+        });
+      }
+      if (isAdminRole) {
+        menuRows = menuRows.filter((r) => {
+          const p = (r.path || '').replace(/\/$/, '') || '/';
+          return p !== '/orcamentos';
         });
       }
       return res.json({
@@ -1451,6 +1458,31 @@ app.get('/api/me/role-menu', authenticateToken, async (req, res) => {
         // Vendedor(a) sem PDV no menu: não abrir em /pdv; forçar Dashboard
         const safeHome = (isVendedor && home_path === '/pdv') ? null : (home_path || null);
         return res.json({ menu, home_path: safeHome, role_display_name: roleDisplayName });
+      }
+    }
+
+    // Admin de empresa sem "Módulos e menu" configurado: retorna menu do segmento SEM Orçamentos (admin não vê orçamento)
+    if (isAdminRole && companyId) {
+      const comp = await pool.query('SELECT segmento_id FROM companies WHERE id = $1', [companyId]);
+      const segmentoId = comp.rows[0]?.segmento_id;
+      if (segmentoId) {
+        const menuResult = await pool.query(
+          `SELECT m.id, m.nome, m.slug, m.path, m.label_menu, m.icone, m.categoria, sm.ordem_menu
+           FROM modulos m
+           INNER JOIN segmentos_modulos sm ON sm.modulo_id = m.id AND sm.segmento_id = $1 AND sm.ativo = true
+           WHERE m.ativo AND (m.path IS NULL OR m.path != '/orcamentos')
+           ORDER BY sm.ordem_menu, m.nome`,
+          [segmentoId]
+        );
+        const menu = (menuResult.rows || []).map((r) => ({
+          id: r.id,
+          path: r.path || '/',
+          label_menu: r.label_menu || r.nome,
+          slug: r.slug,
+          icone: r.icone,
+          categoria: r.categoria || 'operacao',
+        }));
+        return res.json({ menu, home_path: home_path || null, role_display_name: roleDisplayName });
       }
     }
 

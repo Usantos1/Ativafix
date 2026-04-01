@@ -22,10 +22,28 @@ export interface OSTermicaData {
   via: 'cliente' | 'loja';
   /** Se true, não exibe a seção "CHECKLIST DE ENTRADA" na via (usado nas vias cliente e loja). */
   omitirChecklist?: boolean;
+  /** Pagamentos/adiantamentos já registrados na OS (financeiro da OS). */
+  pagamentosOs?: { tipo: string; forma: string; valor: number }[];
+}
+
+function labelFormaPagamentoOs(forma: string) {
+  const f = (forma || '').toLowerCase().replace(/\s+/g, '_');
+  const map: Record<string, string> = {
+    dinheiro: 'Dinheiro',
+    pix: 'PIX',
+    pix_samup: 'PIX Samup',
+    debito: 'Débito',
+    credito: 'Crédito',
+    credito_parcelado: 'Crédito parcelado',
+    link_pagamento: 'Link',
+    carteira_digital: 'Carteira',
+    fiado: 'Fiado',
+  };
+  return map[f] || forma.replace(/_/g, ' ') || '—';
 }
 
 export async function generateOSTermica(data: OSTermicaData): Promise<string> {
-  const { os, clienteNome, clienteCpf, clienteEndereco, marcaNome, modeloNome, checklistEntrada, checklistEntradaMarcados, imagemReferenciaUrl, areasDefeito, via, omitirChecklist } = data;
+  const { os, clienteNome, clienteCpf, clienteEndereco, marcaNome, modeloNome, checklistEntrada, checklistEntradaMarcados, imagemReferenciaUrl, areasDefeito, via, omitirChecklist, pagamentosOs } = data;
 
   // Gerar QR Code com URL da OS
   let qrCodeImg = '';
@@ -148,6 +166,22 @@ export async function generateOSTermica(data: OSTermicaData): Promise<string> {
       `;
     }
   }
+
+  const pagamentosOsHtml =
+    pagamentosOs && pagamentosOs.length > 0
+      ? `
+      <div class="section-title">PAGAMENTOS REGISTRADOS (OS)</div>
+      <div style="font-size: 9px; margin: 0; padding: 2px; border: 1px solid #000;">
+        ${pagamentosOs
+          .map(
+            (p) =>
+              `<div class="line" style="margin: 2px 0;"><span>${p.tipo} · ${labelFormaPagamentoOs(p.forma)}</span><span>${currencyFormatters.brl(p.valor)}</span></div>`
+          )
+          .join('')}
+      </div>
+      <div class="divider-dashed"></div>
+    `
+      : '';
 
   const html = `
     <!DOCTYPE html>
@@ -327,6 +361,8 @@ export async function generateOSTermica(data: OSTermicaData): Promise<string> {
       ${apenasOrcamento ? '<div class="compact-line">Realizar Orçamento</div>' : ''}
       
       ${orcamentoHtml || ''}
+      
+      ${pagamentosOsHtml}
       
       ${qrCodeImg}
       <div class="center" style="font-size: 10px; margin-top: 2px; font-weight: 900;">Aponte a câmera para acompanhar o status da OS</div>

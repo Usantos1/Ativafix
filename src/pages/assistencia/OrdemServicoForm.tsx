@@ -59,7 +59,7 @@ import { generateOSTermica } from '@/utils/osTermicaGenerator';
 import { generateOSPDF } from '@/utils/osPDFGenerator';
 import { printTermica, generateCupomTermica } from '@/utils/pdfGenerator';
 import { updatePrintStatus, printViaIframe } from '@/utils/printUtils';
-import { printOSTermicaDirect } from '@/utils/osPrintUtils';
+import { printOSTermicaDirect, resolveClienteForOsPrint, fetchPagamentosOsForTermica } from '@/utils/osPrintUtils';
 import { useChecklistConfig } from '@/hooks/useChecklistConfig';
 import { useAlertsFire } from '@/hooks/useAlerts';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1419,11 +1419,13 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
     setIsSavingPagamentoOS(true);
     try {
       const clienteNome = selectedCliente?.nome || currentOS?.cliente_nome || 'Cliente';
+      const tipoPag = pagamentoOSForm.tipo;
       const { sale } = await registerPagamentoOS({
         ordem_servico_id: currentOS.id,
         numero_os: currentOS.numero ?? 0,
         tecnico_id: currentOS?.tecnico_id ?? '',
         cliente_nome: clienteNome,
+        cliente_id: selectedCliente?.id || currentOS?.cliente_id || null,
         valor: valorNum,
         forma_pagamento: pagamentoOSForm.forma_pagamento,
         tipo: pagamentoOSForm.tipo,
@@ -1432,14 +1434,11 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
       await refetchPagamentosAPI();
       setShowPagamentoOSDialog(false);
       setPagamentoOSForm({ valor: '', forma_pagamento: 'dinheiro', tipo: 'adiantamento', observacao: '' });
-      const isAdiantamento = pagamentoOSForm.tipo === 'adiantamento';
       toast({
         title: 'Pagamento registrado',
         description: sale
-          ? `${currencyFormatters.brl(valorNum)} gerou a venda #${sale.numero} (documento rastreável).`
-          : isAdiantamento
-            ? `${currencyFormatters.brl(valorNum)} registrado como adiantamento. Será aplicado no faturamento da OS.`
-            : `${currencyFormatters.brl(valorNum)} registrado.`,
+          ? `${currencyFormatters.brl(valorNum)} · Venda #${sale.numero} (${tipoPag === 'adiantamento' ? 'adiantamento' : 'pagamento final'}). Valor entra no fechamento do caixa aberto.`
+          : `${currencyFormatters.brl(valorNum)} registrado.`,
       });
 
       if (imprimirCupomAposPagamento) {
@@ -2213,14 +2212,11 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
       ? { ...os, padrao_desbloqueio: padraoParaImpressao, possui_senha: formData.possui_senha ?? os.possui_senha, possui_senha_tipo: formData.possui_senha_tipo ?? os.possui_senha_tipo, senha_numerica: formData.senha_numerica ?? os.senha_numerica, senha_aparelho: formData.senha_aparelho ?? os.senha_aparelho }
       : { ...os, padrao_desbloqueio: padraoParaImpressao };
 
-    // Garantir dados do cliente para CPF/endereço na impressão (buscar por ID se não estiver em cache)
-    let clienteParaImpressao = getClienteById(osToPrint.cliente_id);
-    if (!clienteParaImpressao && osToPrint.cliente_id) {
-      try {
-        const res = await from('clientes').select('*').eq('id', osToPrint.cliente_id).limit(1).execute();
-        if (res.data && Array.isArray(res.data) && res.data.length > 0) clienteParaImpressao = res.data[0] as any;
-      } catch (_e) { /* usar só nome/contato se falhar */ }
-    }
+    // CPF/endereço: sempre preferir dados do banco (cache do form costuma vazio na 1ª impressão / checklist)
+    const clienteParaImpressao = await resolveClienteForOsPrint(
+      osToPrint.cliente_id,
+      getClienteById(osToPrint.cliente_id)
+    );
 
     if (tipo === 'pdf' || tipo === 'a4') {
       // Usar a mesma função para PDF e A4 (baseada na térmica)
@@ -2305,6 +2301,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
         const cliente = clienteParaImpressao;
         const marca = marcas.find(m => m.id === osToPrint.marca_id);
         const modelo = modelos.find(m => m.id === osToPrint.modelo_id);
+        const pagamentosOs = await fetchPagamentosOsForTermica(osToPrint.id);
         
         // Buscar primeira foto de entrada
         const fotoEntrada = osToPrint.fotos_telegram_entrada?.[0];
@@ -2327,10 +2324,12 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
         ].filter(Boolean) : [];
         const clienteEnderecoStr = clienteEnderecoParts.length > 0 ? clienteEnderecoParts.join(', ') : null;
 
+        const nomeCli = cliente?.nome || osToPrint.cliente_nome || 'Cliente';
+
         // Gerar via do cliente (com checklist nas duas vias)
         const htmlCliente = await generateOSTermica({
           os: osToPrint,
-          clienteNome: cliente?.nome || osToPrint.cliente_nome || 'Cliente',
+          clienteNome: nomeCli,
           clienteCpf,
           clienteEndereco: clienteEnderecoStr,
           marcaNome: marca?.nome || osToPrint.marca_nome,
@@ -2342,12 +2341,13 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
           areasDefeito,
           via: 'cliente',
           omitirChecklist: false,
+          pagamentosOs,
         });
 
         // Gerar via da loja (com checklist nas duas vias)
         const htmlLoja = await generateOSTermica({
           os: osToPrint,
-          clienteNome: cliente?.nome || osToPrint.cliente_nome || 'Cliente',
+          clienteNome: nomeCli,
           clienteCpf,
           clienteEndereco: clienteEnderecoStr,
           marcaNome: marca?.nome || osToPrint.marca_nome,
@@ -2359,6 +2359,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
           areasDefeito,
           via: 'loja',
           omitirChecklist: false,
+          pagamentosOs,
         });
 
         // Imprimir ambas as vias

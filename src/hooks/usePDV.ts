@@ -1596,13 +1596,43 @@ export interface RegisterPagamentoOSParams {
   numero_os: number;
   tecnico_id: string;
   cliente_nome: string;
+  /** UUID do cliente na OS (para venda vinculada e relatórios) */
+  cliente_id?: string | null;
   valor: number;
   forma_pagamento: string;
   tipo: 'adiantamento' | 'pagamento_final';
   observacao?: string;
 }
 
-/** Registra adiantamento ou pagamento final da OS. Adiantamento: só os_pagamentos + caixa (não cria venda, evita duplicar no faturamento). Pagamento final: cria venda rastreável. */
+async function resolveOpenCashRegisterSessionId(operadorId: string | undefined | null): Promise<string | null> {
+  try {
+    let q: any = from('cash_register_sessions')
+      .select('id')
+      .eq('status', 'open')
+      .order('opened_at', { ascending: false })
+      .limit(1);
+    if (operadorId) q = q.eq('operador_id', operadorId);
+    const { data: sessData } = await q.execute();
+    const rows = Array.isArray(sessData) ? sessData : sessData ? [sessData] : [];
+    if (rows[0]?.id) return rows[0].id;
+    // Fallback: só se existir exatamente um caixa aberto (evita vincular ao caixa errado)
+    if (operadorId) {
+      const { data: anyOpen } = await from('cash_register_sessions').select('id').eq('status', 'open').execute();
+      const list = Array.isArray(anyOpen) ? anyOpen : [];
+      if (list.length === 1 && list[0]?.id) {
+        console.warn(
+          '[registerPagamentoOS] Usando o único caixa aberto da loja (operador_id da sessão não bateu com o usuário logado).'
+        );
+        return list[0].id;
+      }
+    }
+  } catch (_) {
+    /* ignorar */
+  }
+  return null;
+}
+
+/** Registra adiantamento ou pagamento final da OS como venda + pagamento confirmado, vinculados ao caixa aberto (mesma lógica do PDV para fechamento e totais por forma). */
 export function useRegisterPagamentoOS() {
   const auth = useAuth();
   const user = auth?.user || null;
@@ -1610,72 +1640,31 @@ export function useRegisterPagamentoOS() {
   const { createSale } = useSales();
 
   const registerPagamentoOS = useCallback(async (params: RegisterPagamentoOSParams): Promise<{ sale: Sale | null; payment: Payment | null }> => {
-    let cashSessionId: string | null = null;
-    try {
-      let q: any = from('cash_register_sessions')
-        .select('id')
-        .eq('status', 'open')
-        .order('opened_at', { ascending: false })
-        .limit(1);
-      if (user?.id) q = q.eq('operador_id', user.id);
-      const { data: sessData } = await q.execute();
-      const sess = Array.isArray(sessData) ? sessData[0] : sessData;
-      if (sess?.id) cashSessionId = sess.id;
-    } catch (_) {
-      // ignorar se não houver sessão
+    const cashSessionId = await resolveOpenCashRegisterSessionId(user?.id);
+    if (!cashSessionId) {
+      console.warn(
+        '[registerPagamentoOS] Nenhuma sessão de caixa aberta vinculada; o pagamento não entrará no fechamento até haver caixa aberto.'
+      );
     }
 
-    // Adiantamento: não criar venda separada (evita duplicar 100+200 na lista). Só os_pagamentos + entrada no caixa.
-    if (params.tipo === 'adiantamento') {
-      const { error: errOP } = await from('os_pagamentos')
-        .insert({
-          ordem_servico_id: params.ordem_servico_id,
-          sale_id: null,
-          valor: params.valor,
-          forma_pagamento: params.forma_pagamento,
-          tipo: params.tipo,
-          observacao: params.observacao || null,
-          created_by: user?.id || null,
-        })
-        .execute();
-      if (errOP) {
-        const msg = errOP.message || String(errOP);
-        if (/null|sale_id|violates.*constraint/i.test(msg)) {
-          throw new Error('Banco não permite adiantamento sem venda. Execute no PostgreSQL o script ALTER_OS_PAGAMENTOS_SALE_ID_NULLABLE.sql e tente novamente.');
-        }
-        throw errOP;
-      }
+    const isValidUUID = (str: string | undefined | null): boolean => {
+      if (!str) return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    };
 
-      if (cashSessionId) {
-        const operadorNome = profile?.display_name || (user as any)?.user_metadata?.name || user?.email || 'Operador';
-        try {
-          await from('cash_movements')
-            .insert({
-              session_id: cashSessionId,
-              tipo: 'suprimento',
-              valor: params.valor,
-              motivo: `Adiantamento OS #${params.numero_os}`,
-              operador_id: user?.id || null,
-              operador_nome: operadorNome,
-            })
-            .execute();
-        } catch (movErr) {
-          console.warn('Erro ao registrar movimento de caixa do adiantamento:', movErr);
-        }
-      }
-      return { sale: null, payment: null };
-    }
-
-    // Pagamento final: criar venda rastreável (comportamento anterior)
     const sale = await createSale({
       sale_origin: 'OS',
       ordem_servico_id: params.ordem_servico_id,
       technician_id: params.tecnico_id,
+      cliente_id: params.cliente_id && isValidUUID(params.cliente_id) ? params.cliente_id : undefined,
       cliente_nome: params.cliente_nome,
       is_draft: true,
     });
 
-    const descricao = `PAGAMENTO OS #${params.numero_os} - PAGAMENTO`;
+    const descricao =
+      params.tipo === 'adiantamento'
+        ? `PAGAMENTO OS #${params.numero_os} - ADIANTAMENTO`
+        : `PAGAMENTO OS #${params.numero_os} - PAGAMENTO`;
 
     const { error: errItem } = await from('sale_items')
       .insert({
@@ -1744,7 +1733,7 @@ export function useRegisterPagamentoOS() {
       .execute();
     if (errOP) throw errOP;
 
-    return { sale: { ...sale, id: sale.id }, payment };
+    return { sale: { ...sale, id: sale.id } as Sale, payment: payment as Payment };
   }, [createSale, user?.id, profile]);
 
   /** Cancela um pagamento OS (apenas admin). Marca os_pagamentos; se tiver sale_id, invalida a venda. */
