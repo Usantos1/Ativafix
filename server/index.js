@@ -3692,8 +3692,7 @@ app.post('/api/functions/admin-delete-user', authenticateToken, requireAdmin, as
         await client.query(
           `UPDATE users
            SET email = $1,
-               company_id = NULL,
-               updated_at = NOW()
+               company_id = NULL
            WHERE id = $2`,
           [archivedEmail, userId]
         );
