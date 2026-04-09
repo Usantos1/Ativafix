@@ -3543,6 +3543,7 @@ app.post('/api/functions/admin-update-user', authenticateToken, requireAdmin, as
 
 // POST /api/functions/admin-delete-user
 app.post('/api/functions/admin-delete-user', authenticateToken, requireAdmin, async (req, res) => {
+  const quoteIdent = (ident) => `"${String(ident).replace(/"/g, '""')}"`;
   try {
     const userId = req.body?.userId || req.body?.body?.userId;
 
@@ -3557,41 +3558,96 @@ app.post('/api/functions/admin-delete-user', authenticateToken, requireAdmin, as
       return res.status(400).json({ error: 'Você não pode deletar seu próprio usuário' });
     }
 
-    // Verificar se existe em profiles ou users
-    const profileResult = await pool.query('SELECT user_id FROM profiles WHERE user_id = $1', [userId]);
-    const userResult = await pool.query('SELECT id, email FROM users WHERE id = $1', [userId]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    if (profileResult.rows.length === 0 && userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-
-    // Limpar todas as tabelas relacionadas (evita erro de FK)
-    const tablesToClean = [
-      'user_permissions',
-      'user_position_departments', 
-      'permission_changes_history',
-      'disc_responses',
-      'nps_responses',
-      'audit_logs'
-    ];
-
-    for (const table of tablesToClean) {
-      try {
-        await pool.query(`DELETE FROM ${table} WHERE user_id = $1`, [userId]);
-      } catch (e) {
-        // Ignorar se tabela não existir
+      // Verificar se existe em profiles ou users
+      const profileResult = await client.query('SELECT user_id FROM profiles WHERE user_id = $1', [userId]);
+      const userResult = await client.query('SELECT id, email FROM users WHERE id = $1', [userId]);
+      if (profileResult.rows.length === 0 && userResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Usuário não encontrado' });
       }
+
+      // Descobrir todas as FKs que apontam para users(id) e limpar referências automaticamente.
+      // Estratégia: se coluna aceita NULL -> UPDATE para NULL; caso contrário -> DELETE da linha referenciada.
+      const fkRefs = await client.query(`
+        SELECT
+          tc.table_name,
+          kcu.column_name,
+          cols.is_nullable
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON tc.constraint_name = kcu.constraint_name
+         AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage ccu
+          ON ccu.constraint_name = tc.constraint_name
+         AND ccu.table_schema = tc.table_schema
+        JOIN information_schema.columns cols
+          ON cols.table_schema = tc.table_schema
+         AND cols.table_name = tc.table_name
+         AND cols.column_name = kcu.column_name
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema = 'public'
+          AND ccu.table_name = 'users'
+          AND ccu.column_name = 'id'
+        ORDER BY tc.table_name, kcu.column_name
+      `);
+
+      const cleanupWarnings = [];
+      for (const ref of fkRefs.rows) {
+        const table = ref.table_name;
+        const column = ref.column_name;
+        if (table === 'users') continue;
+
+        try {
+          if (ref.is_nullable === 'YES') {
+            await client.query(
+              `UPDATE public.${quoteIdent(table)} SET ${quoteIdent(column)} = NULL WHERE ${quoteIdent(column)} = $1`,
+              [userId]
+            );
+          } else {
+            await client.query(
+              `DELETE FROM public.${quoteIdent(table)} WHERE ${quoteIdent(column)} = $1`,
+              [userId]
+            );
+          }
+        } catch (cleanupError) {
+          cleanupWarnings.push({
+            table,
+            column,
+            message: cleanupError?.message || 'erro ao limpar referência'
+          });
+        }
+      }
+
+      // Garantia extra para tabelas mais comuns do domínio
+      await client.query('DELETE FROM profiles WHERE user_id = $1', [userId]).catch(() => {});
+      await client.query('DELETE FROM user_permissions WHERE user_id = $1', [userId]).catch(() => {});
+      await client.query('DELETE FROM user_position_departments WHERE user_id = $1', [userId]).catch(() => {});
+
+      // Deletar usuário da tabela users
+      if (userResult.rows.length > 0) {
+        await client.query('DELETE FROM users WHERE id = $1', [userId]);
+      }
+
+      await client.query('COMMIT');
+      console.log('[API] Usuário deletado com sucesso:', {
+        userId,
+        email: userResult.rows[0]?.email || null,
+        cleanupWarnings: cleanupWarnings.length
+      });
+
+      if (cleanupWarnings.length > 0) {
+        console.warn('[API] Limpeza com avisos durante exclusão de usuário:', cleanupWarnings.slice(0, 5));
+      }
+    } catch (txError) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txError;
+    } finally {
+      client.release();
     }
-
-    // Deletar profile
-    await pool.query('DELETE FROM profiles WHERE user_id = $1', [userId]).catch(() => {});
-
-    // Deletar usuário da tabela users
-    if (userResult.rows.length > 0) {
-      await pool.query('DELETE FROM users WHERE id = $1', [userId]);
-    }
-
-    console.log('[API] Usuário deletado com sucesso:', { userId, email: userResult.rows[0]?.email || null });
 
     res.json({
       data: {

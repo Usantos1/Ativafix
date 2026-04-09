@@ -475,54 +475,13 @@ export const UserManagementNew = () => {
       setLoading(true);
 
       const userId = userToDelete.user_id;
-
-      // Tentar via edge function primeiro
-      try {
-        const { error } = await apiClient.invokeFunction('admin-delete-user', {
-          userId
-        });
-        if (!error) {
-          toast({
-            title: "Sucesso",
-            description: "Usuário excluído com sucesso",
-          });
-          setDeleteDialogOpen(false);
-          setUserToDelete(null);
-          fetchUsers();
-          return;
-        }
-      } catch (edgeFnError: any) {
-        console.warn('Edge function falhou, usando fallback direto:', edgeFnError);
+      const { data, error } = await apiClient.invokeFunction('admin-delete-user', { userId });
+      if (error) {
+        const errAny = error as any;
+        throw new Error(errAny?.data?.error || errAny?.message || 'Erro ao excluir usuário');
       }
-
-      // Fallback: deletar diretamente via APIs de banco de dados
-      // Limpar tabelas relacionadas primeiro (ignorar erros se não existir)
-      const tablesToClean = [
-        'user_permissions',
-        'user_position_departments',
-        'permission_changes_history',
-      ];
-
-      for (const table of tablesToClean) {
-        try {
-          await from(table).delete().eq('user_id', userId);
-        } catch (e) {
-          // Ignorar erros
-        }
-      }
-
-      // Deletar profile
-      try {
-        await from('profiles').delete().eq('user_id', userId);
-      } catch (e) {
-        console.warn('Erro ao deletar profile:', e);
-      }
-
-      // Tentar deletar user
-      try {
-        await from('users').delete().eq('id', userId);
-      } catch (e) {
-        console.warn('Erro ao deletar user:', e);
+      if (!data?.data?.success && !data?.success) {
+        throw new Error('Falha ao excluir usuário');
       }
 
       toast({
