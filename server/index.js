@@ -3616,7 +3616,8 @@ app.post('/api/functions/admin-delete-user', authenticateToken, requireAdmin, as
         SELECT
           tc.table_name,
           kcu.column_name,
-          cols.is_nullable
+          cols.is_nullable,
+          tc.constraint_name
         FROM information_schema.table_constraints tc
         JOIN information_schema.key_column_usage kcu
           ON tc.constraint_name = kcu.constraint_name
@@ -3642,16 +3643,30 @@ app.post('/api/functions/admin-delete-user', authenticateToken, requireAdmin, as
         if (table === 'users') continue;
 
         try {
+          // Tabela de caixa: nunca zerar operador_id (NOT NULL em várias bases).
+          if (
+            (table === 'cash_movements' || table === 'cash_register_sessions') &&
+            column === 'operador_id'
+          ) {
+            continue;
+          }
+
+          // Se coluna permite NULL, só então aplicamos SET NULL.
           if (ref.is_nullable === 'YES') {
             await client.query(
               `UPDATE public.${quoteIdent(table)} SET ${quoteIdent(column)} = NULL WHERE ${quoteIdent(column)} = $1`,
               [userId]
             );
           } else {
-            await client.query(
-              `DELETE FROM public.${quoteIdent(table)} WHERE ${quoteIdent(column)} = $1`,
-              [userId]
-            );
+            // Coluna NOT NULL: evitar apagar histórico financeiro crítico.
+            // Para caixa, preferimos manter dados e já reatribuímos operador_id acima.
+            // Para demais tabelas, tentamos DELETE como fallback.
+            if (table !== 'cash_movements' && table !== 'cash_register_sessions') {
+              await client.query(
+                `DELETE FROM public.${quoteIdent(table)} WHERE ${quoteIdent(column)} = $1`,
+                [userId]
+              );
+            }
           }
         } catch (cleanupError) {
           cleanupWarnings.push({
