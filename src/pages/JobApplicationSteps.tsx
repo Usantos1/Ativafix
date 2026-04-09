@@ -243,6 +243,8 @@ export default function JobApplicationSteps() {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const lastDraftPayloadRef = React.useRef<string>('');
+  const hasLoggedDraftErrorRef = React.useRef(false);
   // Estado para modal de candidatura já enviada - FORÇADO para evitar tree-shaking
   const [showAlreadyAppliedModal, setShowAlreadyAppliedModal] = useState<boolean>(false);
   const [existingJobResponseId, setExistingJobResponseId] = useState<string | null>(null);
@@ -263,6 +265,51 @@ export default function JobApplicationSteps() {
 
   // Debounce para autosave (salvar após 2 segundos sem digitar)
   const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Força scroll na página pública de vaga (app interno usa overflow hidden no root)
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById('root');
+
+    const prev = {
+      htmlOverflowY: html.style.overflowY,
+      htmlOverflowX: html.style.overflowX,
+      htmlHeight: html.style.height,
+      bodyOverflowY: body.style.overflowY,
+      bodyOverflowX: body.style.overflowX,
+      bodyHeight: body.style.height,
+      rootOverflow: root?.style.overflow || '',
+      rootHeight: root?.style.height || '',
+      rootMinHeight: root?.style.minHeight || '',
+    };
+
+    html.style.setProperty('overflow-y', 'auto', 'important');
+    html.style.setProperty('overflow-x', 'hidden', 'important');
+    html.style.setProperty('height', 'auto', 'important');
+    body.style.setProperty('overflow-y', 'auto', 'important');
+    body.style.setProperty('overflow-x', 'hidden', 'important');
+    body.style.setProperty('height', 'auto', 'important');
+    if (root) {
+      root.style.setProperty('overflow', 'visible', 'important');
+      root.style.setProperty('height', 'auto', 'important');
+      root.style.setProperty('min-height', '100vh', 'important');
+    }
+
+    return () => {
+      html.style.overflowY = prev.htmlOverflowY;
+      html.style.overflowX = prev.htmlOverflowX;
+      html.style.height = prev.htmlHeight;
+      body.style.overflowY = prev.bodyOverflowY;
+      body.style.overflowX = prev.bodyOverflowX;
+      body.style.height = prev.bodyHeight;
+      if (root) {
+        root.style.overflow = prev.rootOverflow;
+        root.style.height = prev.rootHeight;
+        root.style.minHeight = prev.rootMinHeight;
+      }
+    };
+  }, []);
 
   // classes padronizadas para campos
   const fieldClass =
@@ -313,7 +360,6 @@ export default function JobApplicationSteps() {
 
     // Aguardar 2 segundos sem digitar antes de salvar
     saveTimeoutRef.current = setTimeout(async () => {
-      setSaving(true);
       try {
         // Email estável por sessão: evita criar um rascunho novo a cada autosave quando o usuário ainda não preencheu email
         let emailToSave = formData.email?.trim().toLowerCase();
@@ -328,7 +374,7 @@ export default function JobApplicationSteps() {
           }
         }
 
-        const { data, error } = await apiClient.invokeFunction('job-application-save-draft', {
+        const payload = {
           survey_id: survey.id,
           email: emailToSave,
           name: formData.name?.trim() || null,
@@ -342,17 +388,33 @@ export default function JobApplicationSteps() {
           responses: formData.responses || {},
           current_step: currentStep,
           form_data: formData
+        };
+
+        // Evita salvar payload idêntico repetidamente (reduz spam e travamentos)
+        const payloadHash = JSON.stringify(payload);
+        if (lastDraftPayloadRef.current === payloadHash) {
+          return;
+        }
+
+        setSaving(true);
+        const { data, error } = await apiClient.invokeFunction('job-application-save-draft', {
+          ...payload
         });
 
         if (error) throw error;
 
         if (data?.draft_id) {
+          lastDraftPayloadRef.current = payloadHash;
+          hasLoggedDraftErrorRef.current = false;
           setDraftId(data.draft_id);
           setLastSaved(new Date());
         }
       } catch (error) {
-        console.error('Erro ao salvar rascunho:', error);
-        // Não mostrar erro para o usuário, apenas logar
+        // Evita poluir console com centenas de erros iguais durante digitação
+        if (!hasLoggedDraftErrorRef.current) {
+          console.warn('Erro ao salvar rascunho:', error);
+          hasLoggedDraftErrorRef.current = true;
+        }
       } finally {
         setSaving(false);
       }
