@@ -26,6 +26,9 @@ import {
   RotateCcw,
   Users,
   Shield,
+  Wallet,
+  MessageCircle,
+  XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSalesSummary, useTechnicianProductivity, ReportFilters } from '@/hooks/useReports';
@@ -49,6 +52,9 @@ type ReportTabId =
   | 'assistencia'
   | 'refunds'
   | 'clients'
+  | 'cash'
+  | 'cancellations'
+  | 'followup'
   | 'audit';
 
 function numVal(v: string | number | null | undefined): number {
@@ -58,6 +64,12 @@ function numVal(v: string | number | null | undefined): number {
 
 function paymentLabel(code: string) {
   return PAYMENT_METHOD_LABELS[code as PaymentMethod] ?? code;
+}
+
+function followupRuleLabel(rule: string) {
+  if (rule === 'NEXT_DAY_10AM') return 'Próximo dia às 10h';
+  if (rule === 'AFTER_24H') return '24h após faturamento';
+  return rule;
 }
 
 function queryErr(e: unknown): string {
@@ -334,6 +346,9 @@ export default function Relatorios() {
                   ['assistencia', ClipboardList, 'Assistência'],
                   ['refunds', RotateCcw, 'Devoluções'],
                   ['clients', Users, 'Clientes'],
+                  ['cash', Wallet, 'Caixa'],
+                  ['cancellations', XCircle, 'Cancelamentos'],
+                  ['followup', MessageCircle, 'Pós-venda'],
                   ...(isAdmin ? [['audit', Shield, 'Auditoria']] as const : []),
                 ] as const
               ).map(([id, Icon, label]) => (
@@ -881,6 +896,471 @@ export default function Relatorios() {
                     <CardContent className="p-4">
                       <p className="text-xs text-muted-foreground font-semibold">Vendas finalizadas c/ cliente</p>
                       <p className="text-2xl font-bold mt-1">{serverReports.clients.data?.vendas_finalizadas ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="cash" className="space-y-4 mt-4 min-w-0">
+              {serverReports.cash.isLoading ? (
+                <p className="text-sm text-muted-foreground text-center py-12">Carregando…</p>
+              ) : serverReports.cash.isError ? (
+                <p className="text-sm text-destructive text-center py-8">
+                  {queryErr(serverReports.cash.error)}
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Sessões de caixa</p>
+                        <p className="text-2xl font-bold mt-1">{serverReports.cash.data?.totals.total_sessions ?? 0}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Abertas: {serverReports.cash.data?.totals.open_sessions ?? 0} • Fechadas: {serverReports.cash.data?.totals.closed_sessions ?? 0}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Valor inicial somado</p>
+                        <p className="text-2xl font-bold mt-1">{fmt(numVal(serverReports.cash.data?.totals.total_inicial))}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Valor final somado</p>
+                        <p className="text-2xl font-bold mt-1">{fmt(numVal(serverReports.cash.data?.totals.total_final))}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Divergência total</p>
+                        <p className="text-2xl font-bold mt-1">{fmt(numVal(serverReports.cash.data?.totals.total_divergencia))}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Por operador</CardTitle>
+                      <CardDescription>Sessões abertas/fechadas e valores consolidados no período.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Operador</TableHead>
+                            <TableHead className="text-right">Sessões</TableHead>
+                            <TableHead className="text-right">Abertas</TableHead>
+                            <TableHead className="text-right">Fechadas</TableHead>
+                            <TableHead className="text-right">Valor final</TableHead>
+                            <TableHead className="text-right">Divergência</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(serverReports.cash.data?.by_operator.length ?? 0) === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                                Nenhuma sessão de caixa no período.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            serverReports.cash.data!.by_operator.map((row) => (
+                              <TableRow key={row.operador}>
+                                <TableCell className="font-medium">{row.operador}</TableCell>
+                                <TableCell className="text-right">{row.sessions_count}</TableCell>
+                                <TableCell className="text-right">{row.open_count}</TableCell>
+                                <TableCell className="text-right">{row.closed_count}</TableCell>
+                                <TableCell className="text-right">{fmt(numVal(row.valor_final))}</TableCell>
+                                <TableCell className="text-right">{fmt(numVal(row.divergencia))}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Movimentações do caixa</CardTitle>
+                        <CardDescription>Sangrias e suprimentos registrados no período.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Tipo</TableHead>
+                              <TableHead className="text-right">Qtd</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(serverReports.cash.data?.by_movement_type.length ?? 0) === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                  Nenhuma movimentação de caixa.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              serverReports.cash.data!.by_movement_type.map((row) => (
+                                <TableRow key={row.tipo}>
+                                  <TableCell className="font-medium capitalize">{row.tipo}</TableCell>
+                                  <TableCell className="text-right">{row.cnt}</TableCell>
+                                  <TableCell className="text-right">{fmt(numVal(row.total))}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Sessões recentes</CardTitle>
+                        <CardDescription>Últimas sessões abertas no período filtrado.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>#</TableHead>
+                              <TableHead>Operador</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Abertura</TableHead>
+                              <TableHead className="text-right">Divergência</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(serverReports.cash.data?.recent_sessions.length ?? 0) === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                  Nenhuma sessão encontrada.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              serverReports.cash.data!.recent_sessions.map((row) => (
+                                <TableRow key={row.id}>
+                                  <TableCell>{row.numero}</TableCell>
+                                  <TableCell className="font-medium">{row.operador_nome}</TableCell>
+                                  <TableCell>{row.status === 'open' ? 'Aberto' : 'Fechado'}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">
+                                    {row.opened_at ? new Date(row.opened_at).toLocaleString('pt-BR') : '—'}
+                                  </TableCell>
+                                  <TableCell className="text-right">{fmt(numVal(row.divergencia))}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="cancellations" className="space-y-4 mt-4 min-w-0">
+              {serverReports.cancellations.isLoading ? (
+                <p className="text-sm text-muted-foreground text-center py-12">Carregando…</p>
+              ) : serverReports.cancellations.isError ? (
+                <p className="text-sm text-destructive text-center py-8">
+                  {queryErr(serverReports.cancellations.error)}
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Vendas canceladas</p>
+                        <p className="text-2xl font-bold mt-1">{serverReports.cancellations.data?.totals.canceled_sales ?? 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Valor cancelado</p>
+                        <p className="text-2xl font-bold mt-1">{fmt(numVal(serverReports.cancellations.data?.totals.canceled_total))}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Solicitações pendentes</p>
+                        <p className="text-2xl font-bold mt-1">{serverReports.cancellations.data?.totals.pending_requests ?? 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Solicitações aprovadas</p>
+                        <p className="text-2xl font-bold mt-1">{serverReports.cancellations.data?.totals.approved_requests ?? 0}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Motivos de cancelamento</CardTitle>
+                        <CardDescription>Motivos registrados diretamente nas vendas canceladas.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Motivo</TableHead>
+                              <TableHead className="text-right">Qtd</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(serverReports.cancellations.data?.by_reason.length ?? 0) === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                  Nenhum cancelamento no período.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              serverReports.cancellations.data!.by_reason.map((row) => (
+                                <TableRow key={row.reason}>
+                                  <TableCell className="font-medium max-w-[260px] truncate" title={row.reason}>
+                                    {row.reason}
+                                  </TableCell>
+                                  <TableCell className="text-right">{row.cnt}</TableCell>
+                                  <TableCell className="text-right">{fmt(numVal(row.valor))}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Status das solicitações</CardTitle>
+                        <CardDescription>Fluxo de aprovação/rejeição em `sale_cancel_requests`.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Qtd</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(serverReports.cancellations.data?.request_status.length ?? 0) === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                                  Nenhuma solicitação registrada no período.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              serverReports.cancellations.data!.request_status.map((row) => (
+                                <TableRow key={row.status}>
+                                  <TableCell className="font-medium">
+                                    {row.status === 'pending' ? 'Pendente' : row.status === 'approved' ? 'Aprovada' : row.status === 'rejected' ? 'Rejeitada' : row.status}
+                                  </TableCell>
+                                  <TableCell className="text-right">{row.cnt}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Vendas canceladas recentes</CardTitle>
+                      <CardDescription>Últimos cancelamentos efetivados no período selecionado.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Venda</TableHead>
+                            <TableHead>Cliente</TableHead>
+                            <TableHead>Vendedor</TableHead>
+                            <TableHead>Data</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(serverReports.cancellations.data?.recent_canceled_sales.length ?? 0) === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                Nenhuma venda cancelada.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            serverReports.cancellations.data!.recent_canceled_sales.map((row) => (
+                              <TableRow key={row.id}>
+                                <TableCell className="font-medium">#{row.numero}</TableCell>
+                                <TableCell>{row.cliente_nome ?? '—'}</TableCell>
+                                <TableCell>{row.vendedor_nome ?? '—'}</TableCell>
+                                <TableCell className="text-xs whitespace-nowrap">
+                                  {row.canceled_at ? new Date(row.canceled_at).toLocaleString('pt-BR') : '—'}
+                                </TableCell>
+                                <TableCell className="text-right">{fmt(numVal(row.total))}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="followup" className="space-y-4 mt-4 min-w-0">
+              {serverReports.followup.isLoading ? (
+                <p className="text-sm text-muted-foreground text-center py-12">Carregando…</p>
+              ) : serverReports.followup.isError ? (
+                <p className="text-sm text-destructive text-center py-8">
+                  {queryErr(serverReports.followup.error)}
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Jobs de pós-venda</p>
+                        <p className="text-2xl font-bold mt-1">{serverReports.followup.data?.totals.total_jobs ?? 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Enviados</p>
+                        <p className="text-2xl font-bold mt-1">{serverReports.followup.data?.totals.sent_jobs ?? 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Pendentes / agendados</p>
+                        <p className="text-2xl font-bold mt-1">{serverReports.followup.data?.totals.pending_jobs ?? 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Com erro / cancelados</p>
+                        <p className="text-2xl font-bold mt-1">
+                          {(serverReports.followup.data?.totals.error_jobs ?? 0) + (serverReports.followup.data?.totals.cancelled_jobs ?? 0)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Por status</CardTitle>
+                        <CardDescription>Fila e histórico de envio do follow-up por OS.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Qtd</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(serverReports.followup.data?.by_status.length ?? 0) === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                                  Nenhum registro de pós-venda no período.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              serverReports.followup.data!.by_status.map((row) => (
+                                <TableRow key={row.status}>
+                                  <TableCell className="font-medium">{row.status}</TableCell>
+                                  <TableCell className="text-right">{row.cnt}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Regras de envio</CardTitle>
+                        <CardDescription>Distribuição das regras aplicadas no agendamento.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Regra</TableHead>
+                              <TableHead className="text-right">Qtd</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(serverReports.followup.data?.by_rule.length ?? 0) === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                                  Nenhuma regra registrada.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              serverReports.followup.data!.by_rule.map((row) => (
+                                <TableRow key={row.tipo_regra_envio}>
+                                  <TableCell className="font-medium">{followupRuleLabel(row.tipo_regra_envio)}</TableCell>
+                                  <TableCell className="text-right">{row.cnt}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Histórico recente</CardTitle>
+                      <CardDescription>Últimos jobs de follow-up criados no período.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>OS</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Regra</TableHead>
+                            <TableHead>Agendado para</TableHead>
+                            <TableHead>Telefone</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(serverReports.followup.data?.recent_jobs.length ?? 0) === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                Nenhum job de pós-venda encontrado.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            serverReports.followup.data!.recent_jobs.map((row) => (
+                              <TableRow key={row.id}>
+                                <TableCell className="font-medium">{row.ordem_servico_id.slice(0, 8)}…</TableCell>
+                                <TableCell>{row.status}</TableCell>
+                                <TableCell>{followupRuleLabel(row.tipo_regra_envio)}</TableCell>
+                                <TableCell className="text-xs whitespace-nowrap">
+                                  {row.scheduled_at ? new Date(row.scheduled_at).toLocaleString('pt-BR') : '—'}
+                                </TableCell>
+                                <TableCell className="text-xs">{row.telefone ?? '—'}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                     </CardContent>
                   </Card>
                 </div>

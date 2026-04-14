@@ -43,6 +43,11 @@ function requireAdmin(req, res) {
   return true;
 }
 
+function relationMissing(error, relationName) {
+  const msg = String(error?.message || error || '');
+  return msg.includes('does not exist') && msg.includes(relationName);
+}
+
 /** Formas de pagamento (payments confirmados em vendas pagas no período da venda) */
 router.get('/payment-methods', async (req, res) => {
   const companyId = requireCompany(req, res);
@@ -314,6 +319,328 @@ router.get('/clients-summary', async (req, res) => {
     });
   } catch (e) {
     console.error('[Reports] clients-summary:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/** Caixa: sessões e movimentações no período */
+router.get('/cash-overview', async (req, res) => {
+  const companyId = requireCompany(req, res);
+  if (!companyId) return;
+  const range = parseRange(req);
+  if (range.error) return res.status(400).json({ success: false, error: range.error });
+
+  try {
+    let totals = {
+      total_sessions: 0,
+      open_sessions: 0,
+      closed_sessions: 0,
+      total_inicial: 0,
+      total_final: 0,
+      total_esperado: 0,
+      total_divergencia: 0,
+    };
+    let byOperator = [];
+    let byMovementType = [];
+    let recentSessions = [];
+
+    try {
+      const [totalsRes, byOperatorRes, recentSessionsRes] = await Promise.all([
+        pool.query(
+          `SELECT COUNT(*)::int AS total_sessions,
+                  COUNT(*) FILTER (WHERE status = 'open')::int AS open_sessions,
+                  COUNT(*) FILTER (WHERE status = 'closed')::int AS closed_sessions,
+                  COALESCE(SUM(valor_inicial), 0)::numeric AS total_inicial,
+                  COALESCE(SUM(valor_final), 0)::numeric AS total_final,
+                  COALESCE(SUM(valor_esperado), 0)::numeric AS total_esperado,
+                  COALESCE(SUM(divergencia), 0)::numeric AS total_divergencia
+           FROM cash_register_sessions
+           WHERE company_id = $1
+             AND opened_at >= $2::timestamptz
+             AND opened_at <= $3::timestamptz`,
+          [companyId, range.start, range.end]
+        ),
+        pool.query(
+          `SELECT COALESCE(NULLIF(TRIM(operador_nome), ''), '(sem operador)') AS operador,
+                  COUNT(*)::int AS sessions_count,
+                  COUNT(*) FILTER (WHERE status = 'open')::int AS open_count,
+                  COUNT(*) FILTER (WHERE status = 'closed')::int AS closed_count,
+                  COALESCE(SUM(valor_inicial), 0)::numeric AS valor_inicial,
+                  COALESCE(SUM(valor_final), 0)::numeric AS valor_final,
+                  COALESCE(SUM(valor_esperado), 0)::numeric AS valor_esperado,
+                  COALESCE(SUM(divergencia), 0)::numeric AS divergencia
+           FROM cash_register_sessions
+           WHERE company_id = $1
+             AND opened_at >= $2::timestamptz
+             AND opened_at <= $3::timestamptz
+           GROUP BY 1
+           ORDER BY valor_final DESC, sessions_count DESC
+           LIMIT 50`,
+          [companyId, range.start, range.end]
+        ),
+        pool.query(
+          `SELECT id, numero, operador_nome, status, opened_at, closed_at,
+                  valor_inicial, valor_final, valor_esperado, divergencia
+           FROM cash_register_sessions
+           WHERE company_id = $1
+             AND opened_at >= $2::timestamptz
+             AND opened_at <= $3::timestamptz
+           ORDER BY opened_at DESC
+           LIMIT 100`,
+          [companyId, range.start, range.end]
+        ),
+      ]);
+      totals = totalsRes.rows[0] || totals;
+      byOperator = byOperatorRes.rows;
+      recentSessions = recentSessionsRes.rows;
+    } catch (e) {
+      if (
+        !relationMissing(e, 'cash_register_sessions') &&
+        !relationMissing(e, 'cash_register_session')
+      ) {
+        throw e;
+      }
+    }
+
+    try {
+      const movementRes = await pool.query(
+        `SELECT tipo,
+                COUNT(*)::int AS cnt,
+                COALESCE(SUM(valor), 0)::numeric AS total
+         FROM cash_movements
+         WHERE company_id = $1
+           AND created_at >= $2::timestamptz
+           AND created_at <= $3::timestamptz
+         GROUP BY tipo
+         ORDER BY total DESC`,
+        [companyId, range.start, range.end]
+      );
+      byMovementType = movementRes.rows;
+    } catch (e) {
+      if (!relationMissing(e, 'cash_movements')) throw e;
+    }
+
+    res.json({
+      success: true,
+      totals,
+      by_operator: byOperator,
+      by_movement_type: byMovementType,
+      recent_sessions: recentSessions,
+    });
+  } catch (e) {
+    console.error('[Reports] cash-overview:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/** Cancelamentos: vendas canceladas + solicitações de cancelamento */
+router.get('/sales-cancellations', async (req, res) => {
+  const companyId = requireCompany(req, res);
+  if (!companyId) return;
+  const range = parseRange(req);
+  if (range.error) return res.status(400).json({ success: false, error: range.error });
+
+  try {
+    const canceledSales = await pool.query(
+      `SELECT COUNT(*)::int AS canceled_sales,
+              COALESCE(SUM(total), 0)::numeric AS canceled_total
+       FROM sales
+       WHERE company_id = $1
+         AND status = 'canceled'
+         AND canceled_at IS NOT NULL
+         AND canceled_at >= $2::timestamptz
+         AND canceled_at <= $3::timestamptz`,
+      [companyId, range.start, range.end]
+    );
+
+    const salesByReason = await pool.query(
+      `SELECT COALESCE(NULLIF(TRIM(cancel_reason), ''), '(sem motivo informado)') AS reason,
+              COUNT(*)::int AS cnt,
+              COALESCE(SUM(total), 0)::numeric AS valor
+       FROM sales
+       WHERE company_id = $1
+         AND status = 'canceled'
+         AND canceled_at IS NOT NULL
+         AND canceled_at >= $2::timestamptz
+         AND canceled_at <= $3::timestamptz
+       GROUP BY 1
+       ORDER BY cnt DESC, valor DESC
+       LIMIT 20`,
+      [companyId, range.start, range.end]
+    );
+
+    const recentCanceledSales = await pool.query(
+      `SELECT id, numero, cliente_nome, vendedor_nome, cancel_reason, canceled_at, total
+       FROM sales
+       WHERE company_id = $1
+         AND status = 'canceled'
+         AND canceled_at IS NOT NULL
+         AND canceled_at >= $2::timestamptz
+         AND canceled_at <= $3::timestamptz
+       ORDER BY canceled_at DESC
+       LIMIT 100`,
+      [companyId, range.start, range.end]
+    );
+
+    let requestsTotals = {
+      total_requests: 0,
+      pending_requests: 0,
+      approved_requests: 0,
+      rejected_requests: 0,
+    };
+    let requestsByStatus = [];
+    let requestReasons = [];
+
+    try {
+      const [requestsTotalsRes, requestsByStatusRes, requestReasonsRes] = await Promise.all([
+        pool.query(
+          `SELECT COUNT(*)::int AS total_requests,
+                  COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_requests,
+                  COUNT(*) FILTER (WHERE status = 'approved')::int AS approved_requests,
+                  COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected_requests
+           FROM sale_cancel_requests scr
+           INNER JOIN sales s ON s.id = scr.sale_id
+           WHERE s.company_id = $1
+             AND scr.created_at >= $2::timestamptz
+             AND scr.created_at <= $3::timestamptz`,
+          [companyId, range.start, range.end]
+        ),
+        pool.query(
+          `SELECT status,
+                  COUNT(*)::int AS cnt
+           FROM sale_cancel_requests scr
+           INNER JOIN sales s ON s.id = scr.sale_id
+           WHERE s.company_id = $1
+             AND scr.created_at >= $2::timestamptz
+             AND scr.created_at <= $3::timestamptz
+           GROUP BY status
+           ORDER BY cnt DESC`,
+          [companyId, range.start, range.end]
+        ),
+        pool.query(
+          `SELECT COALESCE(NULLIF(TRIM(motivo), ''), '(sem motivo informado)') AS reason,
+                  COUNT(*)::int AS cnt
+           FROM sale_cancel_requests scr
+           INNER JOIN sales s ON s.id = scr.sale_id
+           WHERE s.company_id = $1
+             AND scr.created_at >= $2::timestamptz
+             AND scr.created_at <= $3::timestamptz
+           GROUP BY 1
+           ORDER BY cnt DESC
+           LIMIT 20`,
+          [companyId, range.start, range.end]
+        ),
+      ]);
+      requestsTotals = requestsTotalsRes.rows[0] || requestsTotals;
+      requestsByStatus = requestsByStatusRes.rows;
+      requestReasons = requestReasonsRes.rows;
+    } catch (e) {
+      if (!relationMissing(e, 'sale_cancel_requests')) throw e;
+    }
+
+    res.json({
+      success: true,
+      totals: {
+        ...requestsTotals,
+        canceled_sales: canceledSales.rows[0]?.canceled_sales ?? 0,
+        canceled_total: canceledSales.rows[0]?.canceled_total ?? 0,
+      },
+      by_reason: salesByReason.rows,
+      recent_canceled_sales: recentCanceledSales.rows,
+      request_status: requestsByStatus,
+      request_reasons: requestReasons,
+    });
+  } catch (e) {
+    console.error('[Reports] sales-cancellations:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/** Pós-venda: fila/histórico de follow-up WhatsApp por OS */
+router.get('/post-sales-followup', async (req, res) => {
+  const companyId = requireCompany(req, res);
+  if (!companyId) return;
+  const range = parseRange(req);
+  if (range.error) return res.status(400).json({ success: false, error: range.error });
+
+  try {
+    let totals = {
+      total_jobs: 0,
+      sent_jobs: 0,
+      pending_jobs: 0,
+      error_jobs: 0,
+      cancelled_jobs: 0,
+    };
+    let byStatus = [];
+    let byRule = [];
+    let recentJobs = [];
+
+    try {
+      const [totalsRes, byStatusRes, byRuleRes, recentJobsRes] = await Promise.all([
+        pool.query(
+          `SELECT COUNT(*)::int AS total_jobs,
+                  COUNT(*) FILTER (WHERE status = 'enviado')::int AS sent_jobs,
+                  COUNT(*) FILTER (WHERE status IN ('pendente', 'agendado'))::int AS pending_jobs,
+                  COUNT(*) FILTER (WHERE status = 'erro')::int AS error_jobs,
+                  COUNT(*) FILTER (WHERE status = 'cancelado')::int AS cancelled_jobs
+           FROM os_pos_venda_followup_jobs
+           WHERE company_id = $1
+             AND created_at >= $2::timestamptz
+             AND created_at <= $3::timestamptz`,
+          [companyId, range.start, range.end]
+        ),
+        pool.query(
+          `SELECT status,
+                  COUNT(*)::int AS cnt
+           FROM os_pos_venda_followup_jobs
+           WHERE company_id = $1
+             AND created_at >= $2::timestamptz
+             AND created_at <= $3::timestamptz
+           GROUP BY status
+           ORDER BY cnt DESC`,
+          [companyId, range.start, range.end]
+        ),
+        pool.query(
+          `SELECT tipo_regra_envio,
+                  COUNT(*)::int AS cnt
+           FROM os_pos_venda_followup_jobs
+           WHERE company_id = $1
+             AND created_at >= $2::timestamptz
+             AND created_at <= $3::timestamptz
+           GROUP BY tipo_regra_envio
+           ORDER BY cnt DESC`,
+          [companyId, range.start, range.end]
+        ),
+        pool.query(
+          `SELECT id, ordem_servico_id, telefone, status, tipo_regra_envio,
+                  scheduled_at, sent_at, faturado_at, error_message, skip_reason,
+                  random_delay_seconds, created_at
+           FROM os_pos_venda_followup_jobs
+           WHERE company_id = $1
+             AND created_at >= $2::timestamptz
+             AND created_at <= $3::timestamptz
+           ORDER BY created_at DESC
+           LIMIT 100`,
+          [companyId, range.start, range.end]
+        ),
+      ]);
+      totals = totalsRes.rows[0] || totals;
+      byStatus = byStatusRes.rows;
+      byRule = byRuleRes.rows;
+      recentJobs = recentJobsRes.rows;
+    } catch (e) {
+      if (!relationMissing(e, 'os_pos_venda_followup_jobs')) throw e;
+    }
+
+    res.json({
+      success: true,
+      totals,
+      by_status: byStatus,
+      by_rule: byRule,
+      recent_jobs: recentJobs,
+    });
+  } catch (e) {
+    console.error('[Reports] post-sales-followup:', e);
     res.status(500).json({ success: false, error: e.message });
   }
 });

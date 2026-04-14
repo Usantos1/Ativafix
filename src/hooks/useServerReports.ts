@@ -9,6 +9,9 @@ export type ServerReportTabKey =
   | 'assistencia'
   | 'refunds'
   | 'clients'
+  | 'cash'
+  | 'cancellations'
+  | 'followup'
   | 'audit';
 
 export type PaymentMethodRow = {
@@ -51,6 +54,89 @@ export type StockMovRow = {
 };
 
 export type OsStatusRow = { status: string; cnt: number };
+
+export type CashTotals = {
+  total_sessions: number;
+  open_sessions: number;
+  closed_sessions: number;
+  total_inicial: string | number;
+  total_final: string | number;
+  total_esperado: string | number;
+  total_divergencia: string | number;
+};
+
+export type CashOperatorRow = {
+  operador: string;
+  sessions_count: number;
+  open_count: number;
+  closed_count: number;
+  valor_inicial: string | number;
+  valor_final: string | number;
+  valor_esperado: string | number;
+  divergencia: string | number;
+};
+
+export type CashMovementTypeRow = {
+  tipo: string;
+  cnt: number;
+  total: string | number;
+};
+
+export type CashSessionRow = {
+  id: string;
+  numero: number;
+  operador_nome: string;
+  status: string;
+  opened_at: string;
+  closed_at: string | null;
+  valor_inicial: string | number;
+  valor_final: string | number | null;
+  valor_esperado: string | number | null;
+  divergencia: string | number | null;
+};
+
+export type CancelReasonRow = {
+  reason: string;
+  cnt: number;
+  valor?: string | number;
+};
+
+export type RecentCanceledSaleRow = {
+  id: string;
+  numero: number;
+  cliente_nome: string | null;
+  vendedor_nome: string | null;
+  cancel_reason: string | null;
+  canceled_at: string;
+  total: string | number;
+};
+
+export type FollowupTotals = {
+  total_jobs: number;
+  sent_jobs: number;
+  pending_jobs: number;
+  error_jobs: number;
+  cancelled_jobs: number;
+};
+
+export type FollowupStatusRow = { status: string; cnt: number };
+
+export type FollowupRuleRow = { tipo_regra_envio: string; cnt: number };
+
+export type FollowupJobRow = {
+  id: string;
+  ordem_servico_id: string;
+  telefone: string | null;
+  status: string;
+  tipo_regra_envio: string;
+  scheduled_at: string;
+  sent_at: string | null;
+  faturado_at: string;
+  error_message: string | null;
+  skip_reason: string | null;
+  random_delay_seconds: number;
+  created_at: string;
+};
 
 function qstart(start?: string, end?: string) {
   return !!start && !!end;
@@ -139,6 +225,56 @@ export function useServerReportsQueries(
     enabled: base && activeTab === 'clients',
   });
 
+  const cash = useQuery({
+    queryKey: ['server-report', 'cash', startDate, endDate],
+    queryFn: async () => {
+      const d = await getJson(`/api/reports/cash-overview?${qs}`);
+      return {
+        totals: d.totals as CashTotals,
+        by_operator: d.by_operator as CashOperatorRow[],
+        by_movement_type: d.by_movement_type as CashMovementTypeRow[],
+        recent_sessions: d.recent_sessions as CashSessionRow[],
+      };
+    },
+    enabled: base && activeTab === 'cash',
+  });
+
+  const cancellations = useQuery({
+    queryKey: ['server-report', 'cancellations', startDate, endDate],
+    queryFn: async () => {
+      const d = await getJson(`/api/reports/sales-cancellations?${qs}`);
+      return {
+        totals: d.totals as {
+          canceled_sales: number;
+          canceled_total: string | number;
+          total_requests: number;
+          pending_requests: number;
+          approved_requests: number;
+          rejected_requests: number;
+        },
+        by_reason: d.by_reason as CancelReasonRow[],
+        recent_canceled_sales: d.recent_canceled_sales as RecentCanceledSaleRow[],
+        request_status: d.request_status as { status: string; cnt: number }[],
+        request_reasons: d.request_reasons as CancelReasonRow[],
+      };
+    },
+    enabled: base && activeTab === 'cancellations',
+  });
+
+  const followup = useQuery({
+    queryKey: ['server-report', 'followup', startDate, endDate],
+    queryFn: async () => {
+      const d = await getJson(`/api/reports/post-sales-followup?${qs}`);
+      return {
+        totals: d.totals as FollowupTotals,
+        by_status: d.by_status as FollowupStatusRow[],
+        by_rule: d.by_rule as FollowupRuleRow[],
+        recent_jobs: d.recent_jobs as FollowupJobRow[],
+      };
+    },
+    enabled: base && activeTab === 'followup',
+  });
+
   const audit = useQuery({
     queryKey: ['server-report', 'audit', startDate, endDate],
     queryFn: async () => {
@@ -159,6 +295,9 @@ export function useServerReportsQueries(
     osOverview,
     refunds,
     clients,
+    cash,
+    cancellations,
+    followup,
     audit,
   };
 }
