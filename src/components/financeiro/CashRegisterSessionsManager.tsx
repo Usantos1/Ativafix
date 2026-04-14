@@ -641,6 +641,22 @@ export function CashRegisterSessionsManager({
                 ) : (
                   <div className="text-sm text-muted-foreground">Sem totais registrados (caixa ainda aberto ou não conferido)</div>
                 )}
+                {isAdmin ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2">
+                    <span className="text-xs font-medium text-muted-foreground">Conferência</span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1"
+                      disabled={loadingSessionSales}
+                      onClick={() => void handlePrintExtratoTermico()}
+                    >
+                      <Printer className="h-4 w-4" />
+                      Imprimir extrato (térmica)
+                    </Button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="border rounded-lg overflow-hidden flex flex-col min-h-[200px]">
@@ -737,6 +753,17 @@ export function CashRegisterSessionsManager({
                   <div className="flex flex-wrap gap-2">
                     {!showCloseForm && !showMovementForm && (
                       <>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="gap-1"
+                          disabled={loadingSessionSales}
+                          onClick={() => void handlePrintExtratoTermico()}
+                        >
+                          <Printer className="h-4 w-4" />
+                          Imprimir extrato (térmica)
+                        </Button>
                         <Button variant="destructive" size="sm" onClick={() => setShowCloseForm(true)} className="gap-1">
                           <Lock className="h-4 w-4" /> Fechar caixa
                         </Button>
