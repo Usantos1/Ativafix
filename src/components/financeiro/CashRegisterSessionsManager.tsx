@@ -16,8 +16,10 @@ import { currencyFormatters, dateFormatters } from '@/utils/formatters';
 import { MASKED_VALUE } from '@/components/dashboard/FinancialCards';
 import { useToast } from '@/hooks/use-toast';
 import { startOfDay, endOfDay, subDays } from 'date-fns';
-import { Lock, Plus, Minus } from 'lucide-react';
+import { Lock, Plus, Minus, Printer } from 'lucide-react';
 import { SALE_STATUS_LABELS, type SaleStatus } from '@/types/pdv';
+import { printTermica } from '@/utils/pdfGenerator';
+import { buildCashClosingTermicaHtml } from '@/utils/cashClosingTermicaGenerator';
 
 type CashSession = {
   id: string;
@@ -276,6 +278,105 @@ export function CashRegisterSessionsManager({ dateFilter, customDateStart, custo
     }
   };
 
+  const handlePrintExtratoTermico = async () => {
+    if (!selected) return;
+    try {
+      const paidRows = sessionSalesRows.filter(({ sale }) => sale.status === 'paid');
+      const salesTotalById: Record<string, number> = {};
+      paidRows.forEach(({ sale }) => {
+        salesTotalById[sale.id] = Number(sale.total || 0);
+      });
+      const getValorAplicado = (p: { sale_id?: string; forma_pagamento?: string; valor?: number; troco?: number }) => {
+        const valor = Number(p.valor || 0);
+        const troco = Number(p.troco || 0);
+        const saleTotal = salesTotalById[p.sale_id || ''] ?? 0;
+        if ((p.forma_pagamento || '').toLowerCase() === 'dinheiro' && troco > 0 && valor > saleTotal) return valor - troco;
+        return valor;
+      };
+
+      const allPayments = paidRows.flatMap((r) => r.payments);
+      const pagamentosPorForma: Record<string, number> = {};
+      allPayments.forEach((p) => {
+        const forma = (p.forma_pagamento || '').toLowerCase();
+        if (forma === 'adiantamento os') return;
+        const f = forma || 'outro';
+        pagamentosPorForma[f] = (pagamentosPorForma[f] || 0) + getValorAplicado(p);
+      });
+
+      const valorAbertura = Number(selected.valor_inicial || 0);
+      const totalDinheiroVendas = pagamentosPorForma['dinheiro'] || 0;
+      const totalDinheiroParaConferencia = valorAbertura + totalDinheiroVendas;
+
+      const totaisLinhas = Object.entries(pagamentosPorForma)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([forma, valor]) => {
+          const valorConf = forma === 'dinheiro' ? totalDinheiroParaConferencia : valor;
+          let detalhe: string | undefined;
+          if (forma === 'dinheiro' && valorAbertura > 0) {
+            detalhe = `Abertura ${currencyFormatters.brl(valorAbertura)} + vendas ${currencyFormatters.brl(totalDinheiroVendas)}`;
+          }
+          return { forma, valor_conferencia: valorConf, detalhe_linha: detalhe };
+        });
+
+      const totalEntradasVendas = allPayments.reduce((s, p) => {
+        if ((p.forma_pagamento || '').toLowerCase() === 'adiantamento os') return s;
+        return s + getValorAplicado(p);
+      }, 0);
+
+      const totalSuprimentos = movements.filter((m) => m.tipo === 'suprimento').reduce((sum, m) => sum + Number(m.valor || 0), 0);
+      const totalSaidas = movements.filter((m) => m.tipo === 'sangria').reduce((sum, m) => sum + Number(m.valor || 0), 0);
+      const valorEsperadoCalc = valorAbertura + totalEntradasVendas + totalSuprimentos - totalSaidas;
+      const valorEsperado =
+        selected.valor_esperado != null ? Number(selected.valor_esperado) : valorEsperadoCalc;
+
+      const vendasLinhas = paidRows
+        .slice()
+        .sort((a, b) => String(b.sale.created_at || '').localeCompare(String(a.sale.created_at || '')))
+        .map(({ sale, payments: plist }) => {
+          const pags = plist
+            .filter((p) => (p.forma_pagamento || '').toLowerCase() !== 'adiantamento os')
+            .map((p) => ({
+              forma: p.forma_pagamento || '',
+              valor_exibido: getValorAplicado(p),
+              troco: Number(p.troco || 0),
+            }));
+          return {
+            numero: sale.numero ?? sale.id,
+            cliente_nome: sale.cliente_nome?.trim() || 'Consumidor final',
+            data_hora: sale.created_at
+              ? `${dateFormatters.short(sale.created_at)} ${new Date(sale.created_at).toLocaleTimeString('pt-BR')}`
+              : '—',
+            total: Number(sale.total || 0),
+            pagamentos: pags,
+          };
+        });
+
+      const movimentosLinhas = movements.map((m) => ({
+        tipo: m.tipo as 'sangria' | 'suprimento',
+        valor: Number(m.valor),
+        motivo: m.motivo || undefined,
+      }));
+
+      const openedAt = selected.opened_at;
+      const html = await buildCashClosingTermicaHtml({
+        operador_nome: selected.operador_nome || undefined,
+        valor_abertura: valorAbertura,
+        abertura_em: openedAt
+          ? `${dateFormatters.short(openedAt)} ${new Date(openedAt).toLocaleTimeString('pt-BR')}`
+          : '—',
+        totais_por_forma: totaisLinhas,
+        total_entradas_vendas: totalEntradasVendas,
+        valor_esperado_caixa: valorEsperado,
+        vendas: vendasLinhas,
+        movimentos: movimentosLinhas,
+      });
+      printTermica(html);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Erro ao gerar impressão', variant: 'destructive' });
+    }
+  };
+
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ['cash-register-sessions-admin', dateFilter, customDateStart?.toISOString(), customDateEnd?.toISOString(), statusFilter, isAdmin, user?.id],
     queryFn: async () => {
@@ -518,6 +619,19 @@ export function CashRegisterSessionsManager({ dateFilter, customDateStart, custo
                 ) : (
                   <div className="text-sm text-muted-foreground">Sem totais registrados (caixa ainda aberto ou não conferido)</div>
                 )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1"
+                    disabled={loadingSessionSales}
+                    onClick={() => void handlePrintExtratoTermico()}
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimir extrato (térmica)
+                  </Button>
+                </div>
               </div>
 
               <div className="border rounded-lg overflow-hidden flex flex-col min-h-[200px]">
@@ -632,7 +746,18 @@ export function CashRegisterSessionsManager({ dateFilter, customDateStart, custo
                       <Input type="text" inputMode="decimal" placeholder="0,00" value={valorFinal} onChange={(e) => setValorFinal(e.target.value)} />
                       <Label>Justificativa (opcional)</Label>
                       <Textarea placeholder="Ex.: Conferido com fechamento" value={justificativa} onChange={(e) => setJustificativa(e.target.value)} rows={2} />
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={loadingSessionSales}
+                          className="gap-1"
+                          onClick={() => void handlePrintExtratoTermico()}
+                        >
+                          <Printer className="h-4 w-4" />
+                          Imprimir extrato
+                        </Button>
                         <Button size="sm" disabled={isSubmitting} onClick={handleCloseCash}>Fechar caixa</Button>
                         <Button size="sm" variant="outline" onClick={() => { setShowCloseForm(false); setValorFinal(''); setJustificativa(''); }}>Cancelar</Button>
                       </div>

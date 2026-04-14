@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { from } from '@/integrations/db/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getApiUrl } from '@/utils/apiUrl';
 import {
   Sale, SaleFormData, SaleItem, SaleItemFormData,
   Payment, PaymentFormData,
@@ -12,6 +13,30 @@ import {
   CancelRequest, CancelRequestFormData,
   SaleStatus, PaymentStatus, PaymentMethod
 } from '@/types/pdv';
+
+async function fireAlertSafely(
+  token: string | undefined,
+  codigo_alerta: string,
+  payload: Record<string, unknown>
+) {
+  if (!token || !codigo_alerta) return;
+  try {
+    const res = await fetch(`${getApiUrl()}/alerts/fire`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ codigo_alerta, payload }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      console.warn(`[Painel de Alertas] Falha ao disparar ${codigo_alerta}:`, data?.error || res.statusText);
+    }
+  } catch (err) {
+    console.warn(`[Painel de Alertas] Erro ao disparar ${codigo_alerta}:`, err);
+  }
+}
 
 // ==================== HOOK: VENDAS (SALES) ====================
 
@@ -1294,6 +1319,7 @@ export function useCashRegister() {
 
       const valorEsperado = Number(valorInicialSession) || 0;
       const divergenciaCalculada = valorFinal - valorEsperado;
+      const totalVendas = Object.values(totais).reduce((sum, value) => sum + Number(value || 0), 0);
 
       const { data: updatedSession, error } = await from('cash_register_sessions')
         .update({
@@ -1314,6 +1340,12 @@ export function useCashRegister() {
       if (error) throw error;
 
       await logAudit('update', 'cash_session', sessionId, currentSession, updatedSession, 'Caixa fechado', user);
+      await fireAlertSafely(auth?.session?.token, 'caixa.fechado', {
+        valor_abertura: Number(valorInicialSession || 0),
+        valor_fechamento: Number(valorFinal || 0),
+        total_vendas: Number(totalVendas || 0),
+        usuario: profile?.display_name || user?.user_metadata?.name || user?.email || 'Operador',
+      });
 
       if (currentSession?.id === sessionId) {
         setCurrentSession(null);
@@ -1386,6 +1418,10 @@ export function useCashMovements(sessionId: string) {
 
       // Log de auditoria
       await logAudit('create', 'cash_movement', newMovement.id, null, newMovement, `${movementData.tipo === 'sangria' ? 'Sangria' : 'Suprimento'} de R$ ${movementData.valor}`, auth?.user);
+      await fireAlertSafely(auth?.session?.token, movementData.tipo === 'sangria' ? 'caixa.sangria' : 'caixa.suprimento', {
+        valor: Number(movementData.valor || 0),
+        usuario: operadorNome,
+      });
 
       setMovements(prev => [newMovement, ...prev]);
       return newMovement;

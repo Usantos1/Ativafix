@@ -27,7 +27,7 @@ const pool = new Pool({
 const DEFAULT_VARS = [
   'cliente', 'numero_os', 'status', 'marca', 'modelo', 'usuario', 'valor',
   'descricao', 'data_vencimento', 'total_vendas', 'quantidade_vendas', 'ticket_medio',
-  'empresa', 'link_os', 'valor_abertura', 'valor_fechamento', 'meta', 'horario',
+  'empresa', 'link_os', 'defeito', 'valor_abertura', 'valor_fechamento', 'meta', 'horario',
   'dias', 'tipo', 'id', 'campo', 'valor_anterior', 'valor_novo', 'limite'
 ];
 
@@ -292,7 +292,7 @@ export async function dispatch(options) {
 
   const alertConf = await getAlertConfig(client, companyId, codigoAlerta);
   const catalogRow = (await client.query(
-    `SELECT categoria, nome, template_padrao, prioridade_padrao FROM alert_catalog WHERE codigo_alerta = $1`,
+    `SELECT categoria, nome, template_padrao, prioridade_padrao, ativo_por_padrao FROM alert_catalog WHERE codigo_alerta = $1`,
     [codigoAlerta]
   )).rows[0];
   if (!catalogRow) return { sent: false, error: 'Alerta não encontrado no catálogo' };
@@ -301,7 +301,22 @@ export async function dispatch(options) {
   if (!ativo) return { sent: false, error: 'Alerta desativado para esta empresa' };
 
   const template = (alertConf && alertConf.template_mensagem) || catalogRow.template_padrao || '';
-  const mensagem = renderTemplate(template, payload);
+  let mensagem = renderTemplate(template, payload);
+
+  // Compatibilidade: garante dados essenciais de OS aberta mesmo com template antigo/customizado.
+  if (codigoAlerta === 'os.criada') {
+    const defeito = payload?.defeito ? String(payload.defeito).trim() : '';
+    const linkOs = payload?.link_os ? String(payload.link_os).trim() : '';
+    const templateLower = String(template || '').toLowerCase();
+
+    if (defeito && !templateLower.includes('{defeito}')) {
+      mensagem += `\nDefeito: ${defeito}`;
+    }
+    if (linkOs && !templateLower.includes('{link_os}')) {
+      mensagem += `\nAcompanhamento: ${linkOs}`;
+    }
+  }
+
   if (!mensagem.trim()) return { sent: false, error: 'Template vazio' };
 
   const usarGlobais = alertConf ? alertConf.usar_destinatarios_globais !== false : true;

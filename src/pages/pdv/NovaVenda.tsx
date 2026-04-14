@@ -30,7 +30,8 @@ import { from } from '@/integrations/db/client';
 import { Link } from 'react-router-dom';
 import { useCupomConfig } from '@/hooks/useCupomConfig';
 import { CartItem, PaymentFormData, PaymentMethod, PAYMENT_METHOD_LABELS, Quote, LIMITES_DESCONTO_PERFIL } from '@/types/pdv';
-import { currencyFormatters } from '@/utils/formatters';
+import { currencyFormatters, dateFormatters } from '@/utils/formatters';
+import { buildCashClosingTermicaHtml } from '@/utils/cashClosingTermicaGenerator';
 import { getDemoAwareErrorMessage, isDemoSession } from '@/utils/demoMode';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingButton } from '@/components/LoadingButton';
@@ -226,6 +227,9 @@ export default function NovaVenda() {
   const [closeDialogLoadingValor, setCloseDialogLoadingValor] = useState(false);
   const [closeDialogPagamentosPorForma, setCloseDialogPagamentosPorForma] = useState<Record<string, number>>({});
   const [closeDialogTotalVendas, setCloseDialogTotalVendas] = useState(0);
+  const [closeDialogSales, setCloseDialogSales] = useState<any[]>([]);
+  const [closeDialogSalePayments, setCloseDialogSalePayments] = useState<Record<string, any[]>>({});
+  const [closeDialogTotalEntradasPagamentos, setCloseDialogTotalEntradasPagamentos] = useState(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const addingPaymentRef = useRef(false);
@@ -246,13 +250,14 @@ export default function NovaVenda() {
       setCloseDialogLoadingValor(true);
       try {
         const { data: salesData } = await from('sales')
-          .select('id, total, ordem_servico_id')
+          .select('id, numero, total, cliente_nome, created_at, ordem_servico_id')
           .eq('cash_register_session_id', cashSession.id)
           .eq('status', 'paid')
           .execute();
         const sales = salesData || [];
         const totalVendas = sales.reduce((s, r) => s + Number(r.total || 0), 0);
         setCloseDialogTotalVendas(totalVendas);
+        setCloseDialogSales(sales);
         const saleIds = sales.map((r: any) => r.id).filter(Boolean);
         const salesTotalById: Record<string, number> = {};
         sales.forEach((r: any) => { salesTotalById[r.id] = Number(r.total || 0); });
@@ -265,6 +270,7 @@ export default function NovaVenda() {
         };
         const pagamentosPorForma: Record<string, number> = {};
         let paymentsData: any[] | null = null;
+        const paymentsBySale: Record<string, any[]> = {};
         if (saleIds.length > 0) {
           const res = await from('payments')
             .select('sale_id, forma_pagamento, valor, troco')
@@ -273,6 +279,9 @@ export default function NovaVenda() {
             .execute();
           paymentsData = res.data || null;
           (paymentsData || []).forEach((p: any) => {
+            const sid = p.sale_id;
+            if (!paymentsBySale[sid]) paymentsBySale[sid] = [];
+            paymentsBySale[sid].push(p);
             const forma = (p.forma_pagamento || '').toLowerCase();
             if (forma === 'adiantamento os') return;
             const f = forma || 'outro';
@@ -280,6 +289,7 @@ export default function NovaVenda() {
             pagamentosPorForma[f] = (pagamentosPorForma[f] || 0) + valor;
           });
         }
+        setCloseDialogSalePayments(paymentsBySale);
         setCloseDialogPagamentosPorForma(pagamentosPorForma);
         const totalSuprimentos = (cashMovements || [])
           .filter((m: any) => m.tipo === 'suprimento')
@@ -293,6 +303,7 @@ export default function NovaVenda() {
           if ((p.forma_pagamento || '').toLowerCase() === 'adiantamento os') return s;
           return s + getValorAplicado(p);
         }, 0);
+        setCloseDialogTotalEntradasPagamentos(totalEntradasVendas);
         setCloseDialogValorEsperado(valorInicial + totalEntradasVendas + totalSuprimentos - totalSaidas);
       } finally {
         setCloseDialogLoadingValor(false);
@@ -342,6 +353,74 @@ export default function NovaVenda() {
       toast({ title: isDemoSession() ? 'Não é possível na conta demo' : 'Erro ao fechar caixa', description: getDemoAwareErrorMessage(error, 'Tente novamente'), variant: 'destructive' });
     } finally {
       setIsProcessingCash(false);
+    }
+  };
+
+  const handlePrintFechamentoTermicoPDV = async () => {
+    if (!cashSession) return;
+    try {
+      const salesTotalById: Record<string, number> = {};
+      closeDialogSales.forEach((r: any) => { salesTotalById[r.id] = Number(r.total || 0); });
+      const getValorAplicado = (p: any) => {
+        const valor = Number(p.valor || 0);
+        const troco = Number(p.troco || 0);
+        const saleTotal = salesTotalById[p.sale_id] ?? 0;
+        if ((p.forma_pagamento || '').toLowerCase() === 'dinheiro' && troco > 0 && valor > saleTotal) return valor - troco;
+        return valor;
+      };
+      const vendasLinhas = [...closeDialogSales]
+        .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+        .map((sale: any) => {
+          const plist = closeDialogSalePayments[sale.id] || [];
+          const pags = plist
+            .filter((p: any) => (p.forma_pagamento || '').toLowerCase() !== 'adiantamento os')
+            .map((p: any) => ({
+              forma: p.forma_pagamento,
+              valor_exibido: getValorAplicado(p),
+              troco: Number(p.troco || 0),
+            }));
+          return {
+            numero: sale.numero ?? sale.id,
+            cliente_nome: sale.cliente_nome || 'Consumidor final',
+            data_hora: `${dateFormatters.short(sale.created_at)} ${new Date(sale.created_at).toLocaleTimeString('pt-BR')}`,
+            total: Number(sale.total || 0),
+            pagamentos: pags,
+          };
+        });
+      const movimentosLinhas = (cashMovements || []).map((m: any) => ({
+        tipo: m.tipo as 'sangria' | 'suprimento',
+        valor: Number(m.valor),
+        motivo: m.motivo || undefined,
+      }));
+      const valorAbertura = Number(cashSession.valor_inicial) || 0;
+      const totalDinheiroVendas = closeDialogPagamentosPorForma['dinheiro'] || 0;
+      const totaisLinhas = Object.entries(closeDialogPagamentosPorForma)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([forma, valor]) => {
+          const valorConf = forma === 'dinheiro' ? valorAbertura + totalDinheiroVendas : valor;
+          let detalhe: string | undefined;
+          if (forma === 'dinheiro' && valorAbertura > 0) {
+            detalhe = `Abertura ${currencyFormatters.brl(valorAbertura)} + vendas ${currencyFormatters.brl(totalDinheiroVendas)}`;
+          }
+          return { forma, valor_conferencia: valorConf, detalhe_linha: detalhe };
+        });
+      const openedAt = (cashSession as { opened_at?: string }).opened_at;
+      const html = await buildCashClosingTermicaHtml({
+        operador_nome: (cashSession as { operador_nome?: string }).operador_nome || user?.email || undefined,
+        valor_abertura: valorAbertura,
+        abertura_em: openedAt
+          ? `${dateFormatters.short(openedAt)} ${new Date(openedAt).toLocaleTimeString('pt-BR')}`
+          : '—',
+        totais_por_forma: totaisLinhas,
+        total_entradas_vendas: closeDialogTotalEntradasPagamentos,
+        valor_esperado_caixa: closeDialogValorEsperado,
+        vendas: vendasLinhas,
+        movimentos: movimentosLinhas,
+      });
+      printTermica(html);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Erro ao gerar impressão', variant: 'destructive' });
     }
   };
 
@@ -3234,13 +3313,25 @@ _PrimeCamp Assistência Técnica_`;
               </div>
             )}
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2 pt-3 md:pt-4">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-3 md:pt-4 sm:justify-between">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={closeDialogLoadingValor}
+              onClick={() => void handlePrintFechamentoTermicoPDV()}
+              className="w-full sm:w-auto h-9 md:h-10 border-2 border-gray-300"
+            >
+              <Printer className="h-3.5 w-3.5 mr-1.5" />
+              Imprimir extrato (térmica)
+            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
             <Button variant="outline" onClick={() => setShowCloseCashDialog(false)} className="w-full sm:w-auto h-9 md:h-10">
               Cancelar
             </Button>
             <LoadingButton onClick={handleCloseCashPDV} loading={isProcessingCash} className="w-full sm:w-auto h-9 md:h-10">
               Fechar Caixa
             </LoadingButton>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

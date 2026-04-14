@@ -66,6 +66,7 @@ const res = await fetch(`${getApiUrl()}/alerts/fire`, {
       cliente: 'Nome do Cliente',
       marca: 'Samsung',
       modelo: 'Galaxy',
+      defeito: 'Não liga',
       usuario: 'Operador',
       link_os: 'https://...',
       empresa: 'Minha Empresa',
@@ -85,7 +86,7 @@ O backend valida: painel ativo, alerta ativo, janela de horário, números confi
 
 ## Variáveis nos templates
 
-Exemplos: `{cliente}`, `{numero_os}`, `{status}`, `{marca}`, `{modelo}`, `{usuario}`, `{valor}`, `{descricao}`, `{data_vencimento}`, `{total_vendas}`, `{quantidade_vendas}`, `{ticket_medio}`, `{empresa}`, `{link_os}`, `{valor_abertura}`, `{valor_fechamento}`. Cada tipo de alerta tem suas variáveis em `variaveis_disponiveis` no catálogo.
+Exemplos: `{cliente}`, `{numero_os}`, `{status}`, `{marca}`, `{modelo}`, `{defeito}`, `{usuario}`, `{valor}`, `{descricao}`, `{data_vencimento}`, `{total_vendas}`, `{quantidade_vendas}`, `{ticket_medio}`, `{empresa}`, `{link_os}`, `{valor_abertura}`, `{valor_fechamento}`. Cada tipo de alerta tem suas variáveis em `variaveis_disponiveis` no catálogo.
 
 ## Multi-tenant
 

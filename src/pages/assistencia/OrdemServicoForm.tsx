@@ -1763,6 +1763,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
               cliente: selectedCliente?.nome || novaOS.cliente_nome || 'Cliente',
               marca: marcas.find(m => m.id === formData.marca_id)?.nome || novaOS.marca_nome || '',
               modelo: modelos.find(m => m.id === formData.modelo_id)?.nome || novaOS.modelo_nome || '',
+              defeito: formData.descricao_problema || novaOS.descricao_problema || '',
               usuario: currentUserNome,
               link_os: linkOs,
               empresa: profile?.company_name ?? '',
@@ -5689,7 +5690,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                         <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <PopoverContent className="z-[110] w-[var(--radix-popover-trigger-width)] p-0" align="start">
                       <div className="p-2 border-b">
                         <div className="relative">
                           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />

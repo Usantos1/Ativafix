@@ -15,6 +15,7 @@ const SAMPLE_PAYLOAD: Record<string, string> = {
   modelo: 'iPhone 11',
   usuario: 'Atendente',
   link_os: 'https://exemplo.com/acompanhar-os/123',
+  defeito: 'Sem áudio / troca de alto-falante',
   empresa: 'Minha Empresa',
   status: 'Aberta',
   valor: 'R$ 150,00',

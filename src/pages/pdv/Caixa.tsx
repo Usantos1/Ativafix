@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   DollarSign, Plus, Minus, Lock, Unlock, TrendingUp, TrendingDown,
-  Calendar, Clock, User, FileText, CalendarDays
+  Calendar, Clock, User, FileText, CalendarDays, Printer
 } from 'lucide-react';
 import { useCashRegister, useCashMovements } from '@/hooks/usePDV';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +27,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { printTermica } from '@/utils/pdfGenerator';
+import { buildCashClosingTermicaHtml } from '@/utils/cashClosingTermicaGenerator';
 
 export default function Caixa() {
   const navigate = useNavigate();
@@ -302,6 +304,61 @@ export default function Caixa() {
   const valorEsperado = currentSession 
     ? Number(currentSession.valor_inicial) + totalEntradas - totalSaidas
     : 0;
+
+  const handlePrintFechamentoTermico = async () => {
+    if (!currentSession) return;
+    try {
+      const vendasLinhas = [...sales]
+        .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+        .map((sale: any) => {
+          const plist = salePayments[sale.id] || [];
+          const saleTotal = Number(sale.total || 0);
+          const pags = plist
+            .filter((p: any) => (p.forma_pagamento || '').toLowerCase() !== 'adiantamento os')
+            .map((p: any) => ({
+              forma: p.forma_pagamento,
+              valor_exibido: getValorAplicado(p),
+              troco: Number(p.troco || 0),
+            }));
+          return {
+            numero: sale.numero ?? sale.id,
+            cliente_nome: sale.cliente_nome || 'Consumidor final',
+            data_hora: `${dateFormatters.short(sale.created_at)} ${new Date(sale.created_at).toLocaleTimeString('pt-BR')}`,
+            total: saleTotal,
+            pagamentos: pags,
+          };
+        });
+      const movimentosLinhas = movements.map((m) => ({
+        tipo: m.tipo as 'sangria' | 'suprimento',
+        valor: Number(m.valor),
+        motivo: m.motivo || undefined,
+      }));
+      const totaisLinhas = Object.entries(pagamentosPorForma)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([forma, valor]) => {
+          const valorConf = forma === 'dinheiro' ? totalDinheiroParaConferencia : valor;
+          let detalhe: string | undefined;
+          if (forma === 'dinheiro' && valorAberturaSessao > 0) {
+            detalhe = `Abertura ${currencyFormatters.brl(valorAberturaSessao)} + vendas ${currencyFormatters.brl(totalDinheiroVendas)}`;
+          }
+          return { forma, valor_conferencia: valorConf, detalhe_linha: detalhe };
+        });
+      const html = await buildCashClosingTermicaHtml({
+        operador_nome: currentSession.operador_nome,
+        valor_abertura: valorAberturaSessao,
+        abertura_em: `${dateFormatters.short(currentSession.opened_at)} ${new Date(currentSession.opened_at).toLocaleTimeString('pt-BR')}`,
+        totais_por_forma: totaisLinhas,
+        total_entradas_vendas: totalEntradasVendas,
+        valor_esperado_caixa: valorEsperado,
+        vendas: vendasLinhas,
+        movimentos: movimentosLinhas,
+      });
+      printTermica(html);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Erro ao gerar impressão', variant: 'destructive' });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -974,7 +1031,17 @@ export default function Caixa() {
               </div>
             )}
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2 pt-3 md:pt-4">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-3 md:pt-4 sm:justify-between">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void handlePrintFechamentoTermico()}
+              className="w-full sm:w-auto h-9 md:h-10 border-2 border-gray-300"
+            >
+              <Printer className="h-3.5 w-3.5 mr-1.5" />
+              Imprimir extrato (térmica)
+            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
             <Button 
               variant="outline" 
               onClick={() => setShowCloseDialog(false)}
@@ -989,6 +1056,7 @@ export default function Caixa() {
             >
               Fechar Caixa
             </LoadingButton>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
