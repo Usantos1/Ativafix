@@ -151,21 +151,21 @@ export default function FollowupPosVendaConfig() {
       title="Pós-venda"
       subtitle="Mensagem automática de acompanhamento no WhatsApp após o faturamento da OS no PDV. Requer integração Ativa CRM configurada."
     >
-      <div className="w-full max-w-[min(100%,1200px)] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 pb-8">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 space-y-6">
-            <Card className="border shadow-sm">
+      <div className="h-full flex flex-col min-h-0 w-full max-w-none min-w-0 p-4 md:p-6 pb-8 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full min-w-0">
+          <div className="xl:col-span-8 min-w-0 space-y-6">
+            <Card className="border shadow-sm w-full min-w-0">
               <CardHeader className="space-y-1 pb-4">
                 <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
                   <MessageCircle className="h-5 w-5 shrink-0 text-primary" />
                   Mensagem e disparo
                 </CardTitle>
-                <CardDescription className="text-sm leading-relaxed max-w-prose">
+                <CardDescription className="text-sm leading-relaxed text-pretty max-w-none">
                   O envio não é imediato: aplica-se a regra de horário escolhida e um intervalo aleatório de até 30
                   minutos para distribuir os disparos. Uma mensagem por OS faturada.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 min-w-0">
                 {loading ? (
                   <div className="flex justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -195,7 +195,7 @@ export default function FollowupPosVendaConfig() {
                           setSettings((s) => ({ ...s, tipo_regra_envio: v }))
                         }
                       >
-                        <SelectTrigger className="w-full max-w-xl">
+                        <SelectTrigger className="w-full min-w-0">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -232,14 +232,14 @@ export default function FollowupPosVendaConfig() {
             </Card>
           </div>
 
-          <div className="space-y-6 xl:sticky xl:top-4 xl:self-start">
-            <Card className="border shadow-sm bg-muted/20">
+          <div className="xl:col-span-4 min-w-0 space-y-6 xl:sticky xl:top-4 xl:self-start">
+            <Card className="border shadow-sm bg-muted/20 w-full min-w-0">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Prévia</CardTitle>
                 <CardDescription>Exemplo com dados fictícios</CardDescription>
               </CardHeader>
-              <CardContent>
-                <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground border rounded-md p-4 bg-background max-h-[min(50vh,420px)] overflow-y-auto">
+              <CardContent className="min-w-0">
+                <pre className="text-sm whitespace-pre-wrap break-words font-sans leading-relaxed text-foreground border rounded-md p-4 bg-background max-h-[min(60vh,560px)] overflow-y-auto">
                   {preview}
                 </pre>
               </CardContent>
@@ -247,13 +247,13 @@ export default function FollowupPosVendaConfig() {
           </div>
         </div>
 
-        <Card className="border shadow-sm w-full">
+        <Card className="border shadow-sm w-full min-w-0">
           <CardHeader>
             <CardTitle className="text-base sm:text-lg">Histórico recente</CardTitle>
             <CardDescription>Agendamentos e envios desta empresa.</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto -mx-2 sm:mx-0">
-            <Table>
+          <CardContent className="overflow-x-auto min-w-0 p-4 sm:p-6 pt-0">
+            <Table className="w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Status</TableHead>
