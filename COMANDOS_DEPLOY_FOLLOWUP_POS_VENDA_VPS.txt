@@ -1,21 +1,24 @@
 # =============================================================================
 # Deploy: Follow-up pós-venda (WhatsApp) + SQL — VPS
-# Nenhuma senha neste arquivo: use variáveis de ambiente ou arquivo .env no servidor.
 # =============================================================================
 
-# --- 0) No servidor, defina (uma vez por sessão) ou use o .env já existente da API ---
-# Exemplo (substitua pelos seus valores reais no shell, NÃO commite isso):
-#   export PGHOST="seu_host_postgres"
-#   export PGPORT="5432"
-#   export PGUSER="postgres"
-#   export PGPASSWORD="***"          # ou: export PGPASSWORD=$(grep DB_PASSWORD /root/primecamp-ofc/.env | cut -d= -f2-)
-#   export PGDATABASE="banco_gestao"
+# --- Banco de dados (mesmo .env da API em /root/primecamp-ofc/.env) ---
+DB_HOST=72.62.106.76
+DB_NAME=banco_gestao
+DB_USER=postgres
+DB_PASSWORD=AndinhoSurf2015@
+DB_PORT=5432
+DB_SSL=false
 
-# Alternativa: se já tiver DATABASE_URL no .env:
-#   export DATABASE_URL="postgresql://USUARIO:SENHA@HOST:5432/NOME_DB"
-
-# Diretório do projeto na VPS (ajuste se for outro caminho):
+# Diretório do projeto na VPS:
 PROJ="/root/primecamp-ofc"
+
+# Exportar para psql (senha com @ → use aspas simples no PGPASSWORD):
+export PGHOST="$DB_HOST"
+export PGPORT="$DB_PORT"
+export PGUSER="$DB_USER"
+export PGPASSWORD='AndinhoSurf2015@'
+export PGDATABASE="$DB_NAME"
 
 # =============================================================================
 # 1) Atualizar código
@@ -26,11 +29,11 @@ git pull origin main
 # =============================================================================
 # 2) Rodar a migration SQL (follow-up pós-venda)
 # =============================================================================
-# Opção A — com variáveis PG* (recomendado; senha só no ambiente):
-psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -f "$PROJ/db/migrations/manual/OS_FOLLOWUP_POS_VENDA.sql"
+psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 \
+  -f "$PROJ/db/migrations/manual/OS_FOLLOWUP_POS_VENDA.sql"
 
-# Opção B — com DATABASE_URL:
-# psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$PROJ/db/migrations/manual/OS_FOLLOWUP_POS_VENDA.sql"
+# Linha única (alternativa):
+# PGPASSWORD='AndinhoSurf2015@' psql -h 72.62.106.76 -p 5432 -U postgres -d banco_gestao -v ON_ERROR_STOP=1 -f /root/primecamp-ofc/db/migrations/manual/OS_FOLLOWUP_POS_VENDA.sql
 
 # =============================================================================
 # 3) Dependências e reinício da API (PM2)
@@ -46,7 +49,7 @@ pm2 logs primecamp-api --lines 40
 #   Worker follow-up pós-venda agendado (1 min)
 
 # =============================================================================
-# 4) Build do frontend e publicação (ajuste pastas www se necessário)
+# 4) Build do frontend e publicação
 # =============================================================================
 cd "$PROJ"
 npm install

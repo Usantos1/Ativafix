@@ -1,75 +1,89 @@
-═══════════════════════════════════════════════════════════
-🚀 COMANDOS RÁPIDOS PARA VPS - DEPLOY DOS ENDPOINTS
-═══════════════════════════════════════════════════════════
+================================================================
+COMANDOS RAPIDOS PARA VPS - DEPLOY DOS ENDPOINTS
+================================================================
 
-📥 1. ATUALIZAR CÓDIGO
-───────────────────────────────────────────────────────────
+--- BANCO (mesmo .env em /root/primecamp-ofc/.env) ---
+DB_HOST=72.62.106.76
+DB_NAME=banco_gestao
+DB_USER=postgres
+DB_PASSWORD=AndinhoSurf2015@
+DB_PORT=5432
+DB_SSL=false
+
+# Teste Node:
+#   cd /root/primecamp-ofc/server && node test-connection.js
+# Migration follow-up pos-venda:
+#   PGPASSWORD='AndinhoSurf2015@' psql -h 72.62.106.76 -p 5432 -U postgres -d banco_gestao -v ON_ERROR_STOP=1 -f /root/primecamp-ofc/db/migrations/manual/OS_FOLLOWUP_POS_VENDA.sql
+
+================================================================
+
+1. ATUALIZAR CODIGO
+----------------------------------------------------------------
 cd /root/primecamp-ofc
 git pull origin main
 
-📦 2. INSTALAR DEPENDÊNCIAS
-───────────────────────────────────────────────────────────
+2. INSTALAR DEPENDENCIAS
+----------------------------------------------------------------
 cd server
 npm install
 
-📁 3. CRIAR DIRETÓRIO UPLOADS
-───────────────────────────────────────────────────────────
+3. CRIAR DIRETORIO UPLOADS
+----------------------------------------------------------------
 mkdir -p server/uploads
 chmod 755 server/uploads
 
-🔄 4. REINICIAR SERVIDOR (PM2)
-───────────────────────────────────────────────────────────
+4. REINICIAR SERVIDOR (PM2)
+----------------------------------------------------------------
 pm2 restart primecamp-api
-# ou se não existir:
+# ou se nao existir:
 pm2 start server/index.js --name primecamp-api
 
-📊 5. VERIFICAR STATUS
-───────────────────────────────────────────────────────────
+5. VERIFICAR STATUS
+----------------------------------------------------------------
 pm2 status
 pm2 logs primecamp-api --lines 50
 
-🏥 6. TESTAR HEALTH CHECK
-───────────────────────────────────────────────────────────
+6. TESTAR HEALTH CHECK
+----------------------------------------------------------------
 curl http://localhost:3000/api/health
 
-═══════════════════════════════════════════════════════════
-📋 OU EXECUTAR SCRIPT AUTOMÁTICO
-═══════════════════════════════════════════════════════════
+================================================================
+OU EXECUTAR SCRIPT AUTOMATICO
+================================================================
 
 bash DEPLOY_VPS.sh
 
-═══════════════════════════════════════════════════════════
-🔍 VERIFICAÇÕES PÓS-DEPLOY
-═══════════════════════════════════════════════════════════
+================================================================
+VERIFICACOES POS-DEPLOY
+================================================================
 
-✅ Verificar se servidor está rodando:
-   pm2 list | grep primecamp-api
+- Verificar se servidor esta rodando:
+ pm2 list | grep primecamp-api
 
-✅ Verificar logs sem erros:
-   pm2 logs primecamp-api --lines 100 | grep -i error
+- Verificar logs sem erros:
+  pm2 logs primecamp-api --lines 100 | grep -i error
 
-✅ Testar endpoint (deve retornar 401 sem token):
-   curl -X POST http://localhost:3000/api/functions/admin-get-user \
-     -H "Content-Type: application/json" \
-     -d '{"userId":"test"}'
+- Testar endpoint (deve retornar 401 sem token):
+  curl -X POST http://localhost:3000/api/functions/admin-get-user \
+    -H "Content-Type: application/json" \
+    -d '{"userId":"test"}'
 
-✅ Verificar se diretório uploads existe:
-   ls -la server/uploads
+- Verificar se diretorio uploads existe:
+  ls -la server/uploads
 
-═══════════════════════════════════════════════════════════
-⚠️  TROUBLESHOOTING
-═══════════════════════════════════════════════════════════
+================================================================
+TROUBLESHOOTING
+================================================================
 
-❌ Erro: "Cannot find module 'multer'"
-   → cd server && npm install
+Erro: "Cannot find module 'multer'"
+  -> cd server && npm install
 
-❌ Erro: "Port 3000 already in use"
-   → lsof -i :3000
-   → kill -9 PID_DO_PROCESSO
+Erro: "Port 3000 already in use"
+  -> lsof -i :3000
+  -> kill -9 PID_DO_PROCESSO
 
-❌ Servidor não inicia
-   → pm2 logs primecamp-api
-   → Verificar variáveis de ambiente no .env
+Servidor nao inicia
+  -> pm2 logs primecamp-api
+  -> Verificar variaveis de ambiente no .env
 
-═══════════════════════════════════════════════════════════
-
+================================================================

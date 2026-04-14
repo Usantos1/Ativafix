@@ -1,5 +1,16 @@
 # 🚨 COMANDOS COMPLETOS PARA VPS
 
+# --- Banco PostgreSQL (mesmo .env da API) ---
+DB_HOST=72.62.106.76
+DB_NAME=banco_gestao
+DB_USER=postgres
+DB_PASSWORD=AndinhoSurf2015@
+DB_PORT=5432
+DB_SSL=false
+
+# Migration follow-up pós-venda (exemplo):
+# PGPASSWORD='AndinhoSurf2015@' psql -h 72.62.106.76 -p 5432 -U postgres -d banco_gestao -v ON_ERROR_STOP=1 -f /root/primecamp-ofc/db/migrations/manual/OS_FOLLOWUP_POS_VENDA.sql
+
 cd /root/primecamp-ofc
 
 # 1. Fazer pull do código novo (inclui o script LIMPAR_TUDO_VPS.sh)

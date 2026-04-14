@@ -1,6 +1,14 @@
 # COMANDOS PARA REINICIAR API NA VPS (CORREÇÃO CORS)
 # ===================================================
 
+# Banco (.env em /root/primecamp-ofc/.env)
+DB_HOST=72.62.106.76
+DB_NAME=banco_gestao
+DB_USER=postgres
+DB_PASSWORD=AndinhoSurf2015@
+DB_PORT=5432
+DB_SSL=false
+
 # 1. Atualizar código do repositório
 cd /root/primecamp-ofc
 git pull origin main
