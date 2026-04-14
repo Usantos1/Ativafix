@@ -631,6 +631,44 @@ export default function Relatorios() {
                 </p>
               ) : (
                 <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Total pago a fornecedores</p>
+                        <p className="text-2xl font-bold mt-1">
+                          {fmt(
+                            (serverReports.purchases.data?.fornecedores_os ?? []).reduce(
+                              (sum, row) => sum + numVal(row.valor_total),
+                              0
+                            )
+                          )}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Fornecedores no período</p>
+                        <p className="text-2xl font-bold mt-1">
+                          {serverReports.purchases.data?.fornecedores_os.length ?? 0}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground font-semibold">Média por fornecedor</p>
+                        <p className="text-2xl font-bold mt-1">
+                          {fmt(
+                            (() => {
+                              const rows = serverReports.purchases.data?.fornecedores_os ?? [];
+                              if (rows.length === 0) return 0;
+                              const total = rows.reduce((sum, row) => sum + numVal(row.valor_total), 0);
+                              return total / rows.length;
+                            })()
+                          )}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
                   <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">Pedidos de compra</CardTitle>
