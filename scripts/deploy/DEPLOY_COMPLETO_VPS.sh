@@ -29,11 +29,19 @@ if [ $? -ne 0 ]; then
 fi
 echo "✅ Build concluído."
 
-# 4. Deploy do frontend
+# 4. Deploy do frontend (primecamp.cloud -> /var/www/primecamp.cloud; ver grep root no nginx)
 echo ""
-echo "4️⃣ Copiando arquivos para o Nginx..."
-sudo rm -rf /var/www/ativafix/* 2>/dev/null || true
-sudo cp -r dist/* /var/www/ativafix/
+echo "4️⃣ Copiando arquivos para o Nginx (ativafix + primecamp.cloud)..."
+FRONTEND_ROOTS=(/var/www/ativafix /var/www/primecamp.cloud)
+for root in "${FRONTEND_ROOTS[@]}"; do
+  if [ -d "$root" ]; then
+    echo "   -> $root"
+    sudo rm -rf "${root:?}"/* 2>/dev/null || true
+    sudo cp -r dist/* "$root/"
+    sudo chown -R www-data:www-data "$root" 2>/dev/null || true
+    sudo chmod -R 755 "$root" 2>/dev/null || true
+  fi
+done
 echo "✅ Arquivos copiados."
 
 # 5. Reload Nginx

@@ -16,12 +16,19 @@ npm install
 # 3. Fazer build do frontend
 npm run build
 
-# 4. Copiar arquivos compilados para o diretório do Nginx
-sudo rm -rf /var/www/ativafix/*
-sudo cp -r dist/* /var/www/ativafix/
+# 4. Copiar dist para TODAS as pastas que o Nginx usa (grep root em /etc/nginx/)
+#    primecamp.cloud → /var/www/primecamp.cloud | ativafix.com pode → /var/www/primecamp.cloud
+#    Outros hosts → /var/www/ativafix
+for WWW in /var/www/ativafix /var/www/primecamp.cloud; do
+  if [ -d "$WWW" ]; then
+    sudo rm -rf "$WWW"/*
+    sudo cp -r dist/* "$WWW"/
+    sudo chown -R www-data:www-data "$WWW"
+  fi
+done
 
 # 5. Recarregar Nginx
 sudo systemctl reload nginx
 
-# OU use o script automatizado:
-# bash DEPLOY_COMPLETO_VPS.sh
+# OU use o script automatizado (já copia para as duas pastas se existirem):
+# bash scripts/deploy/DEPLOY_COMPLETO_VPS.sh
