@@ -519,9 +519,9 @@ router.get('/sales-cancellations', async (req, res) => {
       const [requestsTotalsRes, requestsByStatusRes, requestReasonsRes] = await Promise.all([
         pool.query(
           `SELECT COUNT(*)::int AS total_requests,
-                  COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_requests,
-                  COUNT(*) FILTER (WHERE status = 'approved')::int AS approved_requests,
-                  COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected_requests
+                  COUNT(*) FILTER (WHERE scr.status = 'pending')::int AS pending_requests,
+                  COUNT(*) FILTER (WHERE scr.status = 'approved')::int AS approved_requests,
+                  COUNT(*) FILTER (WHERE scr.status = 'rejected')::int AS rejected_requests
            FROM sale_cancel_requests scr
            INNER JOIN sales s ON s.id = scr.sale_id
            WHERE s.company_id = $1
@@ -530,14 +530,14 @@ router.get('/sales-cancellations', async (req, res) => {
           [companyId, range.start, range.end]
         ),
         pool.query(
-          `SELECT status,
+          `SELECT scr.status,
                   COUNT(*)::int AS cnt
            FROM sale_cancel_requests scr
            INNER JOIN sales s ON s.id = scr.sale_id
            WHERE s.company_id = $1
              AND scr.created_at >= $2::timestamptz
              AND scr.created_at <= $3::timestamptz
-           GROUP BY status
+           GROUP BY scr.status
            ORDER BY cnt DESC`,
           [companyId, range.start, range.end]
         ),

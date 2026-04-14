@@ -41,6 +41,7 @@ import { currencyFormatters } from '@/utils/formatters';
 import { getStoredValuesVisible, ValuesVisibilityToggle, MASKED_VALUE } from '@/components/dashboard/FinancialCards';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/types/pdv';
 import type { DashboardTrendData } from '@/hooks/useDashboardData';
+import { useNavigate, useParams } from 'react-router-dom';
 
 type ReportTabId =
   | 'summary'
@@ -56,6 +57,26 @@ type ReportTabId =
   | 'cancellations'
   | 'followup'
   | 'audit';
+
+const REPORT_TAB_SLUGS: Record<ReportTabId, string> = {
+  summary: 'resumo-geral',
+  productivity: 'produtividade',
+  payments: 'pagamentos',
+  products: 'produtos',
+  purchases: 'compras-fornecedores',
+  stock: 'estoque',
+  assistencia: 'assistencia',
+  refunds: 'devolucoes',
+  clients: 'clientes',
+  cash: 'caixa',
+  cancellations: 'cancelamentos',
+  followup: 'pos-venda',
+  audit: 'auditoria',
+};
+
+const REPORT_SLUG_TO_TAB = Object.fromEntries(
+  Object.entries(REPORT_TAB_SLUGS).map(([tabId, slug]) => [slug, tabId as ReportTabId])
+) as Record<string, ReportTabId>;
 
 function numVal(v: string | number | null | undefined): number {
   const n = Number(v);
@@ -79,6 +100,8 @@ function queryErr(e: unknown): string {
 }
 
 export default function Relatorios() {
+  const navigate = useNavigate();
+  const { tab } = useParams<{ tab?: string }>();
   const [startDate, setStartDate] = useState<Date | undefined>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -88,11 +111,17 @@ export default function Relatorios() {
   const [technicianId, setTechnicianId] = useState<string>('all');
   const [saleOrigin, setSaleOrigin] = useState<'PDV' | 'OS' | 'all'>('all');
   const [paymentMethod, setPaymentMethod] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<ReportTabId>('summary');
   const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
   const fmt = (n: number) => (valuesVisible ? currencyFormatters.brl(n) : MASKED_VALUE);
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
+  const activeTab = useMemo<ReportTabId>(() => {
+    if (!tab) return 'summary';
+    const mapped = REPORT_SLUG_TO_TAB[tab];
+    if (!mapped) return 'summary';
+    if (!isAdmin && mapped === 'audit') return 'summary';
+    return mapped;
+  }, [tab, isAdmin]);
 
   const filters: ReportFilters = useMemo(
     () => ({
@@ -113,8 +142,16 @@ export default function Relatorios() {
   const serverReports = useServerReportsQueries(filters.startDate, filters.endDate, activeTab, !!isAdmin);
 
   useEffect(() => {
-    if (!isAdmin && activeTab === 'audit') setActiveTab('summary');
-  }, [isAdmin, activeTab]);
+    if (tab && !REPORT_SLUG_TO_TAB[tab]) {
+      navigate('/relatorios/resumo-geral', { replace: true });
+    }
+  }, [tab, navigate]);
+
+  useEffect(() => {
+    if (!isAdmin && activeTab === 'audit') {
+      navigate('/relatorios/resumo-geral', { replace: true });
+    }
+  }, [isAdmin, activeTab, navigate]);
 
   const paymentMethods = [
     { value: 'all', label: 'Todas' },
@@ -196,6 +233,11 @@ export default function Relatorios() {
     }
     return applyOrigin(result);
   }, [financeiroDashboard?.tendencia, filters.startDate, filters.endDate, saleOrigin]);
+
+  const handleTabChange = (tabValue: string) => {
+    const nextTab = tabValue as ReportTabId;
+    navigate(`/relatorios/${REPORT_TAB_SLUGS[nextTab]}`);
+  };
 
   return (
     <ModernLayout
@@ -324,16 +366,9 @@ export default function Relatorios() {
           </CardContent>
         </Card>
 
-        {/* Gráfico de tendência (respeita período e origem) */}
-        {trendChartData.length > 0 && (
-          <div className="w-full min-w-0">
-            <TrendCharts data={trendChartData} valuesVisible={valuesVisible} hidePeriodSelector />
-          </div>
-        )}
-
         {/* Conteúdo com Tabs — overflow-visible e espaço inferior para não cortar o widget */}
         <div className="w-full min-w-0 overflow-visible">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ReportTabId)} className="space-y-4 overflow-visible">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 overflow-visible">
             <TabsList className="h-auto flex w-full flex-wrap gap-2 p-2 pb-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl items-stretch justify-start overflow-x-auto overflow-y-visible bg-muted/40 mb-1 shadow-sm">
               {(
                 [
@@ -369,6 +404,11 @@ export default function Relatorios() {
             </TabsList>
 
             <TabsContent value="summary" className="space-y-4 mt-4 overflow-visible min-h-0">
+              {trendChartData.length > 0 && (
+                <div className="w-full min-w-0">
+                  <TrendCharts data={trendChartData} valuesVisible={valuesVisible} hidePeriodSelector />
+                </div>
+              )}
               {isLoadingSummary ? (
                 <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">Carregando...</div>
               ) : summary ? (
@@ -636,8 +676,8 @@ export default function Relatorios() {
                   </Card>
                   <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm overflow-hidden">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Peças em OS por fornecedor</CardTitle>
-                      <CardDescription>Agregado por fornecedor cadastrado ou nome informado no item (período pelo item).</CardDescription>
+                      <CardTitle className="text-base">Total pago por fornecedor</CardTitle>
+                      <CardDescription>Agregado por fornecedor das peças lançadas em OS no período.</CardDescription>
                     </CardHeader>
                     <CardContent className="overflow-x-auto">
                       <Table>
@@ -645,7 +685,7 @@ export default function Relatorios() {
                           <TableRow>
                             <TableHead>Fornecedor</TableHead>
                             <TableHead className="text-right">Itens</TableHead>
-                            <TableHead className="text-right">Valor total</TableHead>
+                            <TableHead className="text-right">Total pago</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
