@@ -128,8 +128,11 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
   }, [config.companyName]);
 
   const updateConfig = (newConfig: Partial<ThemeConfig>) => {
-    setConfig(prev => ({ ...prev, ...newConfig }));
-    applyThemeConfig({ ...config, ...newConfig });
+    setConfig((prev) => {
+      const merged = mergeIncomingConfig(prev, newConfig);
+      applyThemeConfig(merged);
+      return merged;
+    });
   };
 
   const resetConfig = () => {

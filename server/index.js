@@ -3358,9 +3358,11 @@ app.post('/api/theme-config', authenticateToken, async (req, res) => {
     res.setHeader('Expires', '0');
     res.setHeader('Surrogate-Control', 'no-store');
     const { companyName, logo, logoAlt, colors, navigationVariant } = req.body;
-    const key = req.companyId
-      ? `theme_config_company_${req.companyId}`
-      : themeConfigKey(req.body.host || (req.headers.origin ? new URL(req.headers.origin).hostname : null));
+    const companyId = req.companyId || req.user?.company_id;
+    if (!companyId) {
+      return res.status(403).json({ error: 'Usuário sem empresa vinculada para salvar o tema.' });
+    }
+    const key = `theme_config_company_${companyId}`;
     const incoming = {
       ...(companyName != null && { companyName: String(companyName).trim() || null }),
       ...(logo != null && { logo: logo === '' ? null : logo }),
