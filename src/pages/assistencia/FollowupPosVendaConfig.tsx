@@ -14,9 +14,29 @@ import {
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { getApiUrl } from '@/utils/apiUrl';
 import { authAPI } from '@/integrations/auth/api-client';
-import { Loader2, MessageCircle } from 'lucide-react';
+import { Loader2, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const DEFAULT_TEMPLATE = `Olá, {cliente}. Tudo bem?
@@ -58,6 +78,11 @@ export default function FollowupPosVendaConfig() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobRow | null>(null);
+  const [editPhone, setEditPhone] = useState('');
+  const [editScheduledAt, setEditScheduledAt] = useState('');
+  const [updatingJob, setUpdatingJob] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>({
     ativo: true,
     tipo_regra_envio: 'NEXT_DAY_10AM',
@@ -154,6 +179,67 @@ export default function FollowupPosVendaConfig() {
   const aparelhoLabel = (j: JobRow) => {
     const parts = [j.marca_nome, j.modelo_nome].filter(Boolean);
     return parts.length > 0 ? parts.join(' ') : 'Aparelho não informado';
+  };
+
+  const toDateTimeLocal = (value: string | null) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const openEditDialog = (job: JobRow) => {
+    setEditingJob(job);
+    setEditPhone(job.telefone || job.telefone_contato || '');
+    setEditScheduledAt(toDateTimeLocal(job.scheduled_at));
+  };
+
+  const saveJobEdit = async () => {
+    if (!editingJob) return;
+    setUpdatingJob(true);
+    try {
+      const token = authAPI.getToken();
+      const res = await fetch(`${getApiUrl()}/os-pos-venda-followup/jobs/${editingJob.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          telefone: editPhone,
+          scheduled_at: editScheduledAt ? new Date(editScheduledAt).toISOString() : undefined,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || res.statusText);
+      toast({ title: 'Follow-up atualizado' });
+      setEditingJob(null);
+      await load();
+    } catch (e: any) {
+      toast({ title: 'Erro ao atualizar', description: e?.message, variant: 'destructive' });
+    } finally {
+      setUpdatingJob(false);
+    }
+  };
+
+  const deleteJob = async (jobId: string) => {
+    setDeletingJobId(jobId);
+    try {
+      const token = authAPI.getToken();
+      const res = await fetch(`${getApiUrl()}/os-pos-venda-followup/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || res.statusText);
+      toast({ title: 'Registro removido' });
+      await load();
+    } catch (e: any) {
+      toast({ title: 'Erro ao remover', description: e?.message, variant: 'destructive' });
+    } finally {
+      setDeletingJobId(null);
+    }
   };
 
   return (
@@ -274,12 +360,13 @@ export default function FollowupPosVendaConfig() {
                   <TableHead className="whitespace-nowrap">Agendado</TableHead>
                   <TableHead className="whitespace-nowrap">Enviado</TableHead>
                   <TableHead className="min-w-[140px]">Obs.</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {jobs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-muted-foreground text-center py-8">
+                    <TableCell colSpan={9} className="text-muted-foreground text-center py-8">
                       Nenhum registro ainda.
                     </TableCell>
                   </TableRow>
@@ -306,7 +393,7 @@ export default function FollowupPosVendaConfig() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs align-middle whitespace-nowrap">
-                        {j.telefone_contato || j.telefone || '—'}
+                        {j.telefone || j.telefone_contato || '—'}
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap align-middle">
                         {j.scheduled_at ? new Date(j.scheduled_at).toLocaleString('pt-BR') : '—'}
@@ -317,6 +404,45 @@ export default function FollowupPosVendaConfig() {
                       <TableCell className="text-xs text-muted-foreground align-middle max-w-[280px]">
                         <span className="line-clamp-2">{j.error_message || j.skip_reason || '—'}</span>
                       </TableCell>
+                      <TableCell className="align-middle text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(j)}
+                            disabled={j.status === 'enviado'}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Remover
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover follow-up</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Isso excluirá este registro do histórico/fila de pós-venda.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteJob(j.id)}
+                                  disabled={deletingJobId === j.id}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deletingJobId === j.id ? 'Removendo...' : 'Remover'}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -324,6 +450,50 @@ export default function FollowupPosVendaConfig() {
             </Table>
           </CardContent>
         </Card>
+
+        <Dialog open={!!editingJob} onOpenChange={(open) => !open && setEditingJob(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar follow-up</DialogTitle>
+              <DialogDescription>
+                Ajuste o telefone e o horário agendado para este acompanhamento.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <div className="text-sm text-muted-foreground">{editingJob?.cliente_nome || 'Cliente não informado'}</div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Telefone</Label>
+                <Input
+                  id="edit-phone"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="5511999999999"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-scheduled-at">Agendado para</Label>
+                <Input
+                  id="edit-scheduled-at"
+                  type="datetime-local"
+                  value={editScheduledAt}
+                  onChange={(e) => setEditScheduledAt(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingJob(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveJobEdit} disabled={updatingJob}>
+                {updatingJob && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar alterações
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </ModernLayout>
   );

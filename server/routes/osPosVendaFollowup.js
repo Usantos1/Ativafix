@@ -11,6 +11,7 @@ import {
   mergeSettingsResponse,
   upsertSettings,
   scheduleFollowupForOs,
+  normalizeWhatsappNumber,
 } from '../services/osPosVendaFollowupService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -83,6 +84,95 @@ router.get('/jobs', async (req, res) => {
     res.json({ jobs: r.rows });
   } catch (e) {
     console.error('[OS Follow-up] GET jobs:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.patch('/jobs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { telefone, scheduled_at } = req.body || {};
+
+    const existing = await pool.query(
+      `SELECT id, status, telefone
+       FROM os_pos_venda_followup_jobs
+       WHERE id = $1 AND company_id = $2
+       LIMIT 1`,
+      [id, req.companyId]
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Registro não encontrado.' });
+    }
+
+    if (existing.rows[0].status === 'enviado') {
+      return res.status(400).json({ error: 'Não é possível editar um follow-up já enviado.' });
+    }
+
+    const updates = [];
+    const values = [id, req.companyId];
+    let idx = values.length;
+
+    if (telefone !== undefined) {
+      const normalized = normalizeWhatsappNumber(telefone);
+      if (!normalized.ok) {
+        return res.status(400).json({ error: normalized.reason || 'Telefone inválido.' });
+      }
+      idx += 1;
+      updates.push(`telefone = $${idx}`);
+      values.push(normalized.e164);
+    }
+
+    if (scheduled_at !== undefined) {
+      const date = new Date(scheduled_at);
+      if (Number.isNaN(date.getTime())) {
+        return res.status(400).json({ error: 'Data/hora de agendamento inválida.' });
+      }
+      idx += 1;
+      updates.push(`scheduled_at = $${idx}`);
+      values.push(date.toISOString());
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Nenhuma alteração informada.' });
+    }
+
+    idx += 1;
+    updates.push(`updated_at = now()`);
+    updates.push(`status = CASE WHEN status = 'erro' OR status = 'cancelado' THEN 'agendado' ELSE status END`);
+    updates.push(`error_message = NULL`);
+    updates.push(`skip_reason = NULL`);
+
+    await pool.query(
+      `UPDATE os_pos_venda_followup_jobs
+       SET ${updates.join(', ')}
+       WHERE id = $1 AND company_id = $2`,
+      values
+    );
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[OS Follow-up] PATCH job:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/jobs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `DELETE FROM os_pos_venda_followup_jobs
+       WHERE id = $1 AND company_id = $2`,
+      [id, req.companyId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Registro não encontrado.' });
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[OS Follow-up] DELETE job:', e);
     res.status(500).json({ error: e.message });
   }
 });
