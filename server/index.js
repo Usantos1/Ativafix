@@ -3348,7 +3348,7 @@ app.get('/api/theme-config', async (req, res) => {
 // POST /api/theme-config — salvar tema (autenticado); por empresa (company_id) para que cada empresa tenha suas cores/nome/logo
 app.post('/api/theme-config', authenticateToken, async (req, res) => {
   try {
-    const { companyName, logo, logoAlt, colors } = req.body;
+    const { companyName, logo, logoAlt, colors, navigationVariant } = req.body;
     const key = req.companyId
       ? `theme_config_company_${req.companyId}`
       : themeConfigKey(req.body.host || (req.headers.origin ? new URL(req.headers.origin).hostname : null));
@@ -3356,6 +3356,9 @@ app.post('/api/theme-config', authenticateToken, async (req, res) => {
       ...(companyName != null && { companyName: String(companyName).trim() || null }),
       ...(logo != null && { logo: logo === '' ? null : logo }),
       ...(logoAlt != null && { logoAlt: String(logoAlt).trim() || null }),
+      ...(navigationVariant != null && {
+        navigationVariant: navigationVariant === 'miui' ? 'miui' : 'default',
+      }),
       ...(colors && typeof colors === 'object' && {
         colors: {
           ...(colors.primary != null && { primary: String(colors.primary).trim() }),

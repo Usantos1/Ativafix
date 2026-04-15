@@ -1,98 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { 
-  ShoppingCart, Users, Package, Wrench, DollarSign, 
-  Home, FileText, Calendar, CheckSquare, Target, BarChart3, Plus, Receipt,
-  ArrowLeftRight, TrendingUp
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSidebar } from '@/components/ui/sidebar';
-import { useAuth } from '@/contexts/AuthContext';
-import { usePermissions } from '@/hooks/usePermissions';
-
-interface QuickNavItem {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  path: string;
-  badge?: number;
-}
-
-// Navegação rápida do PDV (atalhos globais)
-const PDV_NAV_ITEMS: QuickNavItem[] = [
-  { label: 'PDV', icon: ShoppingCart, path: '/pdv' },
-  { label: 'Vendas', icon: Receipt, path: '/pdv/vendas' },
-  { label: 'Caixa', icon: DollarSign, path: '/pdv/caixa' },
-  { label: 'Clientes', icon: Users, path: '/clientes' },
-  { label: 'Produtos', icon: Package, path: '/produtos' },
-  { label: 'Ordem de Serviço', icon: Wrench, path: '/os' },
-];
-
-// Navegação do módulo Financeiro (exibida no AppBar quando em /financeiro/*)
-const FINANCEIRO_NAV_ITEMS: QuickNavItem[] = [
-  { label: 'Dashboard', icon: Home, path: '/financeiro' },
-  { label: 'DRE', icon: FileText, path: '/financeiro/dre' },
-  { label: 'Planejamento', icon: Target, path: '/financeiro/planejamento-anual' },
-  { label: 'Fluxo de Caixa', icon: ArrowLeftRight, path: '/financeiro/fluxo-de-caixa' },
-  { label: 'Caixa', icon: DollarSign, path: '/financeiro/caixa' },
-  { label: 'Contas', icon: FileText, path: '/financeiro/contas' },
-  { label: 'Transações', icon: TrendingUp, path: '/financeiro/transacoes' },
-];
-
-// Configuração de navegação rápida por rota
-const QUICK_NAV_CONFIG: Record<string, QuickNavItem[]> = {
-  '/financeiro': FINANCEIRO_NAV_ITEMS,
-  '/pos-venda': FINANCEIRO_NAV_ITEMS,
-  '/pdv': PDV_NAV_ITEMS,
-  '/pdv/vendas': PDV_NAV_ITEMS,
-  '/pdv/venda': PDV_NAV_ITEMS,
-  '/os': PDV_NAV_ITEMS,
-  '/clientes': PDV_NAV_ITEMS,
-  '/produtos': PDV_NAV_ITEMS,
-  '/admin/financeiro': [
-    { label: 'Dashboard', icon: Home, path: '/' },
-    { label: 'Financeiro', icon: DollarSign, path: '/admin/financeiro' },
-    { label: 'Relatórios', icon: BarChart3, path: '/relatorios' },
-  ],
-  '/': [
-    { label: 'Dashboard', icon: Home, path: '/' },
-    { label: 'Relatórios', icon: BarChart3, path: '/relatorios' },
-  ],
-};
+import { useNavigationItems } from '@/hooks/useNavigationItems';
 
 export function AppBar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
-  const { isAdmin } = useAuth();
-  const { hasPermission } = usePermissions();
-
-  // Determinar qual configuração usar baseado na rota atual
-  const getQuickNavItems = (): QuickNavItem[] => {
-    const path = location.pathname;
-    
-    // Verificar rotas exatas primeiro
-    if (QUICK_NAV_CONFIG[path]) {
-      return QUICK_NAV_CONFIG[path];
-    }
-    
-    // Verificar rotas que começam com o path
-    for (const [route, items] of Object.entries(QUICK_NAV_CONFIG)) {
-      if (path.startsWith(route)) {
-        return items;
-      }
-    }
-    
-    // Retornar configuração padrão
-    return QUICK_NAV_CONFIG['/'] || [];
-  };
-
-  let quickNavItems = getQuickNavItems();
-  // Ocultar aba Relatórios para quem não tem permissão (ex: vendedor, admin de assistência)
-  const canSeeRelatorios = isAdmin || hasPermission('relatorios.view') || hasPermission('relatorios.financeiro');
-  if (!canSeeRelatorios) {
-    quickNavItems = quickNavItems.filter((item) => item.path !== '/relatorios');
-  }
+  const { quickNavItems } = useNavigationItems();
   const currentPath = location.pathname;
 
   // Se não houver itens, não mostrar

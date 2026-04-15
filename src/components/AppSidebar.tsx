@@ -31,6 +31,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeConfig, getDefaultConfigByHost } from "@/contexts/ThemeConfigContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCompanyNavigationData } from "@/hooks/useCompanyNavigationData";
+import { useNavigationItems } from "@/hooks/useNavigationItems";
 import { useQuery } from "@tanstack/react-query";
 import { from } from "@/integrations/db/client";
 import {
@@ -55,6 +57,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { iconMap, type SegmentMenuEntry } from "@/lib/navigation-config";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -64,17 +67,7 @@ export function AppSidebar() {
   const { config } = useThemeConfig();
   const logoUrl = config.logo || getDefaultConfigByHost().logo || "https://primecamp.com.br/wp-content/uploads/2025/07/Design-sem-nome-4.png";
   const { hasPermission, loading: permissionsLoading, isAdmin } = usePermissions();
-  
-  // Verificar admin de MÚLTIPLAS fontes para garantir que funcione
-  const isAdminDirect = profile?.role?.toLowerCase() === 'admin' || 
-                        profile?.role?.toLowerCase() === 'administrador' ||
-                        profile?.role?.toLowerCase() === 'administrator';
-  
-  // Verificar cache do localStorage (para acesso instantâneo)
-  const cachedIsAdmin = localStorage.getItem('user_is_admin') === 'true';
-  
-  // Só considerar admin depois que as permissões carregaram — evita flash de "todos os itens" e depois sumir
-  const userIsAdmin = !permissionsLoading && (isAdmin || isAdminAuth || isAdminDirect || cachedIsAdmin);
+  const { menuToUse, useRoleMenu, useSegmentOrRoleList, roleDisplayName, userIsAdmin } = useCompanyNavigationData();
 
   // Buscar nome da empresa
   const { data: companyData } = useQuery({
@@ -91,67 +84,6 @@ export function AppSidebar() {
     staleTime: 1000 * 60 * 30, // Cache por 30 minutos
   });
   const companyName = companyData?.name || '';
-
-  // Menu por segmento: se a empresa tem segmento, usar os módulos configurados
-  const apiBase = (import.meta.env.VITE_API_URL && !String(import.meta.env.VITE_API_URL).includes('localhost'))
-    ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '')
-    : 'https://api.ativafix.com/api';
-  const { data: segmentMenuData } = useQuery({
-    queryKey: ['segment-menu', user?.company_id],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return { menu: [] };
-      try {
-        const res = await fetch(`${apiBase}/me/segment-menu`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        const menu = Array.isArray(data?.menu) ? data.menu : [];
-        return { menu, segmento_nome: data?.segmento_nome };
-      } catch {
-        return { menu: [] };
-      }
-    },
-    enabled: !!user?.company_id,
-    staleTime: 0, // sempre refetch para não usar menu de outra empresa em cache
-  });
-  const { data: roleMenuData, isPending: roleMenuPending } = useQuery({
-    queryKey: ['role-menu', user?.id],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return { menu: [], home_path: null, role_display_name: null };
-      const res = await fetch(`${apiBase}/me/role-menu`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      return {
-        menu: data.menu || [],
-        home_path: data.home_path || null,
-        role_display_name: data.role_display_name || null,
-      };
-    },
-    enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5,
-  });
-  const segmentMenu = Array.isArray(segmentMenuData?.menu) ? segmentMenuData.menu : [];
-  const hasSegmentMenu = segmentMenu.length > 0;
-  const roleMenu = roleMenuData?.menu ?? [];
-  const hasRoleMenu = Array.isArray(roleMenu) && roleMenu.length > 0;
-  const homePath = roleMenuData?.home_path || null;
-  const roleDisplayName = roleMenuData?.role_display_name || null;
-  const useRoleMenu = hasRoleMenu;
-  const menuToUse = useRoleMenu ? roleMenu : segmentMenu;
-  // Com segmento/cargo = menu filtrado da API; sem segmento = lista base completa (todos os recursos)
-  const useSegmentOrRoleList =
-    (hasSegmentMenu || hasRoleMenu) && (hasSegmentMenu || !userIsAdmin);
-  
-  // Função para verificar permissão
-  const checkPermission = (permission: string): boolean => {
-    // Admin sempre tem todas as permissões
-    if (userIsAdmin) return true;
-    // Para não-admins, verificar permissão específica
-    return hasPermission(permission);
-  };
 
   const collapsed = state === "collapsed";
   const currentPath = location.pathname;
@@ -178,126 +110,18 @@ export function AppSidebar() {
     );
   };
 
-  // Mapa de ícone (nome do módulo) para componente Lucide (menu por segmento)
-  const iconMap: Record<string, React.ElementType> = {
-    'layout-dashboard': Home,
-    'home': Home,
-    'wrench': Wrench,
-    'users': UserCircle,
-    'user-circle': UserCircle,
-    'car': Target,
-    'file-text': FileText,
-    'package': Package,
-    'box': Package,
-    'shopping-cart': ShoppingCart,
-    'receipt': Receipt,
-    'list': List,
-    'refresh-cw': RefreshCw,
-    'wallet': Wallet,
-    'bar-chart-3': BarChart3,
-    'activity': Activity,
-  };
-
-  // ═══════════════════════════════════════════════════════════════
-  // OPERAÇÃO - Atividades do dia a dia (ou menu do segmento se houver)
-  // ═══════════════════════════════════════════════════════════════
-  const operacaoItemsBase = [
-    { label: "Dashboard", path: "/", icon: Home, exact: true },
-    { label: "PDV", path: "/pdv", icon: ShoppingCart, exact: true, permission: "vendas.create" },
-    { label: "Vendas", path: "/pdv/vendas", icon: Receipt, exact: true, permission: "vendas.view" },
-    { label: "Devoluções", path: "/pdv/devolucoes", icon: RefreshCw, permission: "vendas.manage" },
-    { label: "Ordem de Serviço", path: "/os", icon: Wrench, permission: "os.view" },
-    { label: "Caixa", path: "/pdv/caixa", icon: Wallet, exact: true, permission: "caixa.view" },
-    { label: "Clientes", path: "/clientes", icon: UserCircle, exact: true, permission: "clientes.view" },
-  ];
-  // Helper: converte item do menu por segmento para MenuItem (sempre exact para evitar 2 ativos)
-  const toMenuItem = (m: { path: string; label_menu: string; slug?: string; icone?: string }) => ({
-    label: m.path === '/inventario' ? 'Inventário' : m.label_menu,
-    path: m.path || '/',
-    icon: iconMap[m.icone || ''] || Home,
-    exact: true as const, // só destaca o item da rota exata (evita PDV + Caixa juntos)
-    permission: undefined as string | undefined,
+  const {
+    operacaoItems,
+    estoqueItems,
+    relatoriosItems: relatoriosItemsResolved,
+    gestaoItems,
+    adminItems,
+  } = useNavigationItems({
+    menuToUse: menuToUse as SegmentMenuEntry[],
+    useRoleMenu,
+    useSegmentOrRoleList,
   });
-
-  // Menu por cargo (role) ou por segmento: agrupar por categoria
-  const segmentByCategory = React.useMemo(() => {
-    if (!menuToUse.length) return { operacao: [], estoque: [], gestao: [] };
-    const mapOne = (m: { path: string; label_menu: string; slug?: string; icone?: string }) => ({
-      label: m.path === '/inventario' ? 'Inventário' : m.label_menu,
-      path: m.path || '/',
-      icon: iconMap[m.icone || ''] || Home,
-      exact: true as const,
-      permission: useRoleMenu ? undefined : (undefined as string | undefined),
-    });
-    const cat = (m: { categoria?: string }) => m.categoria || 'operacao';
-    const operacao = menuToUse.filter((m: { categoria?: string }) => cat(m) === 'operacao').map(mapOne);
-    const estoque = menuToUse.filter((m: { categoria?: string }) => cat(m) === 'estoque').map(mapOne);
-    const gestao = menuToUse.filter((m: { categoria?: string }) => cat(m) === 'gestao').map(mapOne);
-    return { operacao, estoque, gestao };
-  }, [menuToUse, useRoleMenu]);
-
-  const operacaoItemsFromSegment = segmentByCategory.operacao;
-  const operacaoItems = (useSegmentOrRoleList ? operacaoItemsFromSegment : operacaoItemsBase).filter(
-    item => useRoleMenu || !item.permission || checkPermission(item.permission)
-  );
-
-  // ═══════════════════════════════════════════════════════════════
-  // ESTOQUE - Gestão de produtos (menu segmento: itens com categoria estoque)
-  // ═══════════════════════════════════════════════════════════════
-  const estoqueItemsBase = [
-    { label: "Produtos", path: "/produtos", icon: Package, exact: true, permission: "produtos.view" },
-    { label: "Pedidos", path: "/pedidos", icon: List, exact: true, permission: "produtos.view" },
-    { label: "Inventário", path: "/inventario", icon: Boxes, exact: true, permission: "produtos.view" },
-  ];
-  const estoqueItems = (useSegmentOrRoleList ? segmentByCategory.estoque : estoqueItemsBase).filter(
-    item => useRoleMenu || !item.permission || checkPermission(item.permission)
-  );
-
-  // ═══════════════════════════════════════════════════════════════
-  // RELATÓRIOS - (menu segmento: itens com categoria gestao)
-  // ═══════════════════════════════════════════════════════════════
-  const relatoriosItemsBase = [
-    { label: "Relatórios", path: "/relatorios", icon: Receipt, permission: "relatorios.view", exact: false as const },
-    { label: "Financeiro", path: "/financeiro", icon: BarChart3, permission: "relatorios.financeiro", exact: false as const },
-    { label: "Pós-venda", path: "/pos-venda", icon: MessageCircle, permission: "relatorios.financeiro", exact: true as const },
-    { label: "Painel de Alertas", path: "/painel-alertas", icon: Activity, permission: "relatorios.financeiro", exact: false as const },
-  ];
-  const roleMenuSettled = !user?.id || roleMenuData !== undefined;
-  const menuNotReady = permissionsLoading || !roleMenuSettled;
-  // Sempre incluir Relatórios e Financeiro na lista (quando tiver permissão); se menu por cargo/segmento, mesclar com itens de gestão da API
-  const relatoriosItemsRaw =
-    hasRoleMenu || useSegmentOrRoleList
-      ? (() => {
-          const basePaths = new Set(relatoriosItemsBase.map((b) => b.path));
-          const extraFromGestao = segmentByCategory.gestao.filter((g: { path: string }) => !basePaths.has(g.path));
-          return [...relatoriosItemsBase, ...extraFromGestao];
-        })()
-      : relatoriosItemsBase;
-  const relatoriosItems = menuNotReady
-    ? []
-    : relatoriosItemsRaw.filter((item) => {
-        if (item.path === "/relatorios") return checkPermission("relatorios.view");
-        if (item.path === "/financeiro" || item.path === "/painel-alertas" || item.path === "/pos-venda") return checkPermission("relatorios.financeiro");
-        return useRoleMenu || !item.permission || checkPermission(item.permission);
-      });
-
-  // ═══════════════════════════════════════════════════════════════
-  // GESTÃO - RH, Ponto (vazio quando menu por segmento; segmento não costuma ter categoria gestao para RH)
-  // ═══════════════════════════════════════════════════════════════
-  const gestaoItemsBase = [
-    { label: "Recursos Humanos", path: "/rh", icon: Users, permission: "rh.view" },
-    { label: "Ponto Eletrônico", path: "/ponto", icon: Clock, permission: "rh.ponto" },
-  ];
-  const gestaoItems = (useSegmentOrRoleList ? [] : gestaoItemsBase).filter(
-    item => useRoleMenu || !item.permission || checkPermission(item.permission)
-  );
-
-  // ═══════════════════════════════════════════════════════════════
-  // ADMINISTRAÇÃO - Apenas para admins
-  // ═══════════════════════════════════════════════════════════════
-  const adminItems = userIsAdmin ? [
-    { label: "Configurações", path: "/admin/configuracoes", icon: Settings },
-  ] : [];
+  const relatoriosItems = permissionsLoading ? [] : relatoriosItemsResolved;
 
   // Tipo genérico para itens do menu
   type MenuItem = {

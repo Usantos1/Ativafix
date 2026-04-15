@@ -15,6 +15,7 @@ interface ThemeConfig {
   logoAlt?: string;
   colors: ThemeColors;
   companyName?: string;
+  navigationVariant?: 'default' | 'miui';
 }
 
 // Cores fixas do sistema — uma vez definidas valem para todos os usuários (AppBar, Sidebar, Botões)
@@ -32,6 +33,7 @@ const defaultConfigPrimeCamp: ThemeConfig = {
     button: SYSTEM_PRIMARY_HSL,
   },
   companyName: 'Prime Camp',
+  navigationVariant: 'default',
 };
 
 /** Na tela de login e padrão: logo e cores da empresa 1 (sem amarelo). API pode sobrescrever com tema salvo. */
@@ -92,6 +94,7 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
             ...(data.companyName != null && { companyName: data.companyName }),
             ...(data.logo && typeof data.logo === 'string' && { logo: data.logo }),
             ...(data.logoAlt != null && { logoAlt: data.logoAlt }),
+            ...(data.navigationVariant === 'miui' && { navigationVariant: 'miui' as const }),
             colors: {
               ...prev.colors,
               ...(data.colors && typeof data.colors === 'object' ? data.colors : {}),
@@ -141,6 +144,7 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--button-primary', buttonColor);
     // Atualizar --primary para que os botões default usem a cor configurada
     root.style.setProperty('--primary', buttonColor);
+    root.dataset.navigationVariant = themeConfig.navigationVariant || 'default';
   };
 
   // Aplicar configurações ao carregar
