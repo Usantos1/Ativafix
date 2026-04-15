@@ -64,13 +64,19 @@ router.get('/jobs', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200);
     const r = await pool.query(
-      `SELECT id, ordem_servico_id, telefone, status, tipo_regra_envio,
-              scheduled_at, sent_at, faturado_at, error_message, skip_reason,
-              random_delay_seconds, created_at,
+      `SELECT j.id, j.ordem_servico_id, j.telefone, j.status, j.tipo_regra_envio,
+              j.scheduled_at, j.sent_at, j.faturado_at, j.error_message, j.skip_reason,
+              j.random_delay_seconds, j.created_at,
+              o.numero AS numero_os,
+              o.cliente_nome,
+              o.telefone_contato,
+              o.marca_nome,
+              o.modelo_nome,
               LEFT(mensagem_renderizada, 200) AS mensagem_preview
-       FROM os_pos_venda_followup_jobs
-       WHERE company_id = $1
-       ORDER BY created_at DESC
+       FROM os_pos_venda_followup_jobs j
+       LEFT JOIN ordens_servico o ON o.id = j.ordem_servico_id
+       WHERE j.company_id = $1
+       ORDER BY j.created_at DESC
        LIMIT $2`,
       [req.companyId, limit]
     );

@@ -36,7 +36,10 @@ type Settings = {
 type JobRow = {
   id: string;
   ordem_servico_id: string;
+  numero_os: number | null;
+  cliente_nome: string | null;
   telefone: string | null;
+  telefone_contato: string | null;
   status: string;
   tipo_regra_envio: string;
   scheduled_at: string;
@@ -47,6 +50,8 @@ type JobRow = {
   random_delay_seconds: number;
   created_at: string;
   mensagem_preview: string | null;
+  marca_nome: string | null;
+  modelo_nome: string | null;
 };
 
 export default function FollowupPosVendaConfig() {
@@ -144,6 +149,11 @@ export default function FollowupPosVendaConfig() {
             ? 'outline'
             : 'secondary';
     return <Badge variant={variant as 'default' | 'secondary' | 'destructive' | 'outline'}>{s}</Badge>;
+  };
+
+  const aparelhoLabel = (j: JobRow) => {
+    const parts = [j.marca_nome, j.modelo_nome].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : 'Aparelho não informado';
   };
 
   return (
@@ -257,7 +267,10 @@ export default function FollowupPosVendaConfig() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">OS (id)</TableHead>
+                  <TableHead className="whitespace-nowrap">OS</TableHead>
+                  <TableHead className="whitespace-nowrap">Cliente</TableHead>
+                  <TableHead className="whitespace-nowrap">Aparelho</TableHead>
+                  <TableHead className="whitespace-nowrap">Telefone</TableHead>
                   <TableHead className="whitespace-nowrap">Agendado</TableHead>
                   <TableHead className="whitespace-nowrap">Enviado</TableHead>
                   <TableHead className="min-w-[140px]">Obs.</TableHead>
@@ -266,7 +279,7 @@ export default function FollowupPosVendaConfig() {
               <TableBody>
                 {jobs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground text-center py-8">
+                    <TableCell colSpan={8} className="text-muted-foreground text-center py-8">
                       Nenhum registro ainda.
                     </TableCell>
                   </TableRow>
@@ -274,8 +287,26 @@ export default function FollowupPosVendaConfig() {
                   jobs.map((j) => (
                     <TableRow key={j.id}>
                       <TableCell className="align-middle">{statusBadge(j.status)}</TableCell>
-                      <TableCell className="font-mono text-xs max-w-[140px] truncate align-middle">
-                        {j.ordem_servico_id}
+                      <TableCell className="align-middle">
+                        <div className="min-w-[110px]">
+                          <div className="font-medium">OS #{j.numero_os ?? '—'}</div>
+                          <div className="text-xs text-muted-foreground font-mono truncate max-w-[160px]" title={j.ordem_servico_id}>
+                            {j.ordem_servico_id}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <div className="min-w-[160px]">
+                          <div className="font-medium">{j.cliente_nome || 'Cliente não informado'}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <div className="min-w-[160px]">
+                          <div className="font-medium">{aparelhoLabel(j)}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs align-middle whitespace-nowrap">
+                        {j.telefone_contato || j.telefone || '—'}
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap align-middle">
                         {j.scheduled_at ? new Date(j.scheduled_at).toLocaleString('pt-BR') : '—'}
