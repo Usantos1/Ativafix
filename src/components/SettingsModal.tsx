@@ -27,7 +27,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
-  const { config, updateConfig } = useThemeConfig();
+  const { config, updateConfig, refreshConfig } = useThemeConfig();
   const { hasPermission, isAdmin } = usePermissions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -120,6 +120,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           toast.error(error?.message || (error as { message?: string })?.message || 'Erro ao salvar tema na VPS');
         }
       } else {
+        await refreshConfig();
         toast.success('Configurações salvas. O tema foi atualizado na VPS para todos os dispositivos.');
       }
       onClose();

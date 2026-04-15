@@ -66,6 +66,7 @@ interface ThemeConfigContextType {
   config: ThemeConfig;
   updateConfig: (newConfig: Partial<ThemeConfig>) => void;
   resetConfig: () => void;
+  refreshConfig: () => Promise<void>;
 }
 
 const ThemeConfigContext = createContext<ThemeConfigContextType | undefined>(undefined);
@@ -74,8 +75,23 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
   const baseConfig = getDefaultConfigByHost();
   const [config, setConfig] = useState<ThemeConfig>(baseConfig);
 
-  // Buscar tema: logado = tema da empresa (company); não logado = tema do domínio (host)
-  useEffect(() => {
+  const mergeIncomingConfig = (prev: ThemeConfig, data: Partial<ThemeConfig> | null): ThemeConfig => {
+    if (!data || typeof data !== 'object') return prev;
+
+    return {
+      ...prev,
+      ...(data.companyName != null && { companyName: data.companyName }),
+      ...(data.logo && typeof data.logo === 'string' && { logo: data.logo }),
+      ...(data.logoAlt != null && { logoAlt: data.logoAlt }),
+      navigationVariant: data.navigationVariant === 'miui' ? 'miui' : 'default',
+      colors: {
+        ...prev.colors,
+        ...(data.colors && typeof data.colors === 'object' ? data.colors : {}),
+      },
+    };
+  };
+
+  const refreshConfig = async () => {
     if (typeof window === 'undefined') return;
     const host = window.location.hostname;
     const base = getApiUrl();
@@ -84,26 +100,20 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('auth_token');
     const headers: HeadersInit = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    fetch(url.toString(), { headers })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: Partial<ThemeConfig> | null) => {
-        if (!data || typeof data !== 'object') return;
-        setConfig((prev) => {
-          const next = {
-            ...prev,
-            ...(data.companyName != null && { companyName: data.companyName }),
-            ...(data.logo && typeof data.logo === 'string' && { logo: data.logo }),
-            ...(data.logoAlt != null && { logoAlt: data.logoAlt }),
-            ...(data.navigationVariant === 'miui' && { navigationVariant: 'miui' as const }),
-            colors: {
-              ...prev.colors,
-              ...(data.colors && typeof data.colors === 'object' ? data.colors : {}),
-            },
-          };
-          return next;
-        });
-      })
-      .catch(() => {});
+
+    try {
+      const res = await fetch(url.toString(), { headers });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      setConfig((prev) => mergeIncomingConfig(prev, data));
+    } catch {
+      // noop
+    }
+  };
+
+  // Buscar tema: logado = tema da empresa (company); não logado = tema do domínio (host)
+  useEffect(() => {
+    refreshConfig();
   }, []);
 
   // Título da aba: useLayoutEffect para atualizar antes da pintura e evitar flash "Prime Camp" ao carregar
@@ -153,7 +163,7 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
   }, [config]);
 
   return (
-    <ThemeConfigContext.Provider value={{ config, updateConfig, resetConfig }}>
+    <ThemeConfigContext.Provider value={{ config, updateConfig, resetConfig, refreshConfig }}>
       {children}
     </ThemeConfigContext.Provider>
   );
