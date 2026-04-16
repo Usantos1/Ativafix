@@ -88,9 +88,11 @@ export function AppBarMiui() {
             size="sm"
             className="relative z-20 h-11 min-w-[118px] shrink-0 rounded-full border border-emerald-200/80 bg-white px-4 text-sm font-medium shadow-sm hover:bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20"
             onPointerDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setMenuOpen((prev) => !prev);
+              if (e.pointerType === 'mouse') {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen((prev) => !prev);
+              }
             }}
             onClick={(e) => e.stopPropagation()}
           >
