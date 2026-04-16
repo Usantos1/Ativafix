@@ -1200,14 +1200,17 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
               }
               await updateProduto(produto.id, payload);
               try {
+                const houveSaida = diferenca > 0;
                 await from('produto_movimentacoes')
                   .insert({
                     produto_id: produto.id,
-                    tipo: diferenca < 0 ? 'baixa_os' : 'ajuste_estoque',
-                    motivo: `Edição de item na OS #${osNumero || '?'}`,
+                    tipo: houveSaida ? 'baixa_os' : 'devolucao_os',
+                    motivo: houveSaida
+                      ? `Quantidade adicionada na OS #${osNumero || '?'}`
+                      : `Quantidade devolvida da OS #${osNumero || '?'}`,
                     quantidade_antes: estoqueAtual,
                     quantidade_depois: payload.quantidade,
-                    quantidade_delta: diferenca,
+                    quantidade_delta: -diferenca,
                     user_id: user?.id || null,
                     user_nome: currentUserNome,
                   })

@@ -271,12 +271,49 @@ async function buscarProximoCodigo(): Promise<number> {
   }
 }
 
+function extrairNumeroOS(texto?: string | null): number {
+  if (!texto) return 0;
+  const match = texto.match(/\bOS\s*#?\s*(\d+)/i);
+  return match ? Number(match[1]) || 0 : 0;
+}
+
+function formatarDescricaoEstoque(
+  quantidadeAntes: unknown,
+  quantidadeDepois: unknown,
+  quantidadeDelta: number
+): string | null {
+  if (quantidadeAntes === null || quantidadeAntes === undefined || quantidadeDepois === null || quantidadeDepois === undefined) {
+    return null;
+  }
+
+  const antes = Number(quantidadeAntes);
+  const depois = Number(quantidadeDepois);
+  if (!Number.isFinite(antes) || !Number.isFinite(depois)) {
+    return null;
+  }
+
+  const prefixo = quantidadeDelta < 0 ? 'Saída' : quantidadeDelta > 0 ? 'Entrada' : 'Ajuste';
+  const deltaFormatado = `${quantidadeDelta >= 0 ? '+' : ''}${quantidadeDelta}`;
+  return `${prefixo}: Estoque: ${antes} (${deltaFormatado}) = ${depois}`;
+}
+
+function diferencaEmMinutos(dataA: string, dataB: string): number {
+  const timestampA = new Date(dataA).getTime();
+  const timestampB = new Date(dataB).getTime();
+  if (!Number.isFinite(timestampA) || !Number.isFinite(timestampB)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Math.abs(timestampA - timestampB) / 60000;
+}
+
 /**
  * Busca movimentações de estoque relacionadas ao produto (OS e Vendas)
  */
 async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMovimentacao[]> {
   try {
     const movimentacoes: EstoqueMovimentacao[] = [];
+    const osItensMovimentacoes: EstoqueMovimentacao[] = [];
+    const movimentacoesInternasOS: Array<{ ref_tipo: 'OS' | 'Devolução OS'; ref_numero: number; quantidade: number; data: string }> = [];
 
     // 1. Buscar os_items relacionados ao produto (Ordens de Serviço)
     const { data: osItens } = await from('os_items')
@@ -300,7 +337,7 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
       }
 
       osItens.forEach((item: any) => {
-        movimentacoes.push({
+        osItensMovimentacoes.push({
           id: item.id,
           data: item.created_at,
           ref_tipo: 'OS',
@@ -421,11 +458,21 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
         const tipoMov = String(m.tipo || '').toLowerCase();
         const isInventario = tipoMov.includes('inventario');
         const isDevolucaoOS = tipoMov.includes('devolucao_os') || tipoMov.includes('devolução_os');
-        const qtdDelta = Number(m.quantidade_delta || 0);
+        const qtdDeltaSalvo = Number(m.quantidade_delta || 0);
+        const qtdDeltaCalculado =
+          m.quantidade_antes !== null &&
+          m.quantidade_antes !== undefined &&
+          m.quantidade_depois !== null &&
+          m.quantidade_depois !== undefined
+            ? Number(m.quantidade_depois) - Number(m.quantidade_antes)
+            : qtdDeltaSalvo;
+        const qtdDelta = Number.isFinite(qtdDeltaCalculado) ? qtdDeltaCalculado : qtdDeltaSalvo;
+        const numeroOS = extrairNumeroOS(m.motivo);
 
         const parts: string[] = [];
-        if (m.quantidade_antes !== null && m.quantidade_depois !== null) {
-          parts.push(`Estoque: ${m.quantidade_antes} → ${m.quantidade_depois} (${qtdDelta >= 0 ? '+' : ''}${qtdDelta})`);
+        const descricaoEstoque = formatarDescricaoEstoque(m.quantidade_antes, m.quantidade_depois, qtdDelta);
+        if (descricaoEstoque) {
+          parts.push(descricaoEstoque);
         }
         if (m.valor_venda_antes !== null && m.valor_venda_depois !== null) {
           parts.push(`Venda: ${formatBRL(Number(m.valor_venda_antes || 0))} → ${formatBRL(Number(m.valor_venda_depois || 0))}`);
@@ -447,9 +494,20 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
         } else if (tipoMov.includes('venda') && !tipoMov.includes('cancelamento')) {
           refTipo = 'Venda';
         } else if (tipoMov.includes('ajuste_estoque')) {
-          refTipo = 'Ajuste';
+          refTipo = numeroOS > 0
+            ? (qtdDelta < 0 ? 'OS' : qtdDelta > 0 ? 'Devolução OS' : 'Ajuste')
+            : 'Ajuste';
         } else if (tipoMov.includes('ajuste_preco_venda') || tipoMov.includes('ajuste_preco_custo')) {
           refTipo = 'Ajuste';
+        }
+
+        if ((refTipo === 'OS' || refTipo === 'Devolução OS') && numeroOS > 0 && qtdDelta !== 0) {
+          movimentacoesInternasOS.push({
+            ref_tipo: refTipo,
+            ref_numero: numeroOS,
+            quantidade: Math.abs(qtdDelta),
+            data: m.created_at,
+          });
         }
 
         movimentacoes.push({
@@ -457,13 +515,28 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
           data: m.created_at,
           ref_tipo: refTipo,
           ref_id: m.inventario_id || undefined,
-          ref_numero: 0,
+          ref_numero: refTipo === 'OS' || refTipo === 'Devolução OS' ? numeroOS : 0,
           quantidade_delta: Number.isFinite(qtdDelta) ? qtdDelta : 0,
           descricao: parts.length > 0 ? parts.join(' • ') : (m.motivo || 'Ajuste manual'),
           vendedor_nome: m.user_nome || null,
         });
       });
     }
+
+    const osItensSemDuplicidade = osItensMovimentacoes.filter((mov) => {
+      if (mov.ref_numero <= 0 || mov.quantidade_delta === 0) {
+        return true;
+      }
+
+      return !movimentacoesInternasOS.some((internalMov) =>
+        internalMov.ref_tipo === 'OS' &&
+        internalMov.ref_numero === mov.ref_numero &&
+        internalMov.quantidade === Math.abs(mov.quantidade_delta) &&
+        diferencaEmMinutos(internalMov.data, mov.data) <= 5
+      );
+    });
+
+    movimentacoes.push(...osItensSemDuplicidade);
 
     // 4. Buscar devoluções da tabela refund_items
     try {
