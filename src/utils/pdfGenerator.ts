@@ -322,6 +322,18 @@ Agradecemos a preferência!`;
         <span style="font-weight: 900 !important; color: #000000 !important;">CLIENTE:</span>
         <span style="font-weight: 900 !important; color: #000000 !important;">${data.cliente?.nome || 'CONSUMIDOR FINAL'}</span>
       </div>
+      ${data.cliente?.cpf_cnpj ? `
+        <div class="line" style="font-size: 10px; font-weight: 900 !important; color: #000000 !important;">
+          <span style="font-weight: 900 !important; color: #000000 !important;">CPF/CNPJ:</span>
+          <span style="font-weight: 900 !important; color: #000000 !important;">${data.cliente.cpf_cnpj}</span>
+        </div>
+      ` : ''}
+      ${data.cliente?.telefone ? `
+        <div class="line" style="font-size: 10px; font-weight: 900 !important; color: #000000 !important;">
+          <span style="font-weight: 900 !important; color: #000000 !important;">TELEFONE:</span>
+          <span style="font-weight: 900 !important; color: #000000 !important;">${data.cliente.telefone}</span>
+        </div>
+      ` : ''}
       ${data.cliente?.cidade ? `
         <div class="line" style="font-size: 10px; font-weight: 900 !important; color: #000000 !important;">
           <span style="font-weight: 900 !important; color: #000000 !important;">CIDADE:</span>
