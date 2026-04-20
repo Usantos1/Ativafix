@@ -866,7 +866,7 @@ app.get('/api/public/cupom/:id', async (req, res) => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const saleResult = await pool.query(
       `SELECT id, numero, status, created_at, subtotal, total, desconto_total,
-              cliente_nome, cliente_cpf_cnpj, cliente_telefone, observacoes, ordem_servico_id
+              cliente_id, cliente_nome, cliente_cpf_cnpj, cliente_telefone, observacoes, ordem_servico_id
        FROM public.sales WHERE ${isUUID ? 'id = $1' : 'numero = $1'} LIMIT 1`,
       [isUUID ? id : parseInt(id, 10)]
     );
@@ -874,6 +874,21 @@ app.get('/api/public/cupom/:id', async (req, res) => {
       return res.status(404).json({ error: 'Cupom não encontrado' });
     }
     const sale = saleResult.rows[0];
+    if (sale.cliente_id && (!sale.cliente_cpf_cnpj || !sale.cliente_telefone)) {
+      try {
+        const clienteResult = await pool.query(
+          'SELECT cpf_cnpj, telefone, whatsapp FROM public.clientes WHERE id = $1 LIMIT 1',
+          [sale.cliente_id]
+        );
+        const cliente = clienteResult.rows[0];
+        if (cliente) {
+          sale.cliente_cpf_cnpj = sale.cliente_cpf_cnpj || cliente.cpf_cnpj || null;
+          sale.cliente_telefone = sale.cliente_telefone || cliente.telefone || cliente.whatsapp || null;
+        }
+      } catch (clienteError) {
+        console.warn('[Public] Nao foi possivel complementar dados do cliente do cupom:', clienteError);
+      }
+    }
     const saleId = sale.id;
     const [itemsResult, paymentsResult] = await Promise.all([
       pool.query(

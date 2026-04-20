@@ -425,6 +425,31 @@ export default function NovaVenda() {
     }
   };
 
+  const resolveClienteFromOS = useCallback(async (clienteId?: string | null) => {
+    if (!clienteId) return null;
+
+    const clienteLocal = clientes.find(c => c.id === clienteId);
+    if (clienteLocal?.cpf_cnpj || clienteLocal?.telefone || clienteLocal?.whatsapp) {
+      return clienteLocal;
+    }
+
+    try {
+      const { data: clienteDb, error } = await from('clientes')
+        .select('id, nome, cpf_cnpj, telefone, whatsapp')
+        .eq('id', clienteId)
+        .single();
+
+      if (error) {
+        console.warn('Erro ao buscar cliente da OS no banco:', error);
+      }
+
+      return clienteDb || clienteLocal || null;
+    } catch (error) {
+      console.warn('Erro ao resolver cliente da OS:', error);
+      return clienteLocal || null;
+    }
+  }, [clientes]);
+
   // Função para importar OS automaticamente
   const handleImportarOS = useCallback(async (osId: string) => {
     try {
@@ -467,8 +492,8 @@ export default function NovaVenda() {
         return;
       }
 
-      // Buscar cliente
-      const cliente = clientes.find(c => c.id === os.cliente_id);
+      // Buscar cliente completo para não depender da lista paginada carregada na tela
+      const cliente = await resolveClienteFromOS(os.cliente_id);
 
       // Criar venda vinculada à OS
       const novaVenda = await createSale({
@@ -519,7 +544,7 @@ export default function NovaVenda() {
         variant: 'destructive',
       });
     }
-  }, [getOSById, clientes, produtos, createSale, addItem, navigate, toast]);
+  }, [getOSById, produtos, createSale, addItem, navigate, toast, resolveClienteFromOS]);
 
   // Importar OS do localStorage se houver
   useEffect(() => {
@@ -861,8 +886,8 @@ export default function NovaVenda() {
         return;
       }
 
-      // Buscar cliente do localStorage (sistema atual)
-      const cliente = clientes.find(c => c.id === os.cliente_id);
+      // Buscar cliente completo para não depender da lista paginada carregada na tela
+      const cliente = await resolveClienteFromOS(os.cliente_id);
 
       // Validar technician_id antes de passar (deve ser UUID válido)
       // Se não for válido, passa null para evitar erro de foreign key

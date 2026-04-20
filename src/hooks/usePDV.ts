@@ -783,8 +783,31 @@ export function useSales() {
         .eq('sale_id', id)
         .execute();
 
+      let saleResolved: any = saleData;
+      if (
+        saleData?.cliente_id &&
+        (!saleData?.cliente_cpf_cnpj || !saleData?.cliente_telefone)
+      ) {
+        try {
+          const { data: clienteData, error: clienteError } = await from('clientes')
+            .select('cpf_cnpj, telefone, whatsapp')
+            .eq('id', saleData.cliente_id)
+            .single();
+
+          if (!clienteError && clienteData) {
+            saleResolved = {
+              ...saleData,
+              cliente_cpf_cnpj: saleData.cliente_cpf_cnpj || clienteData.cpf_cnpj || null,
+              cliente_telefone: saleData.cliente_telefone || clienteData.telefone || clienteData.whatsapp || null,
+            };
+          }
+        } catch (clienteLookupError) {
+          console.warn('Nao foi possivel complementar dados do cliente na venda:', clienteLookupError);
+        }
+      }
+
       return {
-        ...saleData,
+        ...saleResolved,
         items: itemsData || [],
         payments: paymentsData || []
       };
