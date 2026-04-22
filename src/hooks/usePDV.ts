@@ -1366,10 +1366,18 @@ export function useCashRegister() {
       if (error) throw error;
 
       await logAudit('update', 'cash_session', sessionId, currentSession, updatedSession, 'Caixa fechado', user);
+      const usuarioCaixa =
+        (updatedSession as any)?.operador_nome
+        || (currentSession as any)?.operador_nome
+        || profile?.display_name
+        || user?.user_metadata?.name
+        || user?.email
+        || 'Operador';
       await fireAlertSafely(auth?.session?.token, 'caixa.fechado', {
         valor_abertura: Number(valorInicialSession || 0),
         valor_fechamento: Number(valorFinal || 0),
         total_vendas: Number(totalVendas || 0),
+        usuario_caixa: usuarioCaixa,
         usuario: profile?.display_name || user?.user_metadata?.name || user?.email || 'Operador',
       });
 

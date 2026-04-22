@@ -84,7 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_alert_logs_status ON public.alert_logs(status);
 INSERT INTO public.alert_catalog (codigo_alerta, categoria, nome, descricao, variaveis_disponiveis, tipo_disparo, ativo_por_padrao, template_padrao, prioridade_padrao)
 VALUES
   ('os.criada', 'operacional', 'Nova OS aberta', 'Ordem de serviço criada', ARRAY['cliente','numero_os','marca','modelo','defeito','usuario','link_os','empresa'], 'tempo_real', false,
-   E'Nova ordem de serviço aberta.\n\nOS: #{numero_os}\nCliente: {cliente}\nAparelho: {marca} {modelo}\nDefeito: {defeito}\nResponsável: {usuario}\nAcompanhamento: {link_os}', 0),
+   E'*Nova ordem de serviço aberta*\n.\n*OS:* #{numero_os}\n.\n*Cliente:* {cliente}\n.\n*Aparelho:* {marca} {modelo}\n.\n*Defeito:* {defeito}\n.\n*Acompanhamento:* {link_os}\n.\n*Responsável:* {usuario}', 0),
   ('os.status_alterado', 'operacional', 'OS alterada de status', 'Status da OS alterado', ARRAY['cliente','numero_os','status','usuario','link_os'], 'tempo_real', false, 'OS #{numero_os} alterada para {status}. Cliente: {cliente}.', 0),
   ('os.finalizada', 'operacional', 'OS finalizada', 'Ordem de serviço finalizada', ARRAY['cliente','numero_os','usuario','link_os'], 'tempo_real', false, 'OS #{numero_os} finalizada. Cliente: {cliente}.', 0),
   ('os.entregue', 'operacional', 'OS entregue', 'OS entregue ao cliente', ARRAY['cliente','numero_os','usuario'], 'tempo_real', false, 'OS #{numero_os} entregue. Cliente: {cliente}.', 0),
@@ -93,8 +93,8 @@ VALUES
   ('os.orcamento_recusado', 'operacional', 'Orçamento recusado', 'Orçamento recusado', ARRAY['cliente','numero_os','usuario'], 'tempo_real', false, 'Orçamento OS #{numero_os} recusado. Cliente: {cliente}.', 0),
   ('devolucao.criada', 'operacional', 'Devolução registrada', 'Devolução de venda registrada', ARRAY['cliente','valor','usuario'], 'tempo_real', false,
    E'Uma devolução foi registrada no sistema.\n\nCliente: {cliente}\nValor: {valor}\nResponsável: {usuario}', 0),
-  ('caixa.fechado', 'financeiro', 'Fechamento de caixa', 'Caixa fechado', ARRAY['valor_abertura','valor_fechamento','total_vendas','usuario'], 'tempo_real', true,
-   E'Caixa fechado com sucesso.\n\nAbertura: {valor_abertura}\nFechamento: {valor_fechamento}\nTotal em vendas: {total_vendas}\nResponsável: {usuario}', 0),
+  ('caixa.fechado', 'financeiro', 'Fechamento de caixa', 'Caixa fechado', ARRAY['valor_abertura','valor_fechamento','total_vendas','usuario_caixa','usuario'], 'tempo_real', true,
+   E'*Caixa fechado com sucesso.*\n.\n*Usuário:* {usuario_caixa}\n.\n*Abertura:* {valor_abertura}\n.\n*Fechamento:* {valor_fechamento}\n.\n*Total em vendas:* {total_vendas}\n.\n*Responsável:* {usuario}', 0),
   ('caixa.sangria', 'financeiro', 'Sangria realizada', 'Sangria de caixa', ARRAY['valor','usuario'], 'tempo_real', false, 'Sangria de {valor} realizada. Responsável: {usuario}.', 0),
   ('caixa.suprimento', 'financeiro', 'Suprimento realizado', 'Suprimento de caixa', ARRAY['valor','usuario'], 'tempo_real', false, 'Suprimento de {valor} realizado. Responsável: {usuario}.', 0),
   ('financeiro.despesa_lancada', 'financeiro', 'Despesa lançada', 'Nova despesa', ARRAY['descricao','valor','usuario'], 'tempo_real', false, 'Despesa lançada: {descricao} - {valor}.', 0),

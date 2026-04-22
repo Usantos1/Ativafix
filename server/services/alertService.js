@@ -25,14 +25,39 @@ const pool = new Pool({
 
 // ─── AlertTemplateRenderer: substitui variáveis no template ─────────────────
 const DEFAULT_VARS = [
-  'cliente', 'numero_os', 'status', 'marca', 'modelo', 'usuario', 'valor',
+  'cliente', 'numero_os', 'status', 'marca', 'modelo', 'usuario', 'usuario_caixa', 'valor',
   'descricao', 'data_vencimento', 'total_vendas', 'quantidade_vendas', 'ticket_medio',
   'empresa', 'link_os', 'defeito', 'valor_abertura', 'valor_fechamento', 'meta', 'horario',
   'dias', 'tipo', 'id', 'campo', 'valor_anterior', 'valor_novo', 'limite'
 ];
 
+// Variáveis que devem ser formatadas como moeda (R$) quando o valor for numérico.
+const CURRENCY_VARS = new Set([
+  'valor', 'valor_abertura', 'valor_fechamento', 'total_vendas',
+  'ticket_medio', 'meta', 'valor_anterior', 'valor_novo', 'limite'
+]);
+
+function formatBRL(num) {
+  try {
+    return `R$ ${Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  } catch {
+    return `R$ ${Number(num).toFixed(2).replace('.', ',')}`;
+  }
+}
+
+function maybeFormatCurrency(key, value) {
+  if (!CURRENCY_VARS.has(key)) return value;
+  if (value == null || value === '') return value;
+  // Se já parece formatado (contém "R$"), mantém.
+  if (typeof value === 'string' && /r\$/i.test(value)) return value;
+  const num = typeof value === 'number' ? value : Number(String(value).replace(/\./g, '').replace(',', '.'));
+  if (!Number.isFinite(num)) return value;
+  return formatBRL(num);
+}
+
 /**
  * Substitui {variavel} e #{numero_os} no template pelos valores do payload.
+ * Aplica formatação de moeda (R$) automaticamente para variáveis monetárias.
  * @param {string} template - Texto com placeholders
  * @param {Record<string, any>} payload - Dados do evento
  * @returns {string} Mensagem final
@@ -41,6 +66,9 @@ export function renderTemplate(template, payload = {}) {
   if (!template || typeof template !== 'string') return '';
   let out = template;
   const vars = { ...payload };
+  for (const key of Object.keys(vars)) {
+    vars[key] = maybeFormatCurrency(key, vars[key]);
+  }
   for (const key of DEFAULT_VARS) {
     if (vars[key] === undefined) vars[key] = `[${key}]`;
   }
@@ -308,12 +336,17 @@ export async function dispatch(options) {
     const defeito = payload?.defeito ? String(payload.defeito).trim() : '';
     const linkOs = payload?.link_os ? String(payload.link_os).trim() : '';
     const templateLower = String(template || '').toLowerCase();
+    // Detecta o estilo do template para manter o mesmo padrão ao acrescentar linhas.
+    const usaNegrito = /\*[^*\n]+\*/.test(template || '');
+    const usaSeparadorPonto = /\n\s*\.\s*\n/.test(template || '');
+    const sep = usaSeparadorPonto ? '\n.\n' : '\n';
+    const b = (s) => (usaNegrito ? `*${s}*` : s);
 
     if (defeito && !templateLower.includes('{defeito}')) {
-      mensagem += `\nDefeito: ${defeito}`;
+      mensagem += `${sep}${b('Defeito:')} ${defeito}`;
     }
     if (linkOs && !templateLower.includes('{link_os}')) {
-      mensagem += `\nAcompanhamento: ${linkOs}`;
+      mensagem += `${sep}${b('Acompanhamento:')} ${linkOs}`;
     }
   }
 
