@@ -32,6 +32,8 @@ curl -X OPTIONS https://api.ativafix.com/api/functions/job-application-submit \
 # ===================================================
 # FRONTEND (app.ativafix.com) — barra MIUI, DRE, etc.
 # Mudanças em .tsx só entram na nuvem após build + copiar dist.
+# IMPORTANTE: o Nginx do app.ativafix.com usa root /var/www/ativafix (NÃO /var/www/html).
+# O script scripts/deploy/DEPLOY_FRONTEND.sh copia para /var/www/ativafix por padrão.
 # ===================================================
 #
 # cd /root/primecamp-ofc
@@ -40,6 +42,10 @@ curl -X OPTIONS https://api.ativafix.com/api/functions/job-application-submit \
 #
 # Depois no navegador: Ctrl+Shift+R (hard refresh)
 #
-# Conferir se o deploy REALMENTE subiu (data + commit do último build na VPS):
+# Conferir build (deve retornar UMA linha texto; se vier HTML, o root do Nginx ≠ pasta do deploy):
 # curl -s https://app.ativafix.com/build-info.txt
-# Deve mostrar deployed_at recente e o hash do commit (ex.: 2555aef...).
+#
+# Teste local na VPS ignorando DNS/CDN:
+# curl -s http://127.0.0.1/build-info.txt -H "Host: app.ativafix.com"
+#
+# Se ainda usar outra pasta: FRONTEND_WEB_ROOT=/caminho/do/nginx/root bash scripts/deploy/DEPLOY_FRONTEND.sh

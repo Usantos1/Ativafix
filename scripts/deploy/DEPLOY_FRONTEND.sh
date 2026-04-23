@@ -1,14 +1,28 @@
 #!/bin/bash
-# Script para fazer deploy do frontend na VPS
-# Uso: bash DEPLOY_FRONTEND.sh
+# Deploy do frontend na VPS (Ativa FIX / PrimeCamp)
+# Uso: bash scripts/deploy/DEPLOY_FRONTEND.sh
+#
+# Pasta publicada (deve ser a MESMA do `root` do Nginx em app.ativafix.com):
+#   padrão: /var/www/ativafix   (ver docs/deploy/NGINX_ATIVAFIX_PASSO_A_PASSO.md)
+#   override: FRONTEND_WEB_ROOT=/var/www/html bash scripts/deploy/DEPLOY_FRONTEND.sh
 
 set -e
 
-echo "=========================================="
-echo "Deploy do Frontend - PrimeCamp"
-echo "=========================================="
+WEB_ROOT="${FRONTEND_WEB_ROOT:-/var/www/ativafix}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_ROOT" || exit 1
 
-cd /root/primecamp-ofc || exit 1
+if [ ! -f package.json ]; then
+  echo "❌ package.json não encontrado em $REPO_ROOT"
+  exit 1
+fi
+
+echo "=========================================="
+echo "Deploy do Frontend"
+echo "Repo:    $REPO_ROOT"
+echo "Destino: $WEB_ROOT"
+echo "=========================================="
 
 echo ""
 echo "1️⃣ Atualizando código do repositório..."
@@ -28,100 +42,59 @@ if [ ! -d "dist" ]; then
 fi
 
 echo ""
-echo "3b️⃣ Gravando build-info.txt (confira em https://app.ativafix.com/build-info.txt após o deploy)..."
+echo "3b️⃣ Gravando build-info.txt (curl deve retornar TEXTO, não index.html)..."
 echo "deployed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ) commit=$(git rev-parse HEAD) branch=$(git rev-parse --abbrev-ref HEAD)" > dist/build-info.txt
 cat dist/build-info.txt
 
 echo ""
-echo "4️⃣ Fazendo backup dos arquivos antigos..."
-sudo mkdir -p /var/www/html.backup
-sudo cp -r /var/www/html/* /var/www/html.backup/ 2>/dev/null || true
+echo "4️⃣ Preparando pasta web e backup..."
+sudo mkdir -p "$WEB_ROOT"
+BACKUP_DIR="${WEB_ROOT}.backup"
+sudo mkdir -p "$BACKUP_DIR"
+sudo cp -r "${WEB_ROOT}/." "$BACKUP_DIR/" 2>/dev/null || true
 
 echo ""
-echo "5️⃣ Copiando novos arquivos para /var/www/html..."
-sudo rm -rf /var/www/html/*
-sudo cp -r dist/* /var/www/html/
-sudo chown -R www-data:www-data /var/www/html/
-sudo chmod -R 755 /var/www/html/
+echo "5️⃣ Copiando dist → $WEB_ROOT ..."
+sudo rm -rf "${WEB_ROOT:?}"/*
+sudo cp -r dist/* "$WEB_ROOT/"
+sudo chown -R www-data:www-data "$WEB_ROOT"
+sudo chmod -R 755 "$WEB_ROOT"
 
 echo ""
-echo "6️⃣ Verificando configuração do Nginx..."
+echo "6️⃣ Verificando configuração do Nginx (opcional)..."
 NGINX_CONFIG="/etc/nginx/sites-available/ativafix.conf"
+ALT_ATIVAFIX="/etc/nginx/sites-available/ativafix"
 
-if [ ! -f "$NGINX_CONFIG" ]; then
-    echo "⚠️  Configuração do Nginx não encontrada em $NGINX_CONFIG"
-    echo "   Criando configuração básica..."
-    
-    sudo tee "$NGINX_CONFIG" > /dev/null <<EOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ativafix www.ativafix;
-    
-    root /var/www/html;
-    index index.html;
-    
-    # Configuração SPA - React Router (IMPORTANTE!)
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-    
-    # Arquivos estáticos
-    location ~* \.(js|css)$ {
-        expires 0;
-        add_header Cache-Control "no-cache, must-revalidate";
-    }
-    
-    location ~* \.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    access_log /var/log/nginx/ativafix.access.log;
-    error_log /var/log/nginx/ativafix.error.log;
-}
-EOF
-
-    # Criar link simbólico
-    sudo rm -f /etc/nginx/sites-enabled/ativafix.conf
-    sudo ln -sf "$NGINX_CONFIG" /etc/nginx/sites-enabled/ativafix.conf
-    echo "   ✅ Configuração criada"
-fi
-
-# Verificar se tem try_files configurado
-if ! grep -q "try_files.*index.html" "$NGINX_CONFIG"; then
-    echo "⚠️  Nginx não está configurado para SPA!"
-    echo "   Adicionando configuração SPA..."
-    
-    # Criar backup
-    sudo cp "$NGINX_CONFIG" "${NGINX_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)"
-    
-    # Adicionar try_files se não existir
-    sudo sed -i 's|location / {|location / {\n        try_files $uri $uri/ /index.html;|' "$NGINX_CONFIG"
-    
-    echo "   ✅ Configuração SPA adicionada"
+if [ -f "$NGINX_CONFIG" ] || [ -f "$ALT_ATIVAFIX" ]; then
+  for f in "$NGINX_CONFIG" "$ALT_ATIVAFIX"; do
+    [ -f "$f" ] || continue
+    if ! grep -q "try_files.*index.html" "$f"; then
+      echo "⚠️  $f pode precisar de try_files para SPA (revise manualmente)."
+    fi
+  done
+else
+    echo "⚠️  Nenhum arquivo em sites-available/ativafix(.conf) — ajuste o Nginx se for primeira vez."
 fi
 
 echo ""
 echo "7️⃣ Testando configuração do Nginx..."
-if sudo nginx -t; then
+if sudo nginx -t 2>/dev/null; then
     echo "   ✅ Sintaxe OK"
+    echo ""
+    echo "8️⃣ Recarregando Nginx..."
+    sudo systemctl reload nginx
 else
-    echo "   ❌ Erro na configuração do Nginx!"
-    sudo nginx -t
-    exit 1
+    echo "   ⚠️  nginx -t falhou ou nginx não instalado — copie os arquivos e corrija o Nginx depois."
 fi
 
 echo ""
-echo "8️⃣ Recarregando Nginx..."
-sudo systemctl reload nginx
+echo "✅ Deploy concluído!"
+echo ""
+echo "Arquivos em $WEB_ROOT:"
+ls -lah "$WEB_ROOT" | head -12
 
 echo ""
-echo "✅ Deploy concluído com sucesso!"
-echo ""
-echo "Verificando arquivos em /var/www/html:"
-ls -lah /var/www/html/ | head -10
-
-echo ""
-echo "Teste acessando: https://app.ativafix.com/rh"
-
+echo "Na VPS, confira (deve ser 1 linha de texto, NÃO HTML):"
+echo "  curl -s http://127.0.0.1/build-info.txt -H \"Host: app.ativafix.com\""
+echo "ou, se resolver DNS na própria VPS:"
+echo "  curl -s https://app.ativafix.com/build-info.txt"
