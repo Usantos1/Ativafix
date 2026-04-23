@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useJobSurveys } from '@/hooks/useJobSurveys';
 
@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Ban,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -251,6 +252,10 @@ export default function JobPortal() {
     [allJobs]
   );
 
+  const activeJobCount = useMemo(() => jobs.filter((j) => j.is_active).length, [jobs]);
+  const closedJobCount = useMemo(() => jobs.filter((j) => !j.is_active).length, [jobs]);
+  const openJobsForSchema = useMemo(() => jobs.filter((j) => j.is_active), [jobs]);
+
   const formatSalary = (job: JobSurvey) => {
     const fmt = (n: number) => n.toLocaleString('pt-BR');
     if (job.salary_range) return job.salary_range;
@@ -260,10 +265,11 @@ export default function JobPortal() {
     return 'Salário a combinar';
   };
 
-  const handleApply = (job: JobSurvey) => {
+  const handleApply = useCallback((job: JobSurvey) => {
+    if (!job.is_active) return;
     if (job.slug) window.open(`/vaga/${job.slug}`, '_blank');
     else window.open(`/job-application/${job.id}`, '_blank');
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -358,8 +364,8 @@ export default function JobPortal() {
             '@type': 'ItemList',
             name: 'Vagas de Emprego - Prime Camp',
             description: 'Lista de vagas de emprego disponíveis na Prime Camp',
-            numberOfItems: total,
-            itemListElement: jobs.slice(0, 10).map((j, i) => ({
+            numberOfItems: openJobsForSchema.length,
+            itemListElement: openJobsForSchema.slice(0, 10).map((j, i) => ({
               '@type': 'ListItem',
               position: i + 1,
               item: {
@@ -444,8 +450,13 @@ export default function JobPortal() {
             {/* Estatísticas */}
             <div className="flex items-center justify-center gap-6 sm:gap-10 mt-6">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-white">{total}</div>
-                <div className="text-xs sm:text-sm text-white/80">Vagas Ativas</div>
+                <div className="text-2xl sm:text-3xl font-bold text-white">{activeJobCount}</div>
+                <div className="text-xs sm:text-sm text-white/80">Abertas para candidatura</div>
+                {closedJobCount > 0 && (
+                  <div className="text-[10px] sm:text-xs text-white/70 mt-1">
+                    +{closedJobCount} encerrada{closedJobCount !== 1 ? 's' : ''} (somente consulta)
+                  </div>
+                )}
               </div>
               <div className="w-px h-10 bg-white/30" />
               <div className="text-center">
@@ -748,7 +759,7 @@ export default function JobPortal() {
                 {jobs.map((job) => (
                 <Card
                   key={job.id}
-                  className="job-card-hover rounded-2xl border overflow-hidden"
+                  className={`job-card-hover rounded-2xl border overflow-hidden${!job.is_active ? ' opacity-90' : ''}`}
                   style={{
                     backgroundColor: 'hsl(var(--job-card))',
                     borderColor: 'hsl(var(--job-card-border))',
@@ -770,15 +781,25 @@ export default function JobPortal() {
                         >
                           {job.title}
                         </h3>
-                        <Badge
-                          className="text-white shrink-0 font-medium shadow-sm"
-                          style={{ 
-                            background: `linear-gradient(135deg, hsl(var(--job-gradient-start)), hsl(var(--job-gradient-end)))`,
-                          }}
-                        >
-                          {job.work_modality?.charAt(0).toUpperCase() +
-                            job.work_modality?.slice(1)}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge
+                            className="text-white font-medium shadow-sm"
+                            style={{ 
+                              background: `linear-gradient(135deg, hsl(var(--job-gradient-start)), hsl(var(--job-gradient-end)))`,
+                            }}
+                          >
+                            {job.work_modality?.charAt(0).toUpperCase() +
+                              job.work_modality?.slice(1)}
+                          </Badge>
+                          {!job.is_active && (
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] sm:text-xs font-semibold border border-neutral-400 bg-neutral-200 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-100 dark:border-neutral-500"
+                            >
+                              Encerrado
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <p
                         className="text-sm font-medium"
@@ -891,17 +912,24 @@ export default function JobPortal() {
                                   <ExternalLink className="h-4 w-4 mr-1" />
                                   Ver Formulário
                                 </Button>
-                                <Button
-                                  className="flex-1"
-                                  style={{
-                                    backgroundColor: 'hsl(var(--job-primary))',
-                                    color: 'white',
-                                  }}
-                                  onClick={() => handleApply(job)}
-                                >
-                                  <Users className="h-4 w-4 mr-1" />
-                                  Candidatar-se
-                                </Button>
+                                {job.is_active ? (
+                                  <Button
+                                    className="flex-1"
+                                    style={{
+                                      backgroundColor: 'hsl(var(--job-primary))',
+                                      color: 'white',
+                                    }}
+                                    onClick={() => handleApply(job)}
+                                  >
+                                    <Users className="h-4 w-4 mr-1" />
+                                    Candidatar-se
+                                  </Button>
+                                ) : (
+                                  <Button type="button" variant="secondary" className="flex-1" disabled>
+                                    <Ban className="h-4 w-4 mr-1" />
+                                    Inscrições encerradas
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </DialogContent>
@@ -978,18 +1006,31 @@ export default function JobPortal() {
                         <span className="hidden sm:inline">Ver detalhes</span>
                         <span className="sm:hidden">Detalhes</span>
                       </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 w-full text-xs sm:text-sm font-semibold shadow-md hover:shadow-lg transition-all"
-                        style={{
-                          background: `linear-gradient(135deg, hsl(var(--job-gradient-start)), hsl(var(--job-gradient-end)))`,
-                          color: 'white',
-                        }}
-                        onClick={() => handleApply(job)}
-                      >
-                        <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
-                        Candidatar-se
-                      </Button>
+                      {job.is_active ? (
+                        <Button
+                          size="sm"
+                          className="flex-1 w-full text-xs sm:text-sm font-semibold shadow-md hover:shadow-lg transition-all"
+                          style={{
+                            background: `linear-gradient(135deg, hsl(var(--job-gradient-start)), hsl(var(--job-gradient-end)))`,
+                            color: 'white',
+                          }}
+                          onClick={() => handleApply(job)}
+                        >
+                          <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
+                          Candidatar-se
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="flex-1 w-full text-xs sm:text-sm font-semibold"
+                          disabled
+                        >
+                          <Ban className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
+                          Inscrições encerradas
+                        </Button>
+                      )}
                     </div>
 
                     {job.benefits && Array.isArray(job.benefits) && job.benefits.length > 0 && (

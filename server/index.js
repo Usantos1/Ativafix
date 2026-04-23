@@ -644,12 +644,14 @@ app.get('/api/health', (req, res) => {
 // ENDPOINTS PÚBLICOS (sem autenticação)
 // ============================================
 
-// Listar vagas públicas (ativas)
+// Listar vagas públicas (ativas + encerradas que já foram publicadas)
 app.get('/api/public/vagas', async (req, res) => {
   try {
     const { search, location, modality, contract_type, page = 1, pageSize = 12 } = req.query;
     
-    let whereConditions = ['is_active = true'];
+    let whereConditions = [
+      "(is_active = true OR (is_active = false AND (published_at IS NOT NULL OR (slug IS NOT NULL AND TRIM(slug) <> ''))))",
+    ];
     const params = [];
     let paramIndex = 1;
 
@@ -693,7 +695,7 @@ app.get('/api/public/vagas', async (req, res) => {
     const sql = `
       SELECT * FROM job_surveys 
       WHERE ${whereConditions.join(' AND ')}
-      ORDER BY created_at DESC
+      ORDER BY is_active DESC, created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     params.push(parseInt(pageSize), offset);
@@ -733,15 +735,17 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
     console.log('[Public] Buscando vaga por slug/id:', slugOrId);
     
     // Tentar buscar por slug (case-insensitive)
+    const publicVisibility =
+      "(is_active = true OR (is_active = false AND (published_at IS NOT NULL OR (slug IS NOT NULL AND TRIM(slug) <> ''))))";
     let result = await pool.query(
-      'SELECT * FROM job_surveys WHERE LOWER(slug) = LOWER($1) AND is_active = true',
+      `SELECT * FROM job_surveys WHERE LOWER(slug) = LOWER($1) AND ${publicVisibility}`,
       [slugOrId]
     );
     
     // Se não encontrar por slug, tentar por ID
     if (result.rows.length === 0 && slugOrId.length === 36) {
       result = await pool.query(
-        'SELECT * FROM job_surveys WHERE id = $1 AND is_active = true',
+        `SELECT * FROM job_surveys WHERE id = $1 AND ${publicVisibility}`,
         [slugOrId]
       );
     }
@@ -749,7 +753,7 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
     // Se ainda não encontrar, tentar busca parcial no slug
     if (result.rows.length === 0) {
       result = await pool.query(
-        'SELECT * FROM job_surveys WHERE LOWER(slug) LIKE LOWER($1) AND is_active = true',
+        `SELECT * FROM job_surveys WHERE LOWER(slug) LIKE LOWER($1) AND ${publicVisibility}`,
         [`%${slugOrId}%`]
       );
     }
@@ -778,12 +782,16 @@ app.post('/api/public/candidatura', async (req, res) => {
     
     // Buscar a vaga para pegar o company_id
     const surveyResult = await pool.query(
-      'SELECT id, company_id FROM job_surveys WHERE id = $1',
+      'SELECT id, company_id, is_active FROM job_surveys WHERE id = $1',
       [survey_id]
     );
     
     if (surveyResult.rows.length === 0) {
       return res.status(404).json({ error: 'Vaga não encontrada' });
+    }
+
+    if (surveyResult.rows[0].is_active === false) {
+      return res.status(400).json({ error: 'As inscrições para esta vaga foram encerradas.' });
     }
     
     const companyId = surveyResult.rows[0].company_id;
@@ -929,12 +937,16 @@ app.post('/api/functions/job-application-save-draft', async (req, res) => {
     
     // Buscar a vaga para pegar o company_id
     const surveyResult = await pool.query(
-      'SELECT id, company_id FROM job_surveys WHERE id = $1',
+      'SELECT id, company_id, is_active FROM job_surveys WHERE id = $1',
       [survey_id]
     );
     
     if (surveyResult.rows.length === 0) {
       return res.status(404).json({ error: 'Vaga não encontrada' });
+    }
+
+    if (surveyResult.rows[0].is_active === false) {
+      return res.status(400).json({ error: 'As inscrições para esta vaga foram encerradas.' });
     }
     
     const companyId = surveyResult.rows[0].company_id;
@@ -992,7 +1004,7 @@ app.post('/api/functions/job-application-submit', async (req, res) => {
     
     // Buscar a vaga para pegar o company_id
     const surveyResult = await pool.query(
-      'SELECT id, company_id, title, position_title FROM job_surveys WHERE id = $1',
+      'SELECT id, company_id, title, position_title, is_active FROM job_surveys WHERE id = $1',
       [survey_id]
     );
     
@@ -1001,6 +1013,10 @@ app.post('/api/functions/job-application-submit', async (req, res) => {
     }
     
     const survey = surveyResult.rows[0];
+
+    if (survey.is_active === false) {
+      return res.status(400).json({ error: 'As inscrições para esta vaga foram encerradas.' });
+    }
     const companyId = survey.company_id;
     const emailLower = email.toLowerCase().trim();
 

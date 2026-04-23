@@ -17,7 +17,7 @@ import {
   AlertCircle, CheckCircle, FileText, Send,
   Home, Building, MapPin, DollarSign, Users, Clock,
   Phone, Mail, User, ChevronLeft, ChevronRight, Zap, Award,
-  Lock, Info, AlertTriangle
+  Lock, Info, AlertTriangle, Ban
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -540,6 +540,9 @@ export default function JobApplicationSteps() {
       };
 
       setSurvey(normalizedSurvey);
+      if (normalizedSurvey.is_active === false) {
+        return;
+      }
       fetchDynamicQuestions(normalizedSurvey);
     } catch (error) {
       console.error("Erro ao buscar formulário:", error);
@@ -932,6 +935,46 @@ export default function JobApplicationSteps() {
               <AlertCircle className="w-16 h-16 mx-auto mb-4" style={{ color: 'hsl(var(--job-primary))' }} />
               <h1 className="text-2xl font-bold mb-2" style={{ color: 'hsl(var(--job-text))' }}>Formulário não encontrado</h1>
               <p style={{ color: 'hsl(var(--job-text-muted))' }}>O formulário solicitado não existe ou não está mais ativo.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (survey.is_active === false) {
+    return (
+      <div className="min-h-screen job-form-scroll" style={{ backgroundColor: 'hsl(var(--job-application))' }}>
+        <Helmet>
+          <title>{survey.title} – Inscrições encerradas</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <style>{themeCSS}</style>
+        <div className="flex items-center justify-center p-4 min-h-screen" style={{ backgroundColor: 'hsl(var(--job-bg))' }}>
+          <Card className="w-full max-w-lg border-2 shadow-lg" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-card-border))' }}>
+            <CardHeader className="text-center space-y-3 pb-2">
+              <Badge variant="secondary" className="mx-auto w-fit gap-1 border border-neutral-400">
+                <Ban className="h-3 w-3" />
+                Encerrado
+              </Badge>
+              <CardTitle className="text-xl sm:text-2xl" style={{ color: 'hsl(var(--job-text))' }}>
+                {survey.title}
+              </CardTitle>
+              <p className="text-sm font-medium" style={{ color: 'hsl(var(--job-text-muted))' }}>
+                {survey.position_title}
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center pb-8">
+              <p className="text-sm leading-relaxed" style={{ color: 'hsl(var(--job-text-muted))' }}>
+                As inscrições para esta vaga foram encerradas. Você ainda pode conferir outras oportunidades no portal.
+              </p>
+              <Button
+                type="button"
+                onClick={() => navigate('/vagas')}
+                style={{ backgroundColor: 'hsl(var(--job-primary))', color: 'white' }}
+              >
+                Ver outras vagas
+              </Button>
             </CardContent>
           </Card>
         </div>
