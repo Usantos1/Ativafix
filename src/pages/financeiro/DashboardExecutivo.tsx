@@ -278,9 +278,9 @@ export default function DashboardExecutivo() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold">{currencyFormatters.brl(produto.receitaTotal)}</p>
+                      <p className="text-sm font-bold">{fmt(produto.receitaTotal)}</p>
                       <p className="text-xs text-muted-foreground">
-                        Lucro: {currencyFormatters.brl(produto.lucroTotal)}
+                        Lucro: {fmt(produto.lucroTotal)}
                       </p>
                     </div>
                   </div>
@@ -309,12 +309,12 @@ export default function DashboardExecutivo() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{vendedor.nome}</p>
                         <p className="text-xs text-muted-foreground">
-                          {vendedor.totalVendas} vendas • Ticket médio: {currencyFormatters.brl(vendedor.ticketMedio)}
+                          {vendedor.totalVendas} vendas • Ticket médio: {fmt(vendedor.ticketMedio)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold">{currencyFormatters.brl(vendedor.totalVendido)}</p>
+                      <p className="text-sm font-bold">{fmt(vendedor.totalVendido)}</p>
                     </div>
                   </div>
                 ))}
