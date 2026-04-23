@@ -1,6 +1,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/AppSidebar"
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import { NotificationPanel } from "./NotificationPanel"
 import { SettingsModal } from "./SettingsModal"
 import { DemoBanner } from "./DemoBanner"
@@ -10,6 +11,7 @@ import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
 import { usePermissions } from "@/hooks/usePermissions"
 import { HeaderDefault } from "./HeaderDefault"
 import { HeaderMiui } from "./HeaderMiui"
+import { FinanceiroNavMenu } from "@/components/financeiro/FinanceiroNavMenu"
 
 /** Apenas a empresa 1 (administradora) pode alterar nome e cores do sistema. */
 const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
@@ -33,6 +35,7 @@ interface ModernLayoutProps {
 }
 
 export function ModernLayout({ children, title, subtitle, headerActions }: ModernLayoutProps) {
+  const location = useLocation()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [notificationCount, setNotificationCount] = useState(3)
@@ -42,6 +45,8 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
   const { config } = useThemeConfig()
   const isAdminCompany = user?.company_id === ADMIN_COMPANY_ID
   const isMiuiNavigation = config.navigationVariant === 'miui'
+  const showFinanceiroMiuiNav =
+    isMiuiNavigation && location.pathname.startsWith('/financeiro')
   const canOpenSettings = isAdminCompany ? hasPermission('admin.config') : (isAdmin || hasPermission('admin.config'))
 
   useEffect(() => {
@@ -87,6 +92,8 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
                 headerActions={headerActions}
               />
             )}
+
+            {showFinanceiroMiuiNav && <FinanceiroNavMenu variant="embedded" />}
 
             {/* Main Content — mobile: página rola; desktop: scroll interno */}
             <main className="flex-1 flex flex-col min-h-0 overflow-x-hidden overflow-y-auto md:overflow-hidden">

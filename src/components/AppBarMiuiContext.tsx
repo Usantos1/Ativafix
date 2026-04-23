@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 import { useNavigationItems } from '@/hooks/useNavigationItems';
 
 /** Prefixos onde a barra contextual deve aparecer (paridade com AppBar antigo). */
+/** `/financeiro` usa `FinanceiroNavMenu` em `ModernLayout` (sempre visível na nuvem). */
 const MODULE_TOOLBAR_PREFIXES = [
-  '/financeiro',
   '/pos-venda',
   '/pdv',
   '/os',
