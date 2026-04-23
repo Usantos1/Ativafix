@@ -1040,7 +1040,8 @@ export default function ConfiguracaoStatusPage() {
                   className="text-sm border-2 border-gray-300"
                 />
                 <p className="text-[10px] md:text-xs text-muted-foreground">
-                  Use {'{cliente}'}, {'{numero}'}, {'{link_os}'}, {'{status}'}, {'{marca}'} e {'{modelo}'} como variáveis
+                  Variáveis: {'{cliente}'}, {'{numero}'}, {'{link_os}'}, {'{status}'}, {'{marca}'}, {'{modelo}'},{' '}
+                  {'{cliente_cpf}'}, {'{cliente_endereco}'}
                 </p>
               </div>
             )}

@@ -59,7 +59,7 @@ import { generateOSTermica } from '@/utils/osTermicaGenerator';
 import { generateOSPDF } from '@/utils/osPDFGenerator';
 import { printTermica, generateCupomTermica } from '@/utils/pdfGenerator';
 import { updatePrintStatus, printViaIframe } from '@/utils/printUtils';
-import { printOSTermicaDirect, resolveClienteForOsPrint, fetchPagamentosOsForTermica } from '@/utils/osPrintUtils';
+import { printOSTermicaDirect, resolveClienteForOsPrint, fetchPagamentosOsForTermica, buildClienteEnderecoStr } from '@/utils/osPrintUtils';
 import { useChecklistConfig } from '@/hooks/useChecklistConfig';
 import { useAlertsFire } from '@/hooks/useAlerts';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1726,13 +1726,19 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
               const modelo = modelos.find(m => m.id === formData.modelo_id);
               
               const linkOs = `${window.location.origin}/acompanhar-os/${novaOS.id}`;
+              const clienteWa =
+                selectedCliente || (formData.cliente_id ? getClienteById(formData.cliente_id) : null);
+              const waCpf = (clienteWa?.cpf_cnpj && String(clienteWa.cpf_cnpj).trim()) || '';
+              const waEnd = buildClienteEnderecoStr(clienteWa) || '';
               let mensagem = configAberta.mensagem_whatsapp
                 .replace(/{cliente}/g, selectedCliente?.nome || novaOS.cliente_nome || 'Cliente')
                 .replace(/{numero}/g, novaOS.numero?.toString() || '')
                 .replace(/{link_os}/g, linkOs)
                 .replace(/{status}/g, configAberta.label)
                 .replace(/{marca}/g, marca?.nome || novaOS.marca_nome || '')
-                .replace(/{modelo}/g, modelo?.nome || novaOS.modelo_nome || '');
+                .replace(/{modelo}/g, modelo?.nome || novaOS.modelo_nome || '')
+                .replace(/{cliente_cpf}/gi, waCpf || '—')
+                .replace(/{cliente_endereco}/gi, waEnd || '—');
               
               // Formatar número
               let numero = telefone.replace(/\D/g, '');
@@ -1759,6 +1765,10 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         // Painel de Alertas: disparar "Nova OS aberta" para números configurados (principal + adicionais)
         try {
           const linkOs = `${window.location.origin}/acompanhar-os/${novaOS.id}`;
+          const clienteAlert =
+            selectedCliente || (formData.cliente_id ? getClienteById(formData.cliente_id) : null);
+          const clienteCpfAlert = (clienteAlert?.cpf_cnpj && String(clienteAlert.cpf_cnpj).trim()) || '';
+          const clienteEndAlert = buildClienteEnderecoStr(clienteAlert) || '';
           await fireAlert({
             codigo_alerta: 'os.criada',
             payload: {
@@ -1770,6 +1780,8 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
               usuario: currentUserNome,
               link_os: linkOs,
               empresa: profile?.company_name ?? '',
+              cliente_cpf: clienteCpfAlert,
+              cliente_endereco: clienteEndAlert,
             },
           });
         } catch (err: any) {
@@ -2217,10 +2229,11 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
       : { ...os, padrao_desbloqueio: padraoParaImpressao };
 
     // CPF/endereço: sempre preferir dados do banco (cache do form costuma vazio na 1ª impressão / checklist)
-    const clienteParaImpressao = await resolveClienteForOsPrint(
-      osToPrint.cliente_id,
-      getClienteById(osToPrint.cliente_id)
-    );
+    const hintCliente =
+      selectedCliente?.id && osToPrint.cliente_id && String(selectedCliente.id) === String(osToPrint.cliente_id)
+        ? selectedCliente
+        : getClienteById(osToPrint.cliente_id);
+    const clienteParaImpressao = await resolveClienteForOsPrint(osToPrint.cliente_id, hintCliente);
 
     if (tipo === 'pdf' || tipo === 'a4') {
       // Usar a mesma função para PDF e A4 (baseada na térmica)

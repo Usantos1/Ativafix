@@ -1378,6 +1378,7 @@ export function useCashRegister() {
         valor_fechamento: Number(valorFinal || 0),
         total_vendas: Number(totalVendas || 0),
         usuario_caixa: usuarioCaixa,
+        operador_nome: usuarioCaixa,
         usuario: profile?.display_name || user?.user_metadata?.name || user?.email || 'Operador',
       });
 

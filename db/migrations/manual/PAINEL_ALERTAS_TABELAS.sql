@@ -83,8 +83,8 @@ CREATE INDEX IF NOT EXISTS idx_alert_logs_status ON public.alert_logs(status);
 -- Inserir catálogo base de alertas (se não existir)
 INSERT INTO public.alert_catalog (codigo_alerta, categoria, nome, descricao, variaveis_disponiveis, tipo_disparo, ativo_por_padrao, template_padrao, prioridade_padrao)
 VALUES
-  ('os.criada', 'operacional', 'Nova OS aberta', 'Ordem de serviço criada', ARRAY['cliente','numero_os','marca','modelo','defeito','usuario','link_os','empresa'], 'tempo_real', false,
-   E'*Nova ordem de serviço aberta*\n.\n*OS:* #{numero_os}\n.\n*Cliente:* {cliente}\n.\n*Aparelho:* {marca} {modelo}\n.\n*Defeito:* {defeito}\n.\n*Acompanhamento:* {link_os}\n.\n*Responsável:* {usuario}', 0),
+  ('os.criada', 'operacional', 'Nova OS aberta', 'Ordem de serviço criada', ARRAY['cliente','numero_os','marca','modelo','defeito','usuario','link_os','empresa','cliente_cpf','cliente_endereco'], 'tempo_real', false,
+   E'*Nova ordem de serviço aberta*\n.\n*OS:* #{numero_os}\n.\n*Cliente:* {cliente}\n.\n*CPF/CNPJ:* {cliente_cpf}\n.\n*Endereço:* {cliente_endereco}\n.\n*Aparelho:* {marca} {modelo}\n.\n*Defeito:* {defeito}\n.\n*Acompanhamento:* {link_os}\n.\n*Responsável:* {usuario}', 0),
   ('os.status_alterado', 'operacional', 'OS alterada de status', 'Status da OS alterado', ARRAY['cliente','numero_os','status','usuario','link_os'], 'tempo_real', false, 'OS #{numero_os} alterada para {status}. Cliente: {cliente}.', 0),
   ('os.finalizada', 'operacional', 'OS finalizada', 'Ordem de serviço finalizada', ARRAY['cliente','numero_os','usuario','link_os'], 'tempo_real', false, 'OS #{numero_os} finalizada. Cliente: {cliente}.', 0),
   ('os.entregue', 'operacional', 'OS entregue', 'OS entregue ao cliente', ARRAY['cliente','numero_os','usuario'], 'tempo_real', false, 'OS #{numero_os} entregue. Cliente: {cliente}.', 0),

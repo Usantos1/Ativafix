@@ -21,13 +21,21 @@ export async function resolveClienteForOsPrint(
     const res = await from('clientes').select(CLIENTE_PRINT_FIELDS).eq('id', clienteId).limit(1).execute();
     const row = res.data && Array.isArray(res.data) && res.data.length > 0 ? res.data[0] : null;
     if (!row) return hint || null;
-    return { ...hint, ...row };
+    const empty = (v: unknown) => v == null || (typeof v === 'string' && !String(v).trim());
+    const merged: Record<string, unknown> = { ...hint, ...row };
+    for (const field of CLIENTE_PRINT_FIELDS.split(',').map((s) => s.trim())) {
+      if (!field) continue;
+      if (empty((row as any)[field]) && !empty(hint?.[field])) {
+        merged[field] = hint[field];
+      }
+    }
+    return merged;
   } catch {
     return hint || null;
   }
 }
 
-function buildClienteEnderecoStr(cliente: any): string | null {
+export function buildClienteEnderecoStr(cliente: any): string | null {
   if (!cliente) return null;
   const parts = [
     cliente.logradouro,

@@ -27,8 +27,8 @@ const pool = new Pool({
 const DEFAULT_VARS = [
   'cliente', 'numero_os', 'status', 'marca', 'modelo', 'usuario', 'usuario_caixa', 'valor',
   'descricao', 'data_vencimento', 'total_vendas', 'quantidade_vendas', 'ticket_medio',
-  'empresa', 'link_os', 'defeito', 'valor_abertura', 'valor_fechamento', 'meta', 'horario',
-  'dias', 'tipo', 'id', 'campo', 'valor_anterior', 'valor_novo', 'limite'
+  'empresa', 'link_os', 'defeito', 'cliente_cpf', 'cliente_endereco', 'valor_abertura', 'valor_fechamento', 'meta', 'horario',
+  'dias', 'tipo', 'id', 'campo', 'valor_anterior', 'valor_novo', 'limite', 'operador_nome'
 ];
 
 // Variáveis que devem ser formatadas como moeda (R$) quando o valor for numérico.
@@ -66,6 +66,13 @@ export function renderTemplate(template, payload = {}) {
   if (!template || typeof template !== 'string') return '';
   let out = template;
   const vars = { ...payload };
+
+  // Caixa fechado: operador do caixa — alguns clients não enviam usuario_caixa; template pode usar {usuario_caixa} ou [usuario_caixa]
+  const uNome = vars.usuario != null && String(vars.usuario).trim() !== '' ? String(vars.usuario).trim() : '';
+  const opNome = vars.operador_nome != null && String(vars.operador_nome).trim() !== '' ? String(vars.operador_nome).trim() : '';
+  const uCaixaRaw = vars.usuario_caixa != null && String(vars.usuario_caixa).trim() !== '' ? String(vars.usuario_caixa).trim() : '';
+  vars.usuario_caixa = uCaixaRaw || uNome || opNome;
+
   for (const key of Object.keys(vars)) {
     vars[key] = maybeFormatCurrency(key, vars[key]);
   }
@@ -76,6 +83,8 @@ export function renderTemplate(template, payload = {}) {
     const val = value == null ? '' : String(value);
     out = out.replace(new RegExp(`\\{${key}\\}`, 'gi'), val);
     out = out.replace(new RegExp(`#\\{${key}\\}`, 'gi'), val);
+    // Templates salvos com colchetes (erro comum) em vez de chaves
+    out = out.replace(new RegExp(`\\[${key}\\]`, 'gi'), val);
   }
   // #{numero_os} sem chave no payload
   out = out.replace(/#\{numero_os\}/gi, vars.numero_os ?? payload.numero_os ?? '[numero_os]');
@@ -334,7 +343,7 @@ export async function dispatch(options) {
   const payloadFinal = { ...payload };
   if (codigoAlerta === 'caixa.fechado') {
     if (payloadFinal.usuario_caixa == null || String(payloadFinal.usuario_caixa).trim() === '') {
-      payloadFinal.usuario_caixa = payloadFinal.usuario || '';
+      payloadFinal.usuario_caixa = payloadFinal.usuario || payloadFinal.operador_nome || '';
     }
   }
 
@@ -344,6 +353,8 @@ export async function dispatch(options) {
   if (codigoAlerta === 'os.criada') {
     const defeito = payload?.defeito ? String(payload.defeito).trim() : '';
     const linkOs = payload?.link_os ? String(payload.link_os).trim() : '';
+    const cpf = payload?.cliente_cpf ? String(payload.cliente_cpf).trim() : '';
+    const endereco = payload?.cliente_endereco ? String(payload.cliente_endereco).trim() : '';
     const templateLower = String(template || '').toLowerCase();
     // Detecta o estilo do template para manter o mesmo padrão ao acrescentar linhas.
     const usaNegrito = /\*[^*\n]+\*/.test(template || '');
@@ -357,10 +368,19 @@ export async function dispatch(options) {
     if (linkOs && !templateLower.includes('{link_os}')) {
       mensagem += `${sep}${b('Acompanhamento:')} ${linkOs}`;
     }
+    if (cpf && !templateLower.includes('{cliente_cpf}')) {
+      mensagem += `${sep}${b('CPF/CNPJ:')} ${cpf}`;
+    }
+    if (endereco && !templateLower.includes('{cliente_endereco}')) {
+      mensagem += `${sep}${b('Endereço:')} ${endereco}`;
+    }
   }
 
-  // Compat final: remove placeholders não resolvidos tipo [usuario_caixa] vindos de payloads antigos.
-  mensagem = mensagem.replace(/\[[a-z_][a-z0-9_]*\]/gi, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+  // Remove apenas placeholders de variável não preenchida (evita apagar texto legítimo com colchetes)
+  mensagem = mensagem
+    .replace(/\[(?:cliente_cpf|cliente_endereco|usuario_caixa|numero_os|link_os)\]/gi, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n');
 
   if (!mensagem.trim()) return { sent: false, error: 'Template vazio' };
 
