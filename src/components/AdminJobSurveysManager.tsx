@@ -17,7 +17,7 @@ import { from } from '@/integrations/db/client';
 import { apiClient } from '@/integrations/api/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Eye, Edit, Trash2, ExternalLink, Download, Search, Copy, Clock, MapPin, DollarSign, Users, Briefcase, Star, Filter, UserX, Calendar, BarChart3, TrendingUp, Brain, Video, Loader2, Sparkles, Award, FileText, RefreshCw } from 'lucide-react';
+import { Plus, Eye, EyeOff, Edit, Trash2, ExternalLink, Download, Search, Copy, Clock, MapPin, DollarSign, Users, Briefcase, Star, Filter, UserX, Calendar, BarChart3, TrendingUp, Brain, Video, Loader2, Sparkles, Award, FileText, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ModernSwitch } from '@/components/ui/modern-switch';
@@ -60,6 +60,8 @@ interface JobSurvey {
   commission_details?: string;
   published_at?: string | null;
   expires_at?: string | null;
+  /** false = não aparece em /vagas nem no GET público por slug */
+  visible_on_portal?: boolean | null;
 }
 
 interface JobResponse {
@@ -190,7 +192,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
     benefits: ['Vale Alimentação', 'Vale Transporte', 'Plano de Saúde'],
     questions: [] as Question[],
     published_at: '',
-    expires_at: ''
+    expires_at: '',
+    visible_on_portal: true,
   });
 
   // Fetch job surveys
@@ -510,7 +513,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
       benefits: ['Vale Alimentação', 'Vale Transporte', 'Plano de Saúde'],
       questions: [],
       published_at: '',
-      expires_at: ''
+      expires_at: '',
+      visible_on_portal: true,
     });
     setEditingSurvey(null);
   };
@@ -553,6 +557,7 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
           is_active: false,
           published_at: formData.published_at ? new Date(formData.published_at).toISOString() : null,
           expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
+          visible_on_portal: formData.visible_on_portal,
           created_by: profile.id
         });
 
@@ -604,7 +609,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
           benefits: formData.benefits,
           questions: formData.questions as any,
           published_at: formData.published_at ? new Date(formData.published_at).toISOString() : null,
-          expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null
+          expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
+          visible_on_portal: formData.visible_on_portal,
         })
         .eq('id', editingSurvey.id);
 
@@ -672,6 +678,31 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
       toast({
         title: "Erro",
         description: "Erro ao atualizar status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTogglePortalVisibility = async (surveyId: string, visible: boolean) => {
+    try {
+      const { error } = await from('job_surveys')
+        .update({ visible_on_portal: visible })
+        .eq('id', surveyId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: visible
+          ? "Vaga visível no portal /vagas."
+          : "Vaga oculta do portal público (permanece no admin).",
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-job-surveys'] });
+    } catch (error) {
+      console.error('Erro ao atualizar visibilidade no portal:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a visibilidade no portal.",
         variant: "destructive",
       });
     }
@@ -827,6 +858,7 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
           benefits: survey.benefits,
           questions: survey.questions,
           is_active: false,
+          visible_on_portal: survey.visible_on_portal !== false,
           created_by: profile.id
         });
 
@@ -850,6 +882,15 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
   const copyPublicLink = (survey: JobSurvey) => {
     const link = `${window.location.origin}/vaga/${survey.slug}`;
     navigator.clipboard.writeText(link);
+    if (survey.visible_on_portal === false) {
+      toast({
+        title: "Link copiado",
+        description:
+          "Esta vaga está oculta do portal: visitantes verão página não encontrada até você marcar novamente “Portal”.",
+        variant: "destructive",
+      });
+      return;
+    }
     toast({
       title: "Link copiado!",
       description: "O link público foi copiado para a área de transferência.",
@@ -934,7 +975,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
           benefits: survey.benefits || [],
           questions: survey.questions,
           published_at: survey.published_at ? format(new Date(survey.published_at), "yyyy-MM-dd'T'HH:mm") : '',
-          expires_at: survey.expires_at ? format(new Date(survey.expires_at), "yyyy-MM-dd'T'HH:mm") : ''
+          expires_at: survey.expires_at ? format(new Date(survey.expires_at), "yyyy-MM-dd'T'HH:mm") : '',
+          visible_on_portal: survey.visible_on_portal !== false,
     });
   };
 
@@ -1522,6 +1564,12 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
               <Badge variant={selectedSurvey.is_active ? "secondary" : "secondary"}>
                 {selectedSurvey.is_active ? 'Ativo' : 'Inativo'}
               </Badge>
+              {selectedSurvey.visible_on_portal === false && (
+                <Badge variant="outline" className="gap-1 text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800">
+                  <EyeOff className="h-3 w-3" />
+                  Fora do portal
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
               Vaga: {selectedSurvey.position_title} | {filteredResponses.length} candidato(s) completo(s) {candidateSearchTerm || statusFilter !== 'all' ? 'filtrado(s)' : ''}
@@ -2221,6 +2269,12 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                           <Badge variant={survey.is_active ? "secondary" : "secondary"}>
                             {survey.is_active ? 'Ativo' : 'Inativo'}
                           </Badge>
+                          {survey.visible_on_portal === false && (
+                            <Badge variant="outline" className="gap-1 text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800">
+                              <EyeOff className="h-3 w-3" />
+                              Fora do portal
+                            </Badge>
+                          )}
                         </div>
                         
                         <div className="space-y-2 mb-4">
@@ -2272,11 +2326,25 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 ml-4">
-                        <ModernSwitch
-                          checked={survey.is_active}
-                          onCheckedChange={(checked) => handleToggleActive(survey.id, checked)}
-                        />
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 ml-4 shrink-0">
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Ativa</span>
+                            <ModernSwitch
+                              checked={survey.is_active}
+                              onCheckedChange={(checked) => handleToggleActive(survey.id, checked)}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground" title="Listagem /vagas e link público">
+                              Portal
+                            </span>
+                            <ModernSwitch
+                              checked={survey.visible_on_portal !== false}
+                              onCheckedChange={(checked) => handleTogglePortalVisibility(survey.id, checked)}
+                            />
+                          </div>
+                        </div>
                         
                         <Button
                           variant="outline"
@@ -2668,6 +2736,23 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                       <p className="text-xs text-muted-foreground">
                         A vaga será desativada automaticamente nesta data. Deixe em branco para não expirar.
                       </p>
+                    </div>
+                    <div className="flex items-start space-x-3 pt-2 border-t border-border/60 mt-4">
+                      <Checkbox
+                        id="visible_on_portal"
+                        checked={formData.visible_on_portal}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({ ...prev, visible_on_portal: checked === true }))
+                        }
+                      />
+                      <div className="space-y-1">
+                        <Label htmlFor="visible_on_portal" className="text-sm font-medium cursor-pointer">
+                          Exibir no portal de vagas (/vagas) e permitir link público
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Desmarque para ocultar do site mesmo com a vaga ativa ou encerrada (continua visível aqui no admin).
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

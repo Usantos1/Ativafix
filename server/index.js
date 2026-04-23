@@ -644,14 +644,21 @@ app.get('/api/health', (req, res) => {
 // ENDPOINTS PÚBLICOS (sem autenticação)
 // ============================================
 
-// Listar vagas públicas (ativas + encerradas que já foram publicadas)
+// Visível no portal: flag visible_on_portal (default true) + ativa ou encerrada publicável
+const jobSurveyPublicPortalSql = `(
+  COALESCE(visible_on_portal, true) = true
+  AND (
+    is_active = true
+    OR (is_active = false AND (published_at IS NOT NULL OR (slug IS NOT NULL AND TRIM(slug) <> '')))
+  )
+)`;
+
+// Listar vagas públicas (ativas + encerradas que já foram publicadas, salvo se ocultas do portal)
 app.get('/api/public/vagas', async (req, res) => {
   try {
     const { search, location, modality, contract_type, page = 1, pageSize = 12 } = req.query;
     
-    let whereConditions = [
-      "(is_active = true OR (is_active = false AND (published_at IS NOT NULL OR (slug IS NOT NULL AND TRIM(slug) <> ''))))",
-    ];
+    let whereConditions = [jobSurveyPublicPortalSql];
     const params = [];
     let paramIndex = 1;
 
@@ -735,17 +742,15 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
     console.log('[Public] Buscando vaga por slug/id:', slugOrId);
     
     // Tentar buscar por slug (case-insensitive)
-    const publicVisibility =
-      "(is_active = true OR (is_active = false AND (published_at IS NOT NULL OR (slug IS NOT NULL AND TRIM(slug) <> ''))))";
     let result = await pool.query(
-      `SELECT * FROM job_surveys WHERE LOWER(slug) = LOWER($1) AND ${publicVisibility}`,
+      `SELECT * FROM job_surveys WHERE LOWER(slug) = LOWER($1) AND ${jobSurveyPublicPortalSql}`,
       [slugOrId]
     );
     
     // Se não encontrar por slug, tentar por ID
     if (result.rows.length === 0 && slugOrId.length === 36) {
       result = await pool.query(
-        `SELECT * FROM job_surveys WHERE id = $1 AND ${publicVisibility}`,
+        `SELECT * FROM job_surveys WHERE id = $1 AND ${jobSurveyPublicPortalSql}`,
         [slugOrId]
       );
     }
@@ -753,7 +758,7 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
     // Se ainda não encontrar, tentar busca parcial no slug
     if (result.rows.length === 0) {
       result = await pool.query(
-        `SELECT * FROM job_surveys WHERE LOWER(slug) LIKE LOWER($1) AND ${publicVisibility}`,
+        `SELECT * FROM job_surveys WHERE LOWER(slug) LIKE LOWER($1) AND ${jobSurveyPublicPortalSql}`,
         [`%${slugOrId}%`]
       );
     }

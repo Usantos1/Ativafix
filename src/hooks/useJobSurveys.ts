@@ -32,6 +32,7 @@ export interface JobSurvey {
   commission_details?: string | null;
   published_at?: string | null;
   expires_at?: string | null;
+  visible_on_portal?: boolean | null;
 }
 
 export interface JobApplicationStatus {
