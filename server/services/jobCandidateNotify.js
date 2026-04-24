@@ -9,7 +9,16 @@ const WA_BLOCK_MAX = 3600;
 
 /** Texto legível da pergunta (JSON de job_surveys pode usar title, question, label, etc.). */
 function questionDisplayLabel(q, indexZeroBased) {
-  const fromFields = [q.title, q.question, q.label, q.text, q.name, q.prompt];
+  const fromFields = [
+    q.title,
+    q.question,
+    q.pergunta,
+    q.label,
+    q.text,
+    q.name,
+    q.prompt,
+    q.description,
+  ];
   for (const c of fromFields) {
     if (c != null && String(c).trim()) return String(c).trim();
   }

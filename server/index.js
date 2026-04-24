@@ -1013,9 +1013,9 @@ app.post('/api/functions/job-application-submit', async (req, res) => {
       return res.status(400).json({ error: 'survey_id, name e email são obrigatórios' });
     }
     
-    // Buscar a vaga para pegar o company_id
+    // Buscar a vaga completa (questions, company_name, etc.) para notificação RH e validações
     const surveyResult = await pool.query(
-      'SELECT id, company_id, title, position_title, is_active FROM job_surveys WHERE id = $1',
+      'SELECT * FROM job_surveys WHERE id = $1',
       [survey_id]
     );
     
