@@ -104,7 +104,12 @@ class APIClient {
     }
   }
 
-  async post(endpoint: string, body?: any, customHeaders?: Record<string, string>): Promise<ApiResponse> {
+  async post(
+    endpoint: string,
+    body?: any,
+    customHeaders?: Record<string, string>,
+    requestInit?: Pick<RequestInit, 'signal'>
+  ): Promise<ApiResponse> {
     try {
       const url = `${this.baseURL}${endpoint}`;
       console.log('[API Client] POST:', url, body);
@@ -112,6 +117,7 @@ class APIClient {
         method: 'POST',
         headers: { ...this.getHeaders(), ...customHeaders },
         body: body ? JSON.stringify(body) : undefined,
+        signal: requestInit?.signal,
       });
       console.log('[API Client] Response status:', response.status, response.statusText);
       const data = await this.handleResponse(response);
@@ -175,8 +181,13 @@ class APIClient {
   /**
    * Invoca uma função customizada no backend
    */
-  async invokeFunction(functionName: string, body?: any, headers?: Record<string, string>): Promise<ApiResponse> {
-    return this.post(`/functions/${functionName}`, body, headers);
+  async invokeFunction(
+    functionName: string,
+    body?: any,
+    headers?: Record<string, string>,
+    requestInit?: Pick<RequestInit, 'signal'>
+  ): Promise<ApiResponse> {
+    return this.post(`/functions/${functionName}`, body, headers, requestInit);
   }
 
   /**

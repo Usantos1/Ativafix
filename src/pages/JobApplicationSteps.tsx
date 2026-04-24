@@ -682,66 +682,107 @@ export default function JobApplicationSteps() {
       return;
     }
 
-    const idempotencyKey = crypto.randomUUID();
+    if (!validateStep(currentStep)) {
+      toast({
+        title: "Atenção",
+        description: "Confira os campos obrigatórios desta etapa antes de enviar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let idempotencyKey: string;
+    try {
+      idempotencyKey = crypto.randomUUID();
+    } catch {
+      idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    }
+
+    if (!formData.name.trim() || !formData.email.trim()) {
+      toast({ title: "Erro", description: "Nome e e-mail são obrigatórios.", variant: "destructive" });
+      return;
+    }
+
+    const submissionData = {
+      survey_id: survey.id,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone?.trim() || null,
+      age: formData.age ? parseInt(formData.age, 10) : null,
+      cep: formData.cep?.trim() || null,
+      address: formData.address?.trim() || null,
+      whatsapp: formData.whatsapp?.trim() || null,
+      instagram: formData.instagram?.trim() || null,
+      linkedin: formData.linkedin?.trim() || null,
+      responses: formData.responses || {},
+    };
+
+    const controller = new AbortController();
+    const SUBMIT_TIMEOUT_MS = 120000;
+    const timeoutId = window.setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
     setSubmitting(true);
 
     try {
-      if (!formData.name.trim() || !formData.email.trim()) {
-        throw new Error("Nome e email são obrigatórios");
-      }
-
-      const submissionData = {
-        survey_id: survey.id,
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        phone: formData.phone?.trim() || null,
-        age: formData.age ? parseInt(formData.age) : null,
-        cep: formData.cep?.trim() || null,
-        address: formData.address?.trim() || null,
-        whatsapp: formData.whatsapp?.trim() || null,
-        instagram: formData.instagram?.trim() || null,
-        linkedin: formData.linkedin?.trim() || null,
-        responses: formData.responses || {},
-      };
-
-      const response = await apiClient.post('/functions/job-application-submit', submissionData, {
-        'Idempotency-Key': idempotencyKey
-      });
+      const response = await apiClient.post(
+        '/functions/job-application-submit',
+        submissionData,
+        { 'Idempotency-Key': idempotencyKey },
+        { signal: controller.signal }
+      );
 
       const responseData = response.data;
-      
-      // Verificar erros 409 (já candidatou ou já tem cadastro no sistema)
+
       if (response.error) {
-        const errorMessage = response.error.message || (response.error as any).error || 'Erro desconhecido';
-        const statusCode = (response.error as any).status || (response.error as any).code;
-        const errorData = (response.error as any).data || {};
+        const errObj = response.error as { message?: string; status?: number; data?: Record<string, unknown> };
+        const errorMessage = errObj?.message || 'Erro desconhecido';
+        const statusCode = errObj?.status;
+        const errorData = errObj?.data || {};
+
+        if (/aborted|AbortError|signal is aborted|interrompida/i.test(errorMessage)) {
+          toast({
+            title: 'Tempo limite ou conexão instável',
+            description:
+              'Não recebemos resposta do servidor a tempo. Verifique a internet e toque em «Enviar Candidatura» novamente.',
+            variant: 'destructive',
+          });
+          return;
+        }
 
         if (statusCode === 409 && errorData.code === 'ALREADY_REGISTERED') {
           toast({
             title: 'Cadastro existente',
-            description: errorData.message || 'Você já possui cadastro no banco de dados. Faça login para acessar sua conta ou use outro e-mail para esta candidatura.',
-            variant: 'destructive'
+            description:
+              (errorData.message as string) ||
+              'Você já possui cadastro no banco de dados. Faça login para acessar sua conta ou use outro e-mail para esta candidatura.',
+            variant: 'destructive',
           });
-          setSubmitting(false);
           return;
         }
 
         if (statusCode === 409 || errorMessage.includes('já se candidatou')) {
-          const existingId = errorData.job_response_id || responseData?.job_response_id;
+          const existingId = (errorData.job_response_id as string) || responseData?.job_response_id;
           console.warn('[JobApplication] Candidatura duplicada:', {
             email: formData.email.trim().toLowerCase(),
             survey_id: survey.id,
             survey_title: survey.title || survey.position_title,
             existing_job_response_id: existingId,
-            status_code: statusCode
+            status_code: statusCode,
           });
-          
+
           setExistingJobResponseId(existingId || null);
           setShowAlreadyAppliedModal(true);
-          setSubmitting(false);
           return;
         }
-        
+
+        if (statusCode === 400 && /encerrad/i.test(errorMessage)) {
+          toast({
+            title: 'Inscrições encerradas',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+          return;
+        }
+
         throw new Error(errorMessage);
       }
 
@@ -750,53 +791,61 @@ export default function JobApplicationSteps() {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone?.trim() || null,
-        age: formData.age ? parseInt(formData.age) : null,
+        age: formData.age ? parseInt(formData.age, 10) : null,
         job_response_id: jobResponseId || null,
-        survey_id: survey.id
+        survey_id: survey.id,
       };
       setJobResponseId(jobResponseId || null);
-      
+
       sessionStorage.setItem('candidate_disc_info', JSON.stringify(candidateInfo));
       sessionStorage.removeItem(draftSessionKey);
 
       setSubmitted(true);
-      toast({ title: "Candidatura enviada com sucesso! 🎉", description: "Sua candidatura foi recebida com sucesso!" });
-      
-      // Mostrar modal para iniciar teste DISC
       setShowDiscTestModal(true);
+      toast({
+        title: 'Candidatura enviada com sucesso! 🎉',
+        description: 'Sua candidatura foi recebida com sucesso!',
+      });
 
-      // Rodar análise de IA das respostas
-      try {
-        const aiResp = await apiClient.invokeFunction('analyze-candidate-responses', {
-          job_response_id: jobResponseId,
-          survey_id: survey.id,
-          candidate: {
-            ...candidateInfo,
-            responses: formData.responses || {},
-            disc_final: null,
-          },
-          job: {
-            title: survey.title,
-            position_title: survey.position_title,
-            description: survey.description,
-            department: survey.department,
-            requirements: survey.requirements,
-            work_modality: survey.work_modality,
-            contract_type: survey.contract_type,
-            seniority: (survey as any).seniority,
+      // Não bloquear a UI: análise por IA pode demorar ou falhar sem impedir o candidato de seguir
+      void (async () => {
+        try {
+          const aiResp = await apiClient.invokeFunction('analyze-candidate-responses', {
+            job_response_id: jobResponseId,
+            survey_id: survey.id,
+            candidate: {
+              ...candidateInfo,
+              responses: formData.responses || {},
+              disc_final: null,
+            },
+            job: {
+              title: survey.title,
+              position_title: survey.position_title,
+              description: survey.description,
+              department: survey.department,
+              requirements: survey.requirements,
+              work_modality: survey.work_modality,
+              contract_type: survey.contract_type,
+              seniority: (survey as any).seniority,
+            },
+          });
+
+          if (!aiResp.error && aiResp.data?.analysis) {
+            setAiAnalysis(aiResp.data.analysis);
+            sessionStorage.setItem('candidate_ai_analysis', JSON.stringify(aiResp.data.analysis));
           }
-        });
-
-        if (!aiResp.error && aiResp.data?.analysis) {
-          setAiAnalysis(aiResp.data.analysis);
-          sessionStorage.setItem('candidate_ai_analysis', JSON.stringify(aiResp.data.analysis));
+        } catch (err) {
+          console.error('Erro ao analisar candidato:', err);
         }
-      } catch (err) {
-        console.error('Erro ao analisar candidato:', err);
-      }
+      })();
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message || "Falha ao enviar a candidatura.", variant: "destructive" });
+      toast({
+        title: 'Erro',
+        description: error.message || 'Falha ao enviar a candidatura.',
+        variant: 'destructive',
+      });
     } finally {
+      window.clearTimeout(timeoutId);
       setSubmitting(false);
     }
   };
@@ -909,6 +958,56 @@ export default function JobApplicationSteps() {
     );
   };
 
+  const discTestDialog = (
+    <Dialog open={showDiscTestModal} onOpenChange={setShowDiscTestModal}>
+      <DialogContent className="sm:max-w-[500px]" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-card-border))' }}>
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="rounded-full p-2" style={{ backgroundColor: 'hsl(var(--job-primary) / 0.1)' }}>
+              <Zap className="h-6 w-6" style={{ color: 'hsl(var(--job-primary))' }} />
+            </div>
+            <DialogTitle className="text-xl" style={{ color: 'hsl(var(--job-text))' }}>
+              Teste de Perfil Comportamental
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-base pt-2" style={{ color: 'hsl(var(--job-text-muted))' }}>
+            Para completar sua candidatura, vamos fazer uma avaliação do seu perfil comportamental através do teste DISC.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-3">
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'hsl(var(--job-badge))', borderColor: 'hsl(var(--job-card-border))' }}>
+            <p className="text-sm mb-2" style={{ color: 'hsl(var(--job-text))' }}>
+              <strong>O que é o teste DISC?</strong>
+            </p>
+            <p className="text-sm" style={{ color: 'hsl(var(--job-text-muted))' }}>
+              É uma avaliação rápida e simples que nos ajuda a entender melhor seu perfil profissional e como você trabalha em equipe. Leva apenas alguns minutos!
+            </p>
+          </div>
+          <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(var(--job-badge))' }}>
+            <Info className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: 'hsl(var(--job-primary))' }} />
+            <div className="text-sm space-y-1" style={{ color: 'hsl(var(--job-text-muted))' }}>
+              <p>Seus dados já foram salvos com sucesso.</p>
+              <p>Clique em &quot;Começar teste&quot; quando estiver pronto para iniciar a avaliação.</p>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setShowDiscTestModal(false)}
+            style={{ borderColor: 'hsl(var(--job-card-border))' }}
+          >
+            Fazer depois
+          </Button>
+          <Button onClick={startDiscTest} style={{ backgroundColor: 'hsl(var(--job-primary))', color: 'white' }}>
+            <Zap className="h-4 w-4 mr-2" />
+            Começar teste
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   /* ---------- telas de loading/erro/sucesso ---------- */
   if (loading) {
     return (
@@ -984,86 +1083,62 @@ export default function JobApplicationSteps() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: 'hsl(var(--job-application))' }}>
-        <div className="flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg text-center border-2" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-primary))' }}>
-            <CardContent className="pt-8 pb-8">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'hsl(var(--job-primary))' }}>
-                <CheckCircle className="w-10 h-10 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold mb-3" style={{ color: 'hsl(var(--job-text))' }}>Candidatura enviada! 🎉</h1>
-              <p className="mb-6 text-lg" style={{ color: 'hsl(var(--job-text-muted))' }}>Sua candidatura foi recebida com sucesso! Clique no botão abaixo para iniciar o teste de perfil comportamental.</p>
-              <div className="flex items-center justify-center space-x-4 text-sm" style={{ color: 'hsl(var(--job-text-muted))' }}>
-                <div className="flex items-center space-x-1">
-                  <Zap className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
-                  <span>Avaliação comportamental</span>
+      <>
+        <Helmet>
+          <title>Candidatura enviada | Prime Camp</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <style>{themeCSS}</style>
+        {discTestDialog}
+        <div className="min-h-screen job-form-scroll" style={{ backgroundColor: 'hsl(var(--job-bg))' }}>
+          <div className="flex items-center justify-center p-4 min-h-screen">
+            <Card className="w-full max-w-lg text-center border-2 shadow-lg" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-primary))' }}>
+              <CardContent className="pt-8 pb-8 px-4">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'hsl(var(--job-primary))' }}>
+                  <CheckCircle className="w-10 h-10 text-white" />
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Award className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
-                  <span>Perfil profissional</span>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: 'hsl(var(--job-text))' }}>
+                  Candidatura enviada! 🎉
+                </h1>
+                <p className="mb-6 text-base sm:text-lg leading-relaxed" style={{ color: 'hsl(var(--job-text-muted))' }}>
+                  Sua candidatura foi recebida com sucesso. Você pode iniciar o teste DISC agora ou depois; também dá para fechar o aviso e ir às vagas.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+                  <Button
+                    type="button"
+                    onClick={() => setShowDiscTestModal(true)}
+                    className="w-full sm:w-auto"
+                    style={{ backgroundColor: 'hsl(var(--job-primary))', color: 'white' }}
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Iniciar teste DISC
+                  </Button>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/vagas')}>
+                    Ver outras vagas
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-center gap-6 text-sm flex-wrap" style={{ color: 'hsl(var(--job-text-muted))' }}>
+                  <div className="flex items-center gap-1">
+                    <Zap className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
+                    <span>Avaliação comportamental</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Award className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
+                    <span>Perfil profissional</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   /* ---------- página principal ---------- */
   return (
     <>
-      {/* Modal: Confirmação do teste DISC */}
-      <Dialog open={showDiscTestModal} onOpenChange={setShowDiscTestModal}>
-        <DialogContent className="sm:max-w-[500px]" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-card-border))' }}>
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="rounded-full p-2" style={{ backgroundColor: 'hsl(var(--job-primary) / 0.1)' }}>
-                <Zap className="h-6 w-6" style={{ color: 'hsl(var(--job-primary))' }} />
-              </div>
-              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--job-text))' }}>
-                Teste de Perfil Comportamental
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-base pt-2" style={{ color: 'hsl(var(--job-text-muted))' }}>
-              Para completar sua candidatura, vamos fazer uma avaliação do seu perfil comportamental através do teste DISC.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-3">
-            <div className="p-4 rounded-lg border" style={{ backgroundColor: 'hsl(var(--job-badge))', borderColor: 'hsl(var(--job-card-border))' }}>
-              <p className="text-sm mb-2" style={{ color: 'hsl(var(--job-text))' }}>
-                <strong>O que é o teste DISC?</strong>
-              </p>
-              <p className="text-sm" style={{ color: 'hsl(var(--job-text-muted))' }}>
-                É uma avaliação rápida e simples que nos ajuda a entender melhor seu perfil profissional e como você trabalha em equipe. Leva apenas alguns minutos!
-              </p>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(var(--job-badge))' }}>
-              <Info className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: 'hsl(var(--job-primary))' }} />
-              <div className="text-sm space-y-1" style={{ color: 'hsl(var(--job-text-muted))' }}>
-                <p>Seus dados já foram salvos com sucesso.</p>
-                <p>Clique em "Começar teste" quando estiver pronto para iniciar a avaliação.</p>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDiscTestModal(false)}
-              style={{ borderColor: 'hsl(var(--job-card-border))' }}
-            >
-              Fazer depois
-            </Button>
-            <Button
-              onClick={startDiscTest}
-              style={{ backgroundColor: 'hsl(var(--job-primary))', color: 'white' }}
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Começar teste
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {discTestDialog}
 
       {/* Modal: Já se candidatou - Renderizado diretamente para evitar tree-shaking */}
       <Dialog open={showAlreadyAppliedModal} onOpenChange={setShowAlreadyAppliedModal}>
@@ -1608,10 +1683,14 @@ export default function JobApplicationSteps() {
                     aria-busy={submitting}
                   >
                     {submitting ? (
-                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full shrink-0" aria-hidden />
                     ) : null}
                     <span>
-                      {currentStep === totalSteps - 1 ? 'Enviar Candidatura' : 'Próxima'}
+                      {submitting && currentStep === totalSteps - 1
+                        ? 'Enviando…'
+                        : currentStep === totalSteps - 1
+                          ? 'Enviar Candidatura'
+                          : 'Próxima'}
                     </span>
                     {!submitting && (currentStep === totalSteps - 1 ? <Send className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
                   </Button>
