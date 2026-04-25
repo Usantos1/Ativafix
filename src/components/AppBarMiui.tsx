@@ -7,13 +7,10 @@ import { cn } from '@/lib/utils';
 import { useNavigationItems } from '@/hooks/useNavigationItems';
 import { useThemeConfig, getDefaultConfigByHost } from '@/contexts/ThemeConfigContext';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 export function AppBarMiui() {
   const location = useLocation();
@@ -80,37 +77,48 @@ export function AppBarMiui() {
         );
       })}
 
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenuTrigger asChild>
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <PopoverTrigger asChild>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="relative z-20 h-11 min-w-[118px] shrink-0 rounded-full border border-emerald-200/80 bg-white px-4 text-sm font-medium shadow-sm hover:bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20"
-            onPointerDown={(e) => {
-              if (e.pointerType === 'mouse') {
-                e.preventDefault();
-                e.stopPropagation();
-                setMenuOpen((prev) => !prev);
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setMenuOpen((open) => !open);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                event.stopPropagation();
+                setMenuOpen(true);
               }
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             Menu
             <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
+        </PopoverTrigger>
+        <PopoverContent
           align="start"
-          sideOffset={10}
+          side="bottom"
+          sideOffset={12}
+          avoidCollisions={false}
+          onOpenAutoFocus={(event) => event.preventDefault()}
           className="w-[360px] max-h-[72vh] overflow-y-auto rounded-[28px] border border-border/70 bg-background p-3 opacity-100 shadow-[0_18px_50px_rgba(16,24,40,0.18)] scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-transparent dark:bg-slate-950 dark:scrollbar-thumb-emerald-900"
         >
           {Object.entries(groupedItems).map(([groupLabel, items], index) => (
             <div key={groupLabel} className="min-w-0">
-              {index > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuLabel className="px-3 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {index > 0 && <div className="my-2 h-px bg-border" />}
+              <div className="px-3 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 {groupLabel}
-              </DropdownMenuLabel>
+              </div>
               {items.map((item) => {
                 const Icon = item.icon;
                 const isCurrentPage =
@@ -118,12 +126,16 @@ export function AppBarMiui() {
                     ? location.pathname === '/'
                     : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                 return (
-                  <DropdownMenuItem
+                  <button
+                    type="button"
                     key={item.path}
-                    onClick={() => navigate(item.path)}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      navigate(item.path);
+                    }}
                     className={cn(
-                      "relative rounded-2xl border-l-2 border-l-transparent px-3 py-3.5 outline-none focus:bg-slate-100 focus:text-foreground dark:focus:bg-slate-900",
-                      "data-[highlighted]:border-l-emerald-500 data-[highlighted]:bg-slate-100 data-[highlighted]:text-foreground dark:data-[highlighted]:bg-slate-900",
+                      "relative flex w-full items-center rounded-2xl border-l-2 border-l-transparent px-3 py-3.5 text-left outline-none transition-colors",
+                      "hover:border-l-emerald-500 hover:bg-slate-100 focus-visible:border-l-emerald-500 focus-visible:bg-slate-100 dark:hover:bg-slate-900 dark:focus-visible:bg-slate-900",
                       isCurrentPage && "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20"
                     )}
                   >
@@ -143,13 +155,13 @@ export function AppBarMiui() {
                         {item.description || item.groupLabel || 'Acessar módulo'}
                       </span>
                     </div>
-                  </DropdownMenuItem>
+                  </button>
                 );
               })}
             </div>
           ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </PopoverContent>
+      </Popover>
 
       <Button
         type="button"

@@ -33,7 +33,7 @@ const defaultConfigPrimeCamp: ThemeConfig = {
     button: SYSTEM_PRIMARY_HSL,
   },
   companyName: 'Prime Camp',
-  navigationVariant: 'default',
+  navigationVariant: 'miui',
 };
 
 /** Na tela de login e padrão: logo e cores da empresa 1 (sem amarelo). API pode sobrescrever com tema salvo. */
@@ -83,7 +83,7 @@ export function ThemeConfigProvider({ children }: { children: ReactNode }) {
       ...(data.companyName != null && { companyName: data.companyName }),
       ...(data.logo && typeof data.logo === 'string' && { logo: data.logo }),
       ...(data.logoAlt != null && { logoAlt: data.logoAlt }),
-      navigationVariant: data.navigationVariant === 'miui' ? 'miui' : 'default',
+      navigationVariant: data.navigationVariant === 'default' ? 'default' : 'miui',
       colors: {
         ...prev.colors,
         ...(data.colors && typeof data.colors === 'object' ? data.colors : {}),

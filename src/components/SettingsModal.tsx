@@ -6,17 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Settings, Moon, Sun, Save, Building, Palette, Upload, Image as ImageIcon, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useThemeConfig } from '@/contexts/ThemeConfigContext';
-import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { apiClient } from '@/integrations/api/client';
 
@@ -28,15 +20,12 @@ interface SettingsModalProps {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const { config, updateConfig, refreshConfig } = useThemeConfig();
-  const { hasPermission, isAdmin } = usePermissions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [systemName, setSystemName] = useState('Prime Camp | Gestão de Processos');
   const [autoSave, setAutoSave] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
-  const [navigationVariant, setNavigationVariant] = useState<'default' | 'miui'>('default');
-  const canManageNavigationVariant = isAdmin || hasPermission('admin.config');
 
   // Ao abrir o modal: preferências locais do localStorage; tema (nome, logo, cores) do context (vindo da VPS)
   useEffect(() => {
@@ -54,10 +43,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         setPrimaryColor(config.colors.primary);
         setSidebarColor(config.colors.sidebar || config.colors.primary);
         setButtonColor(config.colors.button || config.colors.primary);
-        setNavigationVariant(config.navigationVariant || 'default');
-      } catch (_) {}
+      } catch {
+        // Preferências locais corrompidas não devem impedir a abertura do modal.
+      }
     }
-  }, [isOpen, config.companyName, config.logo, config.colors.primary, config.colors.sidebar, config.colors.button, config.navigationVariant]);
+  }, [isOpen, config.companyName, config.logo, config.colors.primary, config.colors.sidebar, config.colors.button]);
   
   // Cores do tema
   const [primaryColor, setPrimaryColor] = useState(config.colors.primary);
@@ -86,7 +76,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           button: buttonColor,
         },
         logo: logoPreview || config.logo,
-        navigationVariant,
+        navigationVariant: 'miui' as const,
       };
 
       // Salvar tema (cores, logo, nome) na VPS — reflete para todos os clientes do domínio
@@ -95,7 +85,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         host,
         companyName: nameToSave,
         logo: logoPreview || undefined,
-        navigationVariant,
+        navigationVariant: 'miui',
         colors: {
           primary: primaryColor,
           sidebar: sidebarColor,
@@ -322,26 +312,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 />
               </div>
 
-              {canManageNavigationVariant && (
-                <div className="space-y-2">
-                  <Label>Experiência de navegação</Label>
-                  <Select
-                    value={navigationVariant}
-                    onValueChange={(value: 'default' | 'miui') => setNavigationVariant(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a interface" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Padrão</SelectItem>
-                      <SelectItem value="miui">MIUI</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground">
-                    Define, por empresa, se o topo usa o appbar atual ou a nova MIUI com busca global via Ctrl+K.
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 

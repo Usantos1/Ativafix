@@ -1,15 +1,12 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/AppSidebar"
 import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { NotificationPanel } from "./NotificationPanel"
 import { SettingsModal } from "./SettingsModal"
 import { DemoBanner } from "./DemoBanner"
 import { useAuth } from "@/contexts/AuthContext"
-import { useThemeConfig } from "@/contexts/ThemeConfigContext"
 import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
 import { usePermissions } from "@/hooks/usePermissions"
-import { HeaderDefault } from "./HeaderDefault"
 import { HeaderMiui } from "./HeaderMiui"
 import { FinanceiroNavMenu } from "@/components/financeiro/FinanceiroNavMenu"
 
@@ -34,7 +31,7 @@ interface ModernLayoutProps {
   headerActions?: React.ReactNode
 }
 
-export function ModernLayout({ children, title, subtitle, headerActions }: ModernLayoutProps) {
+export function ModernLayout({ children, headerActions }: ModernLayoutProps) {
   const location = useLocation()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -42,9 +39,7 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
   const [currentTime, setCurrentTime] = useState(new Date())
   const { user, profile } = useAuth()
   const { hasPermission, isAdmin } = usePermissions()
-  const { config } = useThemeConfig()
   const isAdminCompany = user?.company_id === ADMIN_COMPANY_ID
-  const isMiuiNavigation = config.navigationVariant === 'miui'
   /** Sempre que estiver no módulo financeiro (MIUI ou barra clássica). */
   const showFinanceiroSubnav = location.pathname.startsWith('/financeiro')
   const canOpenSettings = isAdminCompany ? hasPermission('admin.config') : (isAdmin || hasPermission('admin.config'))
@@ -68,30 +63,16 @@ export function ModernLayout({ children, title, subtitle, headerActions }: Moder
         {!hideDemoBanner && <DemoBanner />}
 
         <div className="flex-1 flex min-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out">
-          {!isMiuiNavigation && <AppSidebar />}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {isMiuiNavigation ? (
-              <HeaderMiui
-                notificationCount={notificationCount}
-                canOpenSettings={canOpenSettings}
-                onOpenNotifications={() => setIsNotificationOpen(true)}
-                onOpenSettings={() => setIsSettingsOpen(true)}
-                headerActions={headerActions}
-                profileName={profile?.display_name}
-                currentTime={currentTime}
-              />
-            ) : (
-              <HeaderDefault
-                title={title}
-                profileName={profile?.display_name}
-                currentTime={currentTime}
-                notificationCount={notificationCount}
-                canOpenSettings={canOpenSettings}
-                onOpenNotifications={() => setIsNotificationOpen(true)}
-                onOpenSettings={() => setIsSettingsOpen(true)}
-                headerActions={headerActions}
-              />
-            )}
+            <HeaderMiui
+              notificationCount={notificationCount}
+              canOpenSettings={canOpenSettings}
+              onOpenNotifications={() => setIsNotificationOpen(true)}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              headerActions={headerActions}
+              profileName={profile?.display_name}
+              currentTime={currentTime}
+            />
 
             {showFinanceiroSubnav && <FinanceiroNavMenu variant="embedded" />}
 
