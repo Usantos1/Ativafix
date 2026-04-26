@@ -203,10 +203,14 @@ const Auth = () => {
           </div>
 
           {authMode === "signin" ? (
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="signin-email" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Email
+            <form onSubmit={handleSignIn} className="space-y-5">
+              {/* Email — label flutua sobre a borda superior do input */}
+              <div className="group relative pt-2.5">
+                <Label
+                  htmlFor="signin-email"
+                  className="absolute left-4 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                >
+                  Email *
                 </Label>
                 <Input
                   id="signin-email"
@@ -215,14 +219,17 @@ const Auth = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
-                  placeholder="seu@email.com"
-                  className="h-[42px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  className="h-[44px] rounded-2xl border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="signin-password" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Senha
+              {/* Senha */}
+              <div className="group relative pt-2.5">
+                <Label
+                  htmlFor="signin-password"
+                  className="absolute left-4 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                >
+                  Senha *
                 </Label>
                 <div className="relative">
                   <Input
@@ -232,8 +239,7 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                     required
-                    placeholder="••••••••"
-                    className="h-[42px] rounded-full border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    className="h-[44px] rounded-2xl border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   />
                   <button
                     type="button"
@@ -308,9 +314,12 @@ const Auth = () => {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="reset-email" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Email
+              <div className="group relative pt-2.5">
+                <Label
+                  htmlFor="reset-email"
+                  className="absolute left-4 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                >
+                  Email *
                 </Label>
                 <Input
                   id="reset-email"
@@ -319,8 +328,7 @@ const Auth = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
-                  placeholder="seu@email.com"
-                  className="h-[42px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  className="h-[44px] rounded-2xl border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
 

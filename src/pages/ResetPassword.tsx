@@ -191,8 +191,11 @@ const ResetPassword = () => {
               </div>
 
               {/* Nova senha */}
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="new-password" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="group relative pt-2.5">
+                <Label
+                  htmlFor="new-password"
+                  className="absolute left-4 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                >
                   Nova senha *
                 </Label>
                 <div className="relative">
@@ -204,8 +207,7 @@ const ResetPassword = () => {
                     disabled={loading}
                     required
                     minLength={6}
-                    placeholder="Mínimo 6 caracteres"
-                    className="h-[42px] rounded-full border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-[44px] rounded-2xl border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   />
                   <button
                     type="button"
@@ -239,8 +241,11 @@ const ResetPassword = () => {
               </div>
 
               {/* Confirmar senha */}
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="confirm-password" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="group relative pt-2.5">
+                <Label
+                  htmlFor="confirm-password"
+                  className="absolute left-4 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                >
                   Confirmar senha *
                 </Label>
                 <div className="relative">
@@ -252,8 +257,7 @@ const ResetPassword = () => {
                     disabled={loading}
                     required
                     minLength={6}
-                    placeholder="Repita a nova senha"
-                    className="h-[42px] rounded-full border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-[44px] rounded-2xl border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   />
                   <button
                     type="button"
