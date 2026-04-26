@@ -203,12 +203,12 @@ const Auth = () => {
           </div>
 
           {authMode === "signin" ? (
-            <form onSubmit={handleSignIn} className="space-y-5" autoComplete="on">
-              {/* Email */}
-              <div className="group relative pt-2.5">
+            <form onSubmit={handleSignIn} className="space-y-4 pt-2" autoComplete="on">
+              {/* Email — label cortando a borda superior do input */}
+              <div className="group relative">
                 <label
                   htmlFor="signin-email"
-                  className="absolute left-4 top-2.5 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
                 >
                   Email *
                 </label>
@@ -226,35 +226,33 @@ const Auth = () => {
               </div>
 
               {/* Senha */}
-              <div className="group relative pt-2.5">
+              <div className="group relative">
                 <label
                   htmlFor="signin-password"
-                  className="absolute left-4 top-2.5 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
                 >
                   Senha *
                 </label>
-                <div className="relative">
-                  <Input
-                    id="signin-password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    className="h-[44px] rounded-2xl border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700 focus:outline-none dark:text-slate-400 dark:hover:text-white"
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
+                <Input
+                  id="signin-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="h-[44px] rounded-2xl border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700 focus:outline-none dark:text-slate-400 dark:hover:text-white"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
 
               <div className="flex items-center justify-between gap-2">
@@ -312,10 +310,10 @@ const Auth = () => {
                 </p>
               </div>
 
-              <div className="group relative pt-2.5">
+              <div className="group relative">
                 <label
                   htmlFor="reset-email"
-                  className="absolute left-4 top-2.5 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
                 >
                   Email *
                 </label>

@@ -191,10 +191,10 @@ const ResetPassword = () => {
               </div>
 
               {/* Nova senha */}
-              <div className="group relative pt-2.5">
+              <div className="group relative">
                 <label
                   htmlFor="new-password"
-                  className="absolute left-4 top-2.5 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
                 >
                   Nova senha *
                 </label>
@@ -241,10 +241,10 @@ const ResetPassword = () => {
               </div>
 
               {/* Confirmar senha */}
-              <div className="group relative pt-2.5">
+              <div className="group relative">
                 <label
                   htmlFor="confirm-password"
-                  className="absolute left-4 top-2.5 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
                 >
                   Confirmar senha *
                 </label>
