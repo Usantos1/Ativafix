@@ -564,6 +564,11 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
     garantia?: number;
   };
   type AIGenerationResult = {
+    cliente?: {
+      nome?: string;
+      telefone?: string;
+      cpf_cnpj?: string;
+    };
     os?: {
       tipo_aparelho?: string;
       marca_nome?: string;
@@ -579,6 +584,8 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
       orcamento_parcelado?: number;
       orcamento_desconto?: number;
       apenas_orcamento?: boolean;
+      possui_senha_tipo?: string;
+      senha_aparelho?: string;
     };
     itens_sugeridos?: Array<Omit<AISuggestedItem, 'tempId'>>;
     alertas?: string[];
@@ -1775,8 +1782,23 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
 
       const payload = (data?.data || data) as AIGenerationResult;
       const osPayload = payload?.os || {};
+      const clientePayload = payload?.cliente || {};
       const itensSugeridos = Array.isArray(payload?.itens_sugeridos) ? payload.itens_sugeridos : [];
       const alertas: string[] = Array.isArray(payload?.alertas) ? [...payload.alertas] : [];
+
+      // Helpers de capitalização (defensivos no front, caso a IA ignore o backend)
+      const capitalizeFirst = (s?: string) => {
+        if (!s || typeof s !== 'string') return '';
+        const t = s.trim();
+        if (!t) return '';
+        return t.charAt(0).toLocaleUpperCase('pt-BR') + t.slice(1);
+      };
+      const capitalizeSentences = (s?: string) => {
+        if (!s || typeof s !== 'string') return '';
+        const t = s.trim();
+        if (!t) return '';
+        return t.replace(/(^|[.!?]\s+|\n+)([a-zà-ÿ])/g, (_, sep, ch) => sep + ch.toLocaleUpperCase('pt-BR'));
+      };
 
       const matchedMarcaId = findMarcaIdByNome(osPayload.marca_nome);
       const matchedModeloId = findModeloIdByNome(osPayload.modelo_nome, matchedMarcaId);
@@ -1788,16 +1810,77 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         alertas.push(`Modelo "${osPayload.modelo_nome}" não encontrado — selecione manualmente.`);
       }
 
+      // ====== Cliente: tentar localizar e selecionar ======
+      let clienteSelecionado: any = null;
+      const clienteNome = (clientePayload?.nome || '').trim();
+      const clienteTelefoneDigits = (clientePayload?.telefone || '').replace(/\D+/g, '');
+      const clienteCpfDigits = (clientePayload?.cpf_cnpj || '').replace(/\D+/g, '');
+
+      if (clienteNome || clienteTelefoneDigits || clienteCpfDigits) {
+        try {
+          const onlyDigits = (s?: string) => (typeof s === 'string' ? s.replace(/\D+/g, '') : '');
+
+          // 1) tenta por CPF/CNPJ (match exato)
+          if (!clienteSelecionado && clienteCpfDigits) {
+            clienteSelecionado = (clientes || []).find((c: any) => onlyDigits(c.cpf_cnpj) === clienteCpfDigits);
+            if (!clienteSelecionado) {
+              try {
+                const byCpf = await searchClientesAsync(clienteCpfDigits, 5, 'cpf_cnpj');
+                clienteSelecionado = (byCpf || []).find((c: any) => onlyDigits(c.cpf_cnpj) === clienteCpfDigits) || (byCpf || [])[0];
+              } catch {}
+            }
+          }
+
+          // 2) tenta por telefone/whatsapp (últimos 8 dígitos)
+          if (!clienteSelecionado && clienteTelefoneDigits) {
+            const tail = clienteTelefoneDigits.slice(-8);
+            clienteSelecionado = (clientes || []).find((c: any) => {
+              const t = onlyDigits(c.telefone);
+              const w = onlyDigits(c.whatsapp);
+              return (t && t.endsWith(tail)) || (w && w.endsWith(tail));
+            });
+            if (!clienteSelecionado) {
+              try {
+                const byTel = await searchClientesAsync(clienteTelefoneDigits, 5, 'telefone');
+                clienteSelecionado = (byTel || []).find((c: any) => {
+                  const t = onlyDigits(c.telefone);
+                  const w = onlyDigits(c.whatsapp);
+                  return (t && t.endsWith(tail)) || (w && w.endsWith(tail));
+                }) || (byTel || [])[0];
+              } catch {}
+            }
+          }
+
+          // 3) tenta por nome
+          if (!clienteSelecionado && clienteNome) {
+            try {
+              const byNome = await searchClientesAsync(clienteNome, 5, 'nome');
+              const nomeNorm = clienteNome.toLocaleLowerCase('pt-BR');
+              clienteSelecionado = (byNome || []).find((c: any) => String(c.nome || '').toLocaleLowerCase('pt-BR') === nomeNorm)
+                || (byNome || [])[0];
+            } catch {}
+          }
+        } catch (e) {
+          console.warn('[AI OS] Erro ao buscar cliente:', e);
+        }
+
+        if (clienteSelecionado) {
+          handleSelectCliente(clienteSelecionado);
+        } else if (clienteNome) {
+          alertas.push(`Cliente "${clienteNome}" não encontrado no cadastro — clique em "Novo Cliente" para cadastrar.`);
+        }
+      }
+
       setFormData(prev => {
         const next = { ...prev };
         if (osPayload.tipo_aparelho) next.tipo_aparelho = osPayload.tipo_aparelho;
         if (matchedMarcaId) next.marca_id = matchedMarcaId;
         if (matchedModeloId) next.modelo_id = matchedModeloId;
-        if (osPayload.imei) next.imei = osPayload.imei;
+        if (osPayload.imei) next.imei = String(osPayload.imei).replace(/\D+/g, '');
         if (osPayload.numero_serie) next.numero_serie = osPayload.numero_serie;
-        if (osPayload.cor) next.cor = osPayload.cor;
-        if (osPayload.descricao_problema) next.descricao_problema = osPayload.descricao_problema;
-        if (osPayload.condicoes_equipamento) next.condicoes_equipamento = osPayload.condicoes_equipamento;
+        if (osPayload.cor) next.cor = capitalizeFirst(osPayload.cor);
+        if (osPayload.descricao_problema) next.descricao_problema = capitalizeSentences(osPayload.descricao_problema);
+        if (osPayload.condicoes_equipamento) next.condicoes_equipamento = capitalizeSentences(osPayload.condicoes_equipamento);
         if (osPayload.previsao_entrega && /^\d{4}-\d{2}-\d{2}$/.test(osPayload.previsao_entrega)) {
           next.previsao_entrega = osPayload.previsao_entrega;
         } else if (osPayload.previsao_entrega) {
@@ -1806,15 +1889,40 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         if (osPayload.hora_previsao && /^\d{2}:\d{2}$/.test(osPayload.hora_previsao)) {
           next.hora_previsao = osPayload.hora_previsao;
         }
-        if (osPayload.observacoes) next.observacoes = osPayload.observacoes;
+        if (osPayload.observacoes) next.observacoes = capitalizeSentences(osPayload.observacoes);
         if (typeof osPayload.orcamento_parcelado === 'number' && osPayload.orcamento_parcelado > 0) {
           next.orcamento_parcelado = osPayload.orcamento_parcelado;
         }
         if (typeof osPayload.orcamento_desconto === 'number' && osPayload.orcamento_desconto > 0) {
           next.orcamento_desconto = osPayload.orcamento_desconto;
         }
+        // Marca "Realizar Orçamento" se houver qualquer valor de orçamento (a IA pode não inferir explicitamente)
+        const hasOrcVal = (typeof osPayload.orcamento_parcelado === 'number' && osPayload.orcamento_parcelado > 0)
+          || (typeof osPayload.orcamento_desconto === 'number' && osPayload.orcamento_desconto > 0);
         if (typeof osPayload.apenas_orcamento === 'boolean') {
           next.apenas_orcamento = osPayload.apenas_orcamento;
+        } else if (hasOrcVal) {
+          next.apenas_orcamento = true;
+        }
+
+        // Senha do aparelho + tipo
+        const tiposSenhaValidos = ['sim', 'nao', 'deslizar', 'nao_sabe', 'nao_autorizou'];
+        const tipoSenha = (osPayload.possui_senha_tipo || '').toString().trim().toLowerCase();
+        if (tiposSenhaValidos.includes(tipoSenha)) {
+          next.possui_senha_tipo = tipoSenha;
+          next.possui_senha = tipoSenha !== 'nao';
+        } else if (osPayload.senha_aparelho && String(osPayload.senha_aparelho).trim() !== '') {
+          // Se veio senha mas a IA não classificou o tipo, assume "sim"
+          next.possui_senha_tipo = 'sim';
+          next.possui_senha = true;
+        }
+        if (osPayload.senha_aparelho && String(osPayload.senha_aparelho).trim() !== '') {
+          next.senha_aparelho = String(osPayload.senha_aparelho).trim();
+          // Se for puramente numérica, também guarda em senha_numerica
+          const senhaStr = String(osPayload.senha_aparelho).trim();
+          if (/^\d+$/.test(senhaStr)) {
+            (next as any).senha_numerica = senhaStr;
+          }
         }
         return next;
       });
@@ -1824,7 +1932,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         .map(it => ({
           tempId: generateTempItemId(),
           tipo: (['peca', 'servico', 'mao_de_obra'].includes(String(it.tipo)) ? it.tipo : 'servico') as AISuggestedItem['tipo'],
-          descricao: String(it.descricao || '').trim(),
+          descricao: capitalizeFirst(String(it.descricao || '').trim()),
           quantidade: Number(it.quantidade) > 0 ? Number(it.quantidade) : 1,
           valor_unitario: Number(it.valor_unitario) >= 0 ? Number(it.valor_unitario) : 0,
           desconto: Number(it.desconto) > 0 ? Number(it.desconto) : 0,
@@ -1832,7 +1940,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         }));
 
       setAiSuggestedItems(prev => [...prev, ...novosItens]);
-      setAiPreview({ os: osPayload, itens_sugeridos: itensSugeridos, alertas });
+      setAiPreview({ cliente: clientePayload, os: osPayload, itens_sugeridos: itensSugeridos, alertas });
       setAiAlertas(alertas);
 
       toast({
@@ -3585,8 +3693,19 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                             });
                           }
                         }}
+                        onBlur={(e) => {
+                          const v = (e.target.value || '').trim();
+                          if (!v) return;
+                          const capitalized = v
+                            .split(/\s+/)
+                            .map((w) => w.charAt(0).toLocaleUpperCase('pt-BR') + w.slice(1).toLocaleLowerCase('pt-BR'))
+                            .join(' ');
+                          if (capitalized !== formData.cor) {
+                            setFormData(prev => ({ ...prev, cor: capitalized }));
+                          }
+                        }}
                         placeholder="Ex: Preto, Branco"
-                        className={cn("h-10 text-sm border-gray-200 dark:border-gray-700 dark:bg-background dark:text-gray-100 rounded-lg", camposFaltandoState.has('cor') && "border-red-500 border-2 bg-red-50")}
+                        className={cn("h-10 text-sm border-gray-200 dark:border-gray-700 dark:bg-background dark:text-gray-100 rounded-lg capitalize", camposFaltandoState.has('cor') && "border-red-500 border-2 bg-red-50")}
                         required
                       />
                     </div>
@@ -3722,14 +3841,21 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                       <div className="space-y-1">
                         <Label className="text-[11px] text-gray-500 dark:text-gray-400">Cartão até 6x</Label>
                         <Input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
-                          step="0.01"
-                          min="0"
-                          value={formData.orcamento_parcelado === 0 ? '' : (formData.orcamento_parcelado ?? '')}
+                          value={
+                            formData.orcamento_parcelado !== undefined && formData.orcamento_parcelado !== null && formData.orcamento_parcelado !== 0
+                              ? currencyFormatters.brl(formData.orcamento_parcelado)
+                              : ''
+                          }
                           onChange={(e) => {
-                            const val = e.target.value;
-                            const numValue = val === '' ? undefined : parseFloat(val);
+                            const raw = e.target.value;
+                            const onlyDigits = raw.replace(/\D+/g, '');
+                            if (onlyDigits === '') {
+                              setFormData(prev => ({ ...prev, orcamento_parcelado: undefined }));
+                              return;
+                            }
+                            const numValue = Number(onlyDigits) / 100;
                             setFormData(prev => ({ ...prev, orcamento_parcelado: numValue }));
                           }}
                           placeholder="R$ 0,00"
@@ -3739,14 +3865,21 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                       <div className="space-y-1">
                         <Label className="text-[11px] text-gray-500 dark:text-gray-400">Dinheiro ou PIX</Label>
                         <Input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
-                          step="0.01"
-                          min="0"
-                          value={formData.orcamento_desconto === 0 ? '' : (formData.orcamento_desconto ?? '')}
+                          value={
+                            formData.orcamento_desconto !== undefined && formData.orcamento_desconto !== null && formData.orcamento_desconto !== 0
+                              ? currencyFormatters.brl(formData.orcamento_desconto)
+                              : ''
+                          }
                           onChange={(e) => {
-                            const val = e.target.value;
-                            const numValue = val === '' ? undefined : parseFloat(val);
+                            const raw = e.target.value;
+                            const onlyDigits = raw.replace(/\D+/g, '');
+                            if (onlyDigits === '') {
+                              setFormData(prev => ({ ...prev, orcamento_desconto: undefined }));
+                              return;
+                            }
+                            const numValue = Number(onlyDigits) / 100;
                             setFormData(prev => ({ ...prev, orcamento_desconto: numValue }));
                           }}
                           placeholder="R$ 0,00"
@@ -6038,8 +6171,8 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     }}
                     placeholder={
                       isOficinaMecanica
-                        ? 'Ex: Cliente trouxe um Honda Civic 2018 prata, placa ABC1D23. Reclama de barulho no freio dianteiro. Orçamento de R$ 450 pra trocar pastilhas e disco. Entrega na sexta às 17h.'
-                        : 'Ex: iPhone 13 Pro preto, IMEI 123456789012345. Tela trincada, touch funcionando. Orçamento R$ 850 só dinheiro/PIX, R$ 950 parcelado em até 6x. Entrega em 3 dias úteis.'
+                        ? 'Ex: Cliente João da Silva, telefone 11 99999-1234. Trouxe um Honda Civic 2018 prata, placa ABC1D23. Reclama de barulho no freio dianteiro. Orçamento de R$ 450 pra trocar pastilhas e disco. Entrega na sexta às 17h.'
+                        : 'Ex: Cliente Elizangela Santos, telefone 19 99999-1234, CPF 388.759.978-02. iPhone 13 Pro preto, IMEI 123456789012345. Senha 1234. Tela trincada, touch funcionando. Orçamento R$ 850 dinheiro/PIX, R$ 950 parcelado em até 6x. Entrega em 3 dias úteis.'
                     }
                     rows={8}
                     className="resize-none pr-12 text-sm leading-relaxed"
@@ -6089,6 +6222,12 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     Prévia aplicada ao formulário
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-gray-700 dark:text-gray-300">
+                    {aiPreview.cliente?.nome && (
+                      <div><span className="font-medium">Cliente:</span> {aiPreview.cliente.nome}</div>
+                    )}
+                    {aiPreview.cliente?.telefone && (
+                      <div><span className="font-medium">Telefone:</span> {aiPreview.cliente.telefone}</div>
+                    )}
                     {aiPreview.os?.marca_nome && (
                       <div><span className="font-medium">Marca:</span> {aiPreview.os.marca_nome}</div>
                     )}
@@ -6103,6 +6242,9 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     )}
                     {aiPreview.os?.previsao_entrega && (
                       <div><span className="font-medium">Previsão:</span> {aiPreview.os.previsao_entrega} {aiPreview.os.hora_previsao || ''}</div>
+                    )}
+                    {aiPreview.os?.senha_aparelho && (
+                      <div><span className="font-medium">Senha:</span> {aiPreview.os.senha_aparelho}</div>
                     )}
                     {typeof aiPreview.os?.orcamento_desconto === 'number' && aiPreview.os.orcamento_desconto > 0 && (
                       <div><span className="font-medium">Orç. à vista:</span> {currencyFormatters.brl(aiPreview.os.orcamento_desconto)}</div>

@@ -5010,26 +5010,33 @@ ${marcasContexto ? `Marcas cadastradas no sistema (use EXATAMENTE um destes nome
 INSTRUÇÕES:
 - Retorne APENAS um JSON válido (sem markdown, sem texto extra) com o seguinte formato:
 {
+  "cliente": {
+    "nome": "string com nome completo do cliente, em Title Case ou ''",
+    "telefone": "string com apenas dígitos do telefone/WhatsApp ou ''",
+    "cpf_cnpj": "string com CPF ou CNPJ apenas dígitos ou ''"
+  },
   "os": {
     "tipo_aparelho": "${tipoAparelhoSugerido}",
     "marca_nome": "string ou ''",
     "modelo_nome": "string ou ''",
-    "imei": "string ou ''",
+    "imei": "string apenas dígitos ou ''",
     "numero_serie": "string ou ''",
-    "cor": "string ou ''",
-    "descricao_problema": "string com defeito relatado",
-    "condicoes_equipamento": "string com condições/observações de entrada",
+    "cor": "string com PRIMEIRA LETRA MAIÚSCULA (ex.: 'Branco', 'Preto', 'Azul Marinho') ou ''",
+    "descricao_problema": "string começando com letra maiúscula, descrevendo o defeito relatado",
+    "condicoes_equipamento": "string começando com letra maiúscula, descrevendo condições/observações de entrada",
     "previsao_entrega": "yyyy-mm-dd ou ''",
     "hora_previsao": "HH:mm ou ''",
-    "observacoes": "string ou ''",
+    "observacoes": "string começando com letra maiúscula ou ''",
     "orcamento_parcelado": número (>=0) ou 0,
     "orcamento_desconto": número (>=0) ou 0,
-    "apenas_orcamento": true|false
+    "apenas_orcamento": true|false,
+    "possui_senha_tipo": "sim" | "nao" | "deslizar" | "nao_sabe" | "nao_autorizou" | "",
+    "senha_aparelho": "string com a senha numérica/alfanumérica falada pelo cliente, ou ''"
   },
   "itens_sugeridos": [
     {
       "tipo": "peca" | "servico" | "mao_de_obra",
-      "descricao": "string clara",
+      "descricao": "string clara, primeira letra maiúscula",
       "quantidade": número (>=1),
       "valor_unitario": número (>=0),
       "desconto": número (>=0),
@@ -5041,9 +5048,13 @@ INSTRUÇÕES:
 
 REGRAS:
 - Não invente dados. Se um campo não foi mencionado claramente, deixe vazio ('') ou 0.
+- Em TODOS os campos de texto livre (cor, descricao_problema, condicoes_equipamento, observacoes, descricao de itens, nome do cliente), comece com LETRA MAIÚSCULA. Use capitalização natural — não escreva tudo em CAIXA ALTA, mas garanta a primeira letra de cada frase em maiúscula.
+- Cliente: extraia nome, telefone e CPF se forem citados. O nome deve estar em Title Case (ex.: "Elizangela Santos", "João da Silva"). Telefone e CPF: devolva APENAS dígitos (sem máscara, sem espaço, sem "(", "-", ".").
+- IMEI: apenas dígitos (15 dígitos quando completo).
 - Para datas relativas ("amanhã", "sexta", "em 3 dias"), calcule a partir de ${dataHojeISO} e devolva no formato yyyy-mm-dd.
 - Para horários ("às 5 da tarde", "17h", "meio dia"), devolva HH:mm em 24h.
-- "orcamento_desconto" representa o valor à vista (dinheiro/PIX). "orcamento_parcelado" representa o valor parcelado (até 6x).
+- Senha do aparelho: se o cliente disser uma senha (ex.: "senha 1234", "senha ABC123", "senha é a data de aniversário 1505"), retorne em "senha_aparelho" e marque "possui_senha_tipo": "sim". Se disser "padrão" ou "desenho", marque "deslizar". Se disser "não tem senha" ou "sem senha", marque "nao". Se "não sabe" → "nao_sabe". Se "não quis deixar" → "nao_autorizou". Se nada for mencionado, deixe vazio.
+- "orcamento_desconto" representa o valor à vista (dinheiro/PIX). "orcamento_parcelado" representa o valor parcelado (até 6x). Devolva como número decimal puro (ex.: 280.00, NÃO use "R$" nem vírgulas).
 - "apenas_orcamento" deve ser true se o cliente vai apenas receber um orçamento, sem deixar o aparelho ainda autorizado.
 - Em "itens_sugeridos", inclua peças e serviços citados explicitamente (com valor unitário); se não houver itens claros, devolva [].
 - Em "alertas", inclua observações para a atendente revisar (ex.: "Valor não citado, confirmar com cliente.", "Modelo dito como 'iPhone' sem versão — confirmar.").
@@ -5116,8 +5127,39 @@ REGRAS:
       });
     }
 
+    // Helpers de capitalização
+    const capitalizeFirst = (s) => {
+      if (!s || typeof s !== 'string') return '';
+      const trimmed = s.trim();
+      if (!trimmed) return '';
+      return trimmed.charAt(0).toLocaleUpperCase('pt-BR') + trimmed.slice(1);
+    };
+    const capitalizeFirstOfSentences = (s) => {
+      if (!s || typeof s !== 'string') return '';
+      const trimmed = s.trim();
+      if (!trimmed) return '';
+      // Capitaliza início e após ". ", "? ", "! ", e quebras de linha
+      return trimmed.replace(/(^|[.!?]\s+|\n+)([a-zà-ÿ])/g, (_, sep, ch) => sep + ch.toLocaleUpperCase('pt-BR'));
+    };
+    const titleCaseNome = (s) => {
+      if (!s || typeof s !== 'string') return '';
+      const trimmed = s.trim().replace(/\s+/g, ' ');
+      if (!trimmed) return '';
+      const minus = new Set(['da', 'de', 'do', 'das', 'dos', 'e']);
+      return trimmed
+        .split(' ')
+        .map((w, i) => {
+          const lw = w.toLocaleLowerCase('pt-BR');
+          if (i > 0 && minus.has(lw)) return lw;
+          return lw.charAt(0).toLocaleUpperCase('pt-BR') + lw.slice(1);
+        })
+        .join(' ');
+    };
+    const onlyDigits = (s) => (typeof s === 'string' ? s.replace(/\D+/g, '') : '');
+
     // Sanitização defensiva
     const safeOS = (parsed && typeof parsed === 'object' && parsed.os && typeof parsed.os === 'object') ? parsed.os : {};
+    const safeCliente = (parsed && typeof parsed === 'object' && parsed.cliente && typeof parsed.cliente === 'object') ? parsed.cliente : {};
     const safeItens = Array.isArray(parsed?.itens_sugeridos) ? parsed.itens_sugeridos : [];
     const safeAlertas = Array.isArray(parsed?.alertas) ? parsed.alertas.map(a => String(a)).slice(0, 20) : [];
 
@@ -5126,7 +5168,7 @@ REGRAS:
       .filter(it => it && typeof it === 'object')
       .map(it => ({
         tipo: tiposValidos.has(String(it.tipo)) ? String(it.tipo) : 'servico',
-        descricao: String(it.descricao || '').trim().slice(0, 300),
+        descricao: capitalizeFirst(String(it.descricao || '')).slice(0, 300),
         quantidade: Number(it.quantidade) > 0 ? Number(it.quantidade) : 1,
         valor_unitario: Number(it.valor_unitario) >= 0 ? Number(it.valor_unitario) : 0,
         desconto: Number(it.desconto) > 0 ? Number(it.desconto) : 0,
@@ -5134,22 +5176,33 @@ REGRAS:
       }))
       .filter(it => it.descricao !== '');
 
+    const tiposSenhaValidos = new Set(['sim', 'nao', 'deslizar', 'nao_sabe', 'nao_autorizou']);
+    const possuiSenhaTipoRaw = typeof safeOS.possui_senha_tipo === 'string' ? safeOS.possui_senha_tipo.trim().toLowerCase() : '';
+    const possuiSenhaTipo = tiposSenhaValidos.has(possuiSenhaTipoRaw) ? possuiSenhaTipoRaw : '';
+
     const result = {
+      cliente: {
+        nome: titleCaseNome(typeof safeCliente.nome === 'string' ? safeCliente.nome : ''),
+        telefone: onlyDigits(safeCliente.telefone).slice(0, 15),
+        cpf_cnpj: onlyDigits(safeCliente.cpf_cnpj).slice(0, 14),
+      },
       os: {
         tipo_aparelho: typeof safeOS.tipo_aparelho === 'string' ? safeOS.tipo_aparelho : tipoAparelhoSugerido,
         marca_nome: typeof safeOS.marca_nome === 'string' ? safeOS.marca_nome.trim() : '',
         modelo_nome: typeof safeOS.modelo_nome === 'string' ? safeOS.modelo_nome.trim() : '',
-        imei: typeof safeOS.imei === 'string' ? safeOS.imei.trim() : '',
+        imei: onlyDigits(safeOS.imei).slice(0, 20),
         numero_serie: typeof safeOS.numero_serie === 'string' ? safeOS.numero_serie.trim() : '',
-        cor: typeof safeOS.cor === 'string' ? safeOS.cor.trim() : '',
-        descricao_problema: typeof safeOS.descricao_problema === 'string' ? safeOS.descricao_problema.trim() : '',
-        condicoes_equipamento: typeof safeOS.condicoes_equipamento === 'string' ? safeOS.condicoes_equipamento.trim() : '',
+        cor: capitalizeFirst(typeof safeOS.cor === 'string' ? safeOS.cor : ''),
+        descricao_problema: capitalizeFirstOfSentences(typeof safeOS.descricao_problema === 'string' ? safeOS.descricao_problema : ''),
+        condicoes_equipamento: capitalizeFirstOfSentences(typeof safeOS.condicoes_equipamento === 'string' ? safeOS.condicoes_equipamento : ''),
         previsao_entrega: typeof safeOS.previsao_entrega === 'string' ? safeOS.previsao_entrega.trim() : '',
         hora_previsao: typeof safeOS.hora_previsao === 'string' ? safeOS.hora_previsao.trim() : '',
-        observacoes: typeof safeOS.observacoes === 'string' ? safeOS.observacoes.trim() : '',
+        observacoes: capitalizeFirstOfSentences(typeof safeOS.observacoes === 'string' ? safeOS.observacoes : ''),
         orcamento_parcelado: Number(safeOS.orcamento_parcelado) >= 0 ? Number(safeOS.orcamento_parcelado) : 0,
         orcamento_desconto: Number(safeOS.orcamento_desconto) >= 0 ? Number(safeOS.orcamento_desconto) : 0,
         apenas_orcamento: typeof safeOS.apenas_orcamento === 'boolean' ? safeOS.apenas_orcamento : false,
+        possui_senha_tipo: possuiSenhaTipo,
+        senha_aparelho: typeof safeOS.senha_aparelho === 'string' ? safeOS.senha_aparelho.trim().slice(0, 60) : '',
       },
       itens_sugeridos: itensSanitizados,
       alertas: safeAlertas,
@@ -5160,6 +5213,8 @@ REGRAS:
       alertas: result.alertas.length,
       hasMarca: !!result.os.marca_nome,
       hasModelo: !!result.os.modelo_nome,
+      hasCliente: !!result.cliente.nome,
+      hasSenha: !!result.os.senha_aparelho,
     });
 
     return res.json({ data: result });
