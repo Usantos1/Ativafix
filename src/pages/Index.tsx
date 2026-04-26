@@ -13,12 +13,10 @@ import { useDashboardExecutivo } from '@/hooks/useFinanceiro';
 import { useSalesSummary } from '@/hooks/useReports';
 import { FinancialCards } from '@/components/dashboard/FinancialCards';
 import { useValuesVisibility } from '@/hooks/useValuesVisibility';
-import { OSStatusCards } from '@/components/dashboard/OSStatusCards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { DashboardPeriodFilter } from '@/components/dashboard/DashboardPeriodFilter';
 import { PresentationMode } from '@/components/dashboard/PresentationMode';
 import { useQuery } from '@tanstack/react-query';
-import { useOrdensServicoSupabase as useOrdensServico } from '@/hooks/useOrdensServicoSupabase';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import type { DashboardTrendData } from '@/hooks/useDashboardData';
@@ -34,11 +32,8 @@ const Index = () => {
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { financialData, osData, alerts, trendData, trendPeriod, setTrendPeriod, customDateRange, loading: dataLoading, refetch } = useDashboardData();
   const { config, loading: configLoading } = useDashboardConfig();
-  const { getEstatisticas } = useOrdensServico();
   /** Ocultar/exibir valores em R$ — sincronizado com o botão olhinho do appbar */
   const [valuesVisible] = useValuesVisibility();
-
-  const stats = getEstatisticas();
 
   const { data: roleMenuData } = useQuery({
     queryKey: ['role-menu', user?.id],
@@ -55,15 +50,25 @@ const Index = () => {
     staleTime: 1000 * 60 * 5,
   });
   const homePath = roleMenuData?.home_path || null;
-  useEffect(() => {
-    if (location.pathname !== '/' || !homePath || homePath === '/' || isAdmin) return;
-    navigate(homePath, { replace: true });
-  }, [location.pathname, homePath, navigate, isAdmin]);
 
   // Verificar se é gestor/admin (só verifica se não estiver carregando)
-  const isGestor = !permissionsLoading && (isAdmin || hasPermission('admin.view') || hasPermission('financeiro.view'));
+  const isGestor = !permissionsLoading && (isAdmin || hasPermission('admin.view') || hasPermission('financeiro.view') || hasPermission('dashboard.gestao'));
   // Relatórios/Financeiro no dashboard: só quem tem permissão de relatórios vê indicadores financeiros e tendência
   const canSeeRelatorios = !permissionsLoading && (isAdmin || hasPermission('relatorios.view') || hasPermission('relatorios.financeiro'));
+
+  // Vendedor (e perfis sem visão de gestão) não tem dashboard: home vira o PDV.
+  // Mantém home_path da API se existir; senão, manda para /pdv quando o usuário pode criar venda.
+  const canSellPDV = !permissionsLoading && hasPermission('vendas.create');
+  useEffect(() => {
+    if (location.pathname !== '/' || isAdmin || permissionsLoading) return;
+    if (homePath && homePath !== '/') {
+      navigate(homePath, { replace: true });
+      return;
+    }
+    if (!isGestor && !canSeeRelatorios && canSellPDV) {
+      navigate('/pdv', { replace: true });
+    }
+  }, [location.pathname, homePath, navigate, isAdmin, isGestor, canSeeRelatorios, canSellPDV, permissionsLoading]);
 
   // Período do gráfico → datas para a API do financeiro (mesmos dados reais do /financeiro)
   const { startDate: financeiroStart, endDate: financeiroEnd, periodStartDate, periodEndDate } = useMemo(() => {
@@ -340,13 +345,7 @@ const Index = () => {
                   return null;
 
                 case 'os-status':
-                  if (!osData) return null;
-                  return (
-                    <div key={widget.id} className="w-full min-w-0">
-                      <h2 className="text-base md:text-lg font-semibold mb-2 sm:mb-3">Ordens de Serviço</h2>
-                      <OSStatusCards data={osData} showValues={canSeeRelatorios} />
-                    </div>
-                  );
+                  return null;
 
                 case 'alerts':
                   return null;

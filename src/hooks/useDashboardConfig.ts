@@ -17,8 +17,7 @@ export interface DashboardConfig {
 
 const DEFAULT_WIDGETS: DashboardWidgetConfig[] = [
   { id: 'financial-cards', enabled: true, order: 1 },
-  { id: 'os-status', enabled: true, order: 2 },
-  { id: 'trend-charts', enabled: true, order: 3 },
+  { id: 'trend-charts', enabled: true, order: 2 },
 ];
 
 export function useDashboardConfig() {
@@ -54,7 +53,7 @@ export function useDashboardConfig() {
 
       if (data?.value) {
         const savedConfig = data.value as DashboardConfig;
-        const removedWidgetIds = new Set(['quick-actions', 'main-sections', 'chart-vendas', 'chart-os', 'alerts']);
+        const removedWidgetIds = new Set(['quick-actions', 'main-sections', 'chart-vendas', 'chart-os', 'alerts', 'os-status']);
         const savedWidgets = (savedConfig.widgets || []).filter((w) => !removedWidgetIds.has(w.id));
         const savedIds = new Set(savedWidgets.map((w) => w.id));
         const mergedWidgets = [...savedWidgets];

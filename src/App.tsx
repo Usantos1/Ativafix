@@ -83,7 +83,20 @@ import PainelAlertasConfig from "./pages/painel-alertas/PainelAlertasConfig";
 import PainelAlertasCategoria from "./pages/painel-alertas/PainelAlertasCategoria";
 import PainelAlertasHistorico from "./pages/painel-alertas/PainelAlertasHistorico";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Evita refetch agressivo ao trocar de aba ou reconectar:
+      // a maioria dos hooks ja sobrescreve isso, mas garantimos um padrao seguro
+      // para hooks que nao especificarem (sem isso, /os/nova e dashboards faziam
+      // dezenas de requisicoes ao alternar de aba).
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 60 * 1000,
+      retry: 1,
+    },
+  },
+});
 
 /** ativafix.com / www = LP de vendas. Se o main.tsx não tiver rodado a branch certa (cache/build antigo), este fallback garante a LP. */
 function isLandingHost() {

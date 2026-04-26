@@ -15,7 +15,6 @@ interface DashboardConfigModalProps {
 
 const WIDGET_LABELS: Record<string, string> = {
   'financial-cards': 'Cards Financeiros',
-  'os-status': 'Status de OS',
   'trend-charts': 'Gráficos de Tendência',
   'quick-actions': 'Ações Rápidas',
   'main-sections': 'Seções Principais',
