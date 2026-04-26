@@ -3211,24 +3211,10 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
               {/* Widget 1: Dados do Cliente e Aparelho */}
               <Card className="border border-gray-200/80 dark:border-gray-800 shadow-sm rounded-xl bg-white dark:bg-card">
                 <CardHeader className="py-3 px-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-muted/30 rounded-t-xl">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-blue-600" />
-                      Dados da OS
-                    </CardTitle>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleOpenAiOSDialog}
-                      className="h-8 px-3 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-medium shadow-sm flex items-center gap-1.5 shrink-0"
-                      aria-label="Gerar OS com inteligência artificial"
-                      title="Gerar OS com IA"
-                    >
-                      <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                      <span className="hidden sm:inline">Gerar OS com IA</span>
-                      <span className="sm:hidden">IA</span>
-                    </Button>
-                  </div>
+                  <CardTitle className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    Dados da OS
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 p-4">
                   {/* Cliente */}
