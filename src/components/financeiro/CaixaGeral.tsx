@@ -21,22 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Banknote, RefreshCw, TrendingUp, TrendingDown, MinusCircle, Eye, EyeOff, CalendarDays, ArrowRightLeft, FileText, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-const CAIXA_VALUES_VISIBLE_KEY = 'primecamp_caixa_values_visible';
-
-function getCaixaValuesVisible(): boolean {
-  try {
-    return localStorage.getItem(CAIXA_VALUES_VISIBLE_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
-function setCaixaValuesVisible(visible: boolean): void {
-  try {
-    localStorage.setItem(CAIXA_VALUES_VISIBLE_KEY, String(visible));
-  } catch {}
-}
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 
 function labelForma(forma: string, paymentMethods?: { code: string; name: string }[]): string {
   const byCode = paymentMethods?.find((pm) => pm.code === forma);
@@ -259,14 +244,11 @@ export function CaixaGeral({
     fetchWallets();
   }, [fetchPaymentMethods, fetchWallets]);
 
-  const [internalVisible, setInternalVisible] = useState(getCaixaValuesVisible);
-  useEffect(() => {
-    setCaixaValuesVisible(internalVisible);
-  }, [internalVisible]);
-
-  const valuesVisible = valuesVisibleProp ?? internalVisible;
-  const setValuesVisible = setValuesVisibleProp ?? setInternalVisible;
-  const showInternalToggle = valuesVisibleProp === undefined;
+  const [globalVisible, setGlobalVisible] = useValuesVisibility();
+  const valuesVisible = valuesVisibleProp ?? globalVisible;
+  const setValuesVisible = setValuesVisibleProp ?? setGlobalVisible;
+  // O olhinho global agora vive no appbar; nao exibimos o toggle interno do CaixaGeral
+  const showInternalToggle = false;
 
   const [showRetiradaDialog, setShowRetiradaDialog] = useState(false);
   const [retiradaTipo, setRetiradaTipo] = useState<'sangria' | 'transferencia' | 'pagamento_conta' | 'retirada_lucro'>('sangria');

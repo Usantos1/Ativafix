@@ -16,7 +16,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { currencyFormatters, dateFormatters } from '@/utils/formatters';
-import { getStoredValuesVisible, ValuesVisibilityToggle, MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 import { from } from '@/integrations/db/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, parseISO } from 'date-fns';
@@ -84,7 +85,7 @@ export default function FluxoDeCaixa() {
   const [startDate, setStartDate] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(() => format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [page, setPage] = useState(1);
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible] = useValuesVisibility();
   const ITEMS_PER_PAGE = 20;
   const fmt = (n: number) => (valuesVisible ? currencyFormatters.brl(n) : MASKED_VALUE);
 
@@ -310,7 +311,6 @@ export default function FluxoDeCaixa() {
     <ModernLayout
       title="Fluxo de Caixa"
       subtitle="Entradas, saídas e projeção de caixa"
-      headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
     >
       <div className="flex flex-col gap-4 pb-8 min-w-0">
         <Card className="flex-shrink-0 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm p-3 sm:p-4 min-w-0">

@@ -16,7 +16,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { currencyFormatters } from '@/utils/formatters';
-import { getStoredValuesVisible, setStoredValuesVisible, ValuesVisibilityToggle, MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 import { useDashboardExecutivo, useRecomendacoes } from '@/hooks/useFinanceiro';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -25,7 +26,7 @@ export default function DashboardExecutivo() {
     new Date(new Date().setDate(new Date().getDate() - 30))
   );
   const [periodoFim, setPeriodoFim] = useState<Date | undefined>(new Date());
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible] = useValuesVisibility();
   
   const formattedStartDate = periodoInicio ? format(periodoInicio, 'yyyy-MM-dd') : undefined;
   const formattedEndDate = periodoFim ? format(periodoFim, 'yyyy-MM-dd') : undefined;
@@ -70,7 +71,6 @@ export default function DashboardExecutivo() {
     <ModernLayout
       title="Dashboard Executivo"
       subtitle="Visão geral financeira e operacional com IA"
-      headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
     >
       <div className="flex flex-col gap-4 pb-8 min-w-0">
         {/* Filtros — mobile: toque confortável */}

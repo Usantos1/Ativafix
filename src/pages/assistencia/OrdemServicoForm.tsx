@@ -3826,13 +3826,25 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <Label className="text-xs font-semibold text-gray-700 dark:text-gray-200">Orçamento Pré-Autorizado</Label>
                       <div className="flex items-center gap-2">
-                        <Checkbox
+                        <button
                           id="apenas-orcamento"
-                          checked={!!formData.apenas_orcamento}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, apenas_orcamento: !!checked }))}
-                          className="h-3 w-3 shrink-0 rounded border-gray-400 dark:border-gray-600"
-                        />
-                        <Label htmlFor="apenas-orcamento" className="text-[11px] text-gray-600 dark:text-gray-300 cursor-pointer">
+                          type="button"
+                          role="checkbox"
+                          aria-checked={!!formData.apenas_orcamento}
+                          aria-label="Realizar Orçamento"
+                          onClick={() => setFormData(prev => ({ ...prev, apenas_orcamento: !prev.apenas_orcamento }))}
+                          className={`flex h-4 w-4 min-h-0 min-w-0 shrink-0 items-center justify-center rounded-[3px] border transition-colors ${
+                            formData.apenas_orcamento
+                              ? "border-emerald-500 bg-emerald-500 text-white"
+                              : "border-slate-400 bg-white text-transparent dark:border-slate-500 dark:bg-slate-900"
+                          }`}
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <Label
+                          onClick={() => setFormData(prev => ({ ...prev, apenas_orcamento: !prev.apenas_orcamento }))}
+                          className="cursor-pointer text-[11px] font-normal text-gray-600 dark:text-gray-300"
+                        >
                           Realizar Orçamento
                         </Label>
                       </div>

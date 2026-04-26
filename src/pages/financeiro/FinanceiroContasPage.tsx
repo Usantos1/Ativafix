@@ -6,17 +6,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getStoredValuesVisible, ValuesVisibilityToggle } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 
 export default function FinanceiroContasPage() {
   const [activeTab, setActiveTab] = useState<'pagar' | 'receber'>('pagar');
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible] = useValuesVisibility();
 
   return (
     <ModernLayout
       title="Contas"
       subtitle="Contas a pagar e receber"
-      headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
     >
       <div className="flex flex-col gap-4 pb-8 min-w-0">
         <div className="space-y-3 flex-1 flex flex-col min-h-0 min-w-0">

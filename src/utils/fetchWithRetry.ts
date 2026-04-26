@@ -3,9 +3,12 @@
  * com backoff exponencial para não agravar o rate limit.
  */
 
-const MAX_RETRIES = 5;
-const INITIAL_DELAY_MS = 3000;
-const MAX_DELAY_MS = 45000;
+// Apenas 1 retry em caso de 429 (evita inundar o backend ja sob rate limit
+// e evita a sensacao de "refresh a cada poucos segundos" no frontend).
+// O React Query tambem possui retry proprio configuravel por chamada.
+const MAX_RETRIES = 1;
+const INITIAL_DELAY_MS = 4000;
+const MAX_DELAY_MS = 30000;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

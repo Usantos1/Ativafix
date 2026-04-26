@@ -11,8 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppBarMiui } from "@/components/AppBarMiui";
-import { Bell, LogOut, Settings, User } from "lucide-react";
+import { Bell, Eye, EyeOff, LogOut, Settings, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useValuesVisibility } from "@/hooks/useValuesVisibility";
 
 interface HeaderMiuiProps {
   notificationCount: number;
@@ -40,6 +41,7 @@ export function HeaderMiui({
   currentTime,
 }: HeaderMiuiProps) {
   const navigate = useNavigate();
+  const [valuesVisible, setValuesVisible] = useValuesVisibility();
 
   return (
     <header className="sticky top-0 z-40 shrink-0 border-b border-emerald-100/70 bg-background/95 backdrop-blur-xl dark:border-emerald-950/30">
@@ -60,6 +62,21 @@ export function HeaderMiui({
           </div>
 
           <ThemeToggle variant="button" size="sm" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="shrink-0 rounded-2xl h-9 w-9 p-0"
+            onClick={() => setValuesVisible(!valuesVisible)}
+            title={valuesVisible ? "Ocultar valores em R$" : "Exibir valores em R$"}
+            aria-label={valuesVisible ? "Ocultar valores em reais" : "Exibir valores em reais"}
+            aria-pressed={!valuesVisible}
+          >
+            {valuesVisible ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="sm"

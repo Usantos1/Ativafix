@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FinancialCards } from './FinancialCards';
@@ -9,7 +9,7 @@ import { useDashboardConfig } from '@/hooks/useDashboardConfig';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { X, Monitor, Eye, EyeOff } from 'lucide-react';
-import { getStoredValuesVisible, setStoredValuesVisible } from './FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 
 interface PresentationModeProps {
   financialData: DashboardFinancialData;
@@ -20,7 +20,7 @@ interface PresentationModeProps {
 
 export function PresentationMode({ financialData, osData, alerts, trendData }: PresentationModeProps) {
   const { togglePresentationMode } = useDashboardConfig();
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible, setValuesVisible] = useValuesVisibility();
 
   const handleExit = useCallback(async () => {
     await togglePresentationMode();
@@ -77,11 +77,7 @@ export function PresentationMode({ financialData, osData, alerts, trendData }: P
             variant="outline"
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => {
-              const next = !valuesVisible;
-              setStoredValuesVisible(next);
-              setValuesVisible(next);
-            }}
+            onClick={() => setValuesVisible(!valuesVisible)}
             title={valuesVisible ? 'Ocultar valores' : 'Exibir valores'}
           >
             {valuesVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}

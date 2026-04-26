@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ModernLayout } from '@/components/ModernLayout';
-import { getStoredValuesVisible, ValuesVisibilityToggle, MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -22,7 +23,7 @@ const meses = [
 export default function PlanejamentoAnual() {
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState<number>(anoAtual);
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible] = useValuesVisibility();
   
   const { data: planejamento, isLoading, isError } = usePlanejamentoAnual(ano);
   const salvarPlanejamento = useSalvarPlanejamentoAnual();
@@ -96,7 +97,6 @@ export default function PlanejamentoAnual() {
       <ModernLayout
         title="Planejamento Anual"
         subtitle="Planeje suas metas financeiras para o ano"
-        headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
       >
         <div className="flex flex-col gap-4">
           <Card className="flex-shrink-0 border-2 border-gray-300 dark:border-gray-600 rounded-xl p-4">
@@ -158,7 +158,6 @@ export default function PlanejamentoAnual() {
     <ModernLayout
       title="Planejamento Anual"
       subtitle="Planeje suas metas financeiras para o ano"
-      headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
     >
       <div className="flex flex-col gap-4 pb-8 min-w-0">
         {/* Controles — mobile: toque confortável */}

@@ -3,7 +3,7 @@ import { ModernLayout } from '@/components/ModernLayout';
 import { CashRegisterSessionsManager } from '@/components/financeiro/CashRegisterSessionsManager';
 import { CaixaGeral } from '@/components/financeiro/CaixaGeral';
 import { useAuth } from '@/contexts/AuthContext';
-import { getStoredValuesVisible, ValuesVisibilityToggle } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 
 export default function FinanceiroCaixaPage() {
   const { isAdmin } = useAuth();
@@ -12,13 +12,12 @@ export default function FinanceiroCaixaPage() {
   const [customDateEnd, setCustomDateEnd] = useState<Date | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible, setValuesVisible] = useValuesVisibility();
 
   return (
     <ModernLayout
       title="Caixa"
       subtitle={isAdmin ? 'Gestão de sessões de caixa' : 'Meu caixa (hoje)'}
-      headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
     >
       <div className="flex flex-col gap-4 pb-8 min-w-0 overflow-x-hidden">
         {isAdmin && (

@@ -4,14 +4,15 @@ import { format, subDays, startOfMonth, endOfMonth, subMonths, addDays } from 'd
 import { ptBR } from 'date-fns/locale';
 import { ModernLayout } from '@/components/ModernLayout';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardConfig } from '@/hooks/useDashboardConfig';
 import { useDashboardExecutivo } from '@/hooks/useFinanceiro';
 import { useSalesSummary } from '@/hooks/useReports';
-import { FinancialCards, getStoredValuesVisible, setStoredValuesVisible } from '@/components/dashboard/FinancialCards';
+import { FinancialCards } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 import { OSStatusCards } from '@/components/dashboard/OSStatusCards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { DashboardPeriodFilter } from '@/components/dashboard/DashboardPeriodFilter';
@@ -34,8 +35,8 @@ const Index = () => {
   const { financialData, osData, alerts, trendData, trendPeriod, setTrendPeriod, customDateRange, loading: dataLoading, refetch } = useDashboardData();
   const { config, loading: configLoading } = useDashboardConfig();
   const { getEstatisticas } = useOrdensServico();
-  /** Ocultar/exibir valores em R$ (ícone de olho como em bancos) - persistido no localStorage */
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  /** Ocultar/exibir valores em R$ — sincronizado com o botão olhinho do appbar */
+  const [valuesVisible] = useValuesVisibility();
 
   const stats = getEstatisticas();
 
@@ -303,24 +304,6 @@ const Index = () => {
                   periodEndDate={periodEndDate}
                   customDateRange={trendPeriod === 'custom' ? customDateRange : undefined}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-11 min-h-[44px] w-11 sm:h-9 sm:w-9 sm:min-h-0 shrink-0 border-gray-300 dark:border-gray-600 rounded-xl sm:rounded-md touch-manipulation"
-                  onClick={() => {
-                    const next = !valuesVisible;
-                    setStoredValuesVisible(next);
-                    setValuesVisible(next);
-                  }}
-                  title={valuesVisible ? 'Ocultar valores' : 'Exibir valores'}
-                  aria-label={valuesVisible ? 'Ocultar valores em reais' : 'Exibir valores em reais'}
-                >
-                  {valuesVisible ? (
-                    <Eye className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-muted-foreground" />
-                  ) : (
-                    <EyeOff className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-muted-foreground" />
-                  )}
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"

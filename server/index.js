@@ -255,14 +255,21 @@ const authenticateToken = async (req, res, next) => {
 };
 
 // Rate limiting - NÃO aplicar limite em rotas /api/auth/* (evita 429 em auth/me e login)
+// Limite alto (30k req/15min/IP) para suportar dashboards com muitas queries
+// simultaneas (sales, users, fornecedores, etc.) e o retry interno do React Query.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5000,
+  max: 30000,
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
     const url = (req.originalUrl || req.url || '').toLowerCase();
-    return url.includes('/auth'); // auth/me, auth/login, auth/signup não consomem limite geral
+    // auth/me, auth/login, auth/signup, /query/* nao consomem limite geral
+    if (url.includes('/auth')) return true;
+    // Rotas de leitura (POST /api/query/*) sao chamadas em alta frequencia pelo
+    // dashboard e dependem do react-query: nao bloqueamos por rate-limit aqui.
+    if (url.startsWith('/api/query/') || url.includes('/api/query/')) return true;
+    return false;
   },
 });
 

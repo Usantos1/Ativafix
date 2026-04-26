@@ -38,7 +38,8 @@ import { useDashboardExecutivo } from '@/hooks/useFinanceiro';
 import { useCargos } from '@/hooks/useCargos';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { currencyFormatters } from '@/utils/formatters';
-import { getStoredValuesVisible, ValuesVisibilityToggle, MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/types/pdv';
 import type { DashboardTrendData } from '@/hooks/useDashboardData';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -111,7 +112,7 @@ export default function Relatorios() {
   const [technicianId, setTechnicianId] = useState<string>('all');
   const [saleOrigin, setSaleOrigin] = useState<'PDV' | 'OS' | 'all'>('all');
   const [paymentMethod, setPaymentMethod] = useState<string>('all');
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible] = useValuesVisibility();
   const fmt = (n: number) => (valuesVisible ? currencyFormatters.brl(n) : MASKED_VALUE);
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
@@ -243,7 +244,6 @@ export default function Relatorios() {
     <ModernLayout
       title="Relatórios"
       subtitle="Vendas, tendências e produtividade"
-      headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
     >
       <div className="flex flex-col gap-3 md:gap-4 pb-6">
         {/* Filtros */}

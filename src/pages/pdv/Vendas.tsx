@@ -46,7 +46,8 @@ import { Sale, SALE_STATUS_LABELS } from '@/types/pdv';
 import type { CancelRequest } from '@/types/pdv';
 import { from } from '@/integrations/db/client';
 import { currencyFormatters, dateFormatters } from '@/utils/formatters';
-import { getStoredValuesVisible, ValuesVisibilityToggle, MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { MASKED_VALUE } from '@/components/dashboard/FinancialCards';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 import { EmptyState } from '@/components/EmptyState';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -109,7 +110,7 @@ export default function Vendas() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
-  const [valuesVisible, setValuesVisible] = useState(getStoredValuesVisible);
+  const [valuesVisible] = useValuesVisibility();
   const fmt = (n: number) => (valuesVisible ? currencyFormatters.brl(n) : MASKED_VALUE);
 
   const pendingCancelRequests = useMemo(() => cancelRequests.filter(r => r.status === 'pending'), [cancelRequests]);
@@ -664,7 +665,6 @@ export default function Vendas() {
     <ModernLayout
       title="Vendas"
       subtitle="Gerenciamento de vendas do PDV"
-      headerActions={<ValuesVisibilityToggle valuesVisible={valuesVisible} setValuesVisible={setValuesVisible} />}
     >
       <div className="flex flex-col gap-3 md:gap-3 pb-8 min-w-0">
         {/* Estatísticas — Mobile: grid 2 colunas, toque confortável */}

@@ -33,6 +33,12 @@ export function setStoredValuesVisible(visible: boolean): void {
   try {
     localStorage.setItem(STORAGE_KEY, String(visible));
   } catch {}
+  // Dispara evento para sincronizar todas as paginas/componentes na mesma aba
+  try {
+    window.dispatchEvent(
+      new CustomEvent('ativa:values-visibility-changed', { detail: { visible } })
+    );
+  } catch {}
 }
 
 /** Botão olhinho para ocultar/exibir valores em R$ (uso em /financeiro, DRE, etc.) */

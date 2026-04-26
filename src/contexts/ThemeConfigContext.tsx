@@ -19,7 +19,8 @@ interface ThemeConfig {
 }
 
 // Cores fixas do sistema — uma vez definidas valem para todos os usuários (AppBar, Sidebar, Botões)
-const SYSTEM_PRIMARY_HSL = '0 100% 47%';
+// Verde Ativa FIX (emerald-600 ~ #059669)
+const SYSTEM_PRIMARY_HSL = '160 84% 30%';
 
 const defaultConfigAtivaFix: ThemeConfig = {
   logo: "/logo-ativafix.png",
