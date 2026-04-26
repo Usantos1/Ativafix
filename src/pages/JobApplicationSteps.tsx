@@ -81,9 +81,13 @@ const themeCSS = `
   
   .job-form-scroll {
     min-height: 100vh;
-    height: auto;
-    overflow: visible;
+    max-height: 100vh;
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
   
   /* Scrollbar fino e discreto */
