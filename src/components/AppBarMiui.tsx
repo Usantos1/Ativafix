@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useNavigationItems } from '@/hooks/useNavigationItems';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useThemeConfig, getDefaultConfigByHost } from '@/contexts/ThemeConfigContext';
 import {
   Popover,
@@ -18,7 +16,6 @@ export function AppBarMiui() {
   const navigate = useNavigate();
   const { allItems } = useNavigationItems();
   const { config } = useThemeConfig();
-  const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const logoUrl =
     config.logo || getDefaultConfigByHost().logo || 'https://primecamp.com.br/wp-content/uploads/2025/07/Design-sem-nome-4.png';
@@ -27,13 +24,7 @@ export function AppBarMiui() {
     return null;
   }
 
-  const primaryPaths = ['/pdv', '/os'];
-  const primaryItems = primaryPaths
-    .map((path) => allItems.find((item) => item.path === path))
-    .filter(Boolean);
-  const menuItems = isMobile
-    ? allItems
-    : allItems.filter((item) => !primaryItems.some((primary) => primary.path === item.path));
+  const menuItems = allItems;
   const groupedItems = menuItems.reduce<Record<string, typeof menuItems>>((acc, item) => {
     const key = item.groupLabel || 'Navegação';
     if (!acc[key]) acc[key] = [];
@@ -54,39 +45,6 @@ export function AppBarMiui() {
           className="h-9 w-auto max-w-[116px] object-contain sm:h-12 sm:max-w-[170px]"
         />
       </button>
-
-      {!isMobile && primaryItems.map((item) => {
-        const Icon = item.icon;
-        const isActive =
-          item.path === '/'
-            ? location.pathname === '/'
-            : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-
-        return (
-          <Button
-            key={item.path}
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(item.path)}
-            className={cn(
-              'h-10 shrink-0 rounded-full border px-3 text-xs font-medium shadow-sm sm:inline-flex sm:h-11 sm:px-4 sm:text-sm',
-              isActive
-                ? 'border-[hsl(var(--sidebar-primary,var(--primary)))] bg-[hsl(var(--sidebar-primary,var(--primary)))] text-white hover:opacity-95'
-                : 'border-emerald-200/80 bg-white text-foreground hover:bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20'
-            )}
-          >
-            <Icon className="mr-1.5 h-4 w-4 sm:mr-2" />
-            {item.path === '/os' ? (
-              <>
-                <span className="sm:hidden">OS</span>
-                <span className="hidden truncate sm:inline">{item.label}</span>
-              </>
-            ) : (
-              <span className="truncate">{item.label}</span>
-            )}
-          </Button>
-        );
-      })}
 
       <Popover open={menuOpen} onOpenChange={setMenuOpen}>
         <PopoverTrigger asChild>
@@ -169,19 +127,6 @@ export function AppBarMiui() {
           ))}
         </PopoverContent>
       </Popover>
-
-      {!isMobile && (
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-11 w-11 shrink-0 rounded-full border border-emerald-200/80 bg-white p-0 text-emerald-600 shadow-sm hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20 sm:inline-flex"
-          aria-label="Busca rápida"
-          title="Busca rápida (Ctrl+K)"
-          onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-        >
-          <Search className="h-4 w-4" />
-        </Button>
-      )}
 
       <div className="min-w-0 flex-1" />
     </div>
