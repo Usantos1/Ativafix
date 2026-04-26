@@ -203,13 +203,10 @@ const Auth = () => {
           </div>
 
           {authMode === "signin" ? (
-            <form onSubmit={handleSignIn} className="space-y-5">
-              <div className="group relative pt-2">
-                <Label
-                  htmlFor="signin-email"
-                  className="absolute left-3 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-300"
-                >
-                  Email *
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="signin-email" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Email
                 </Label>
                 <Input
                   id="signin-email"
@@ -218,16 +215,14 @@ const Auth = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
-                  className="h-[40px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  placeholder="seu@email.com"
+                  className="h-[42px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
 
-              <div className="group relative pt-2">
-                <Label
-                  htmlFor="signin-password"
-                  className="absolute left-3 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-300"
-                >
-                  Senha *
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="signin-password" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Senha
                 </Label>
                 <div className="relative">
                   <Input
@@ -237,12 +232,13 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                     required
-                    className="h-[40px] rounded-full border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    placeholder="••••••••"
+                    className="h-[42px] rounded-full border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-700 focus:outline-none dark:text-slate-300 dark:hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700 focus:outline-none dark:text-slate-400 dark:hover:text-white"
                     tabIndex={-1}
                     aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
                   >
@@ -312,12 +308,9 @@ const Auth = () => {
                 </p>
               </div>
 
-              <div className="group relative pt-2">
-                <Label
-                  htmlFor="reset-email"
-                  className="absolute left-3 top-0 z-10 bg-white px-1 text-[11px] font-medium text-slate-500 group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-300"
-                >
-                  Email *
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="reset-email" className="pl-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Email
                 </Label>
                 <Input
                   id="reset-email"
@@ -326,7 +319,8 @@ const Auth = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
-                  className="h-[40px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  placeholder="seu@email.com"
+                  className="h-[42px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
 
