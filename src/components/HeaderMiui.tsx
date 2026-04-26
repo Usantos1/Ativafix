@@ -82,7 +82,7 @@ export function HeaderMiui({
           <Button
             variant="ghost"
             size="sm"
-            className="hidden relative shrink-0 rounded-2xl sm:inline-flex"
+            className="max-sm:!hidden relative shrink-0 rounded-2xl sm:inline-flex"
             onClick={onOpenNotifications}
           >
             <Bell className="h-4 w-4" />

@@ -65,7 +65,7 @@ export function AppBarMiui() {
             size="sm"
             onClick={() => navigate(item.path)}
             className={cn(
-              'hidden h-10 shrink-0 rounded-full border px-3 text-xs font-medium shadow-sm sm:inline-flex sm:h-11 sm:px-4 sm:text-sm',
+              'max-sm:!hidden h-10 shrink-0 rounded-full border px-3 text-xs font-medium shadow-sm sm:inline-flex sm:h-11 sm:px-4 sm:text-sm',
               isActive
                 ? 'border-[hsl(var(--sidebar-primary,var(--primary)))] bg-[hsl(var(--sidebar-primary,var(--primary)))] text-white hover:opacity-95'
                 : 'border-emerald-200/80 bg-white text-foreground hover:bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20'
@@ -169,7 +169,7 @@ export function AppBarMiui() {
       <Button
         type="button"
         variant="ghost"
-        className="hidden h-11 w-11 shrink-0 rounded-full border border-emerald-200/80 bg-white p-0 text-emerald-600 shadow-sm hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20 sm:inline-flex"
+        className="max-sm:!hidden h-11 w-11 shrink-0 rounded-full border border-emerald-200/80 bg-white p-0 text-emerald-600 shadow-sm hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20 sm:inline-flex"
         aria-label="Busca rápida"
         title="Busca rápida (Ctrl+K)"
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
