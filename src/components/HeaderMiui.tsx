@@ -14,6 +14,7 @@ import { AppBarMiui } from "@/components/AppBarMiui";
 import { Bell, Eye, EyeOff, LogOut, Settings, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useValuesVisibility } from "@/hooks/useValuesVisibility";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface HeaderMiuiProps {
   notificationCount: number;
@@ -42,6 +43,7 @@ export function HeaderMiui({
 }: HeaderMiuiProps) {
   const navigate = useNavigate();
   const [valuesVisible, setValuesVisible] = useValuesVisibility();
+  const isMobile = useIsMobile();
 
   return (
     <header className="sticky top-0 z-40 shrink-0 border-b border-emerald-100/70 bg-background/95 backdrop-blur-xl dark:border-emerald-950/30">
@@ -79,19 +81,21 @@ export function HeaderMiui({
               <EyeOff className="h-4 w-4" />
             )}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="max-sm:!hidden relative shrink-0 rounded-2xl sm:inline-flex"
-            onClick={onOpenNotifications}
-          >
-            <Bell className="h-4 w-4" />
-            {notificationCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
-                {notificationCount}
-              </Badge>
-            )}
-          </Button>
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="relative shrink-0 rounded-2xl sm:inline-flex"
+              onClick={onOpenNotifications}
+            >
+              <Bell className="h-4 w-4" />
+              {notificationCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+                  {notificationCount}
+                </Badge>
+              )}
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
