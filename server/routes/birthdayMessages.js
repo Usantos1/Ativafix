@@ -14,6 +14,7 @@ import {
   processDueBirthdayMessages,
   syncBirthdayJobsForCompany,
   listBirthdayClients,
+  ensureBirthdayJobForClient,
   normalizeWhatsappNumber,
 } from '../services/birthdayMessageService.js';
 
@@ -147,10 +148,56 @@ router.get('/jobs', async (req, res) => {
   }
 });
 
+router.post('/jobs', async (req, res) => {
+  try {
+    const { cliente_id, mensagem, telefone, scheduled_at, source_date } = req.body || {};
+    if (!cliente_id) {
+      return res.status(400).json({ error: 'cliente_id é obrigatório.' });
+    }
+
+    let scheduledAt = null;
+    if (scheduled_at) {
+      const parsed = new Date(scheduled_at);
+      if (Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'Data/hora inválida.' });
+      }
+      scheduledAt = parsed;
+    }
+
+    const job = await ensureBirthdayJobForClient(pool, req.companyId, cliente_id, {
+      sourceDate: source_date || null,
+      scheduledAt,
+      mensagem: mensagem || null,
+    });
+
+    if (telefone !== undefined && telefone !== null && String(telefone).trim() !== '') {
+      const normalized = normalizeWhatsappNumber(telefone);
+      if (!normalized.ok) {
+        return res.status(400).json({ error: normalized.reason || 'Telefone inválido.' });
+      }
+      await pool.query(
+        `UPDATE birthday_message_jobs
+         SET telefone = $3,
+             status = CASE WHEN status = 'cancelado' THEN 'agendado' ELSE status END,
+             skip_reason = NULL,
+             error_message = NULL,
+             updated_at = now()
+         WHERE id = $1 AND company_id = $2`,
+        [job.id, req.companyId, normalized.e164]
+      );
+    }
+
+    res.json({ success: true, job_id: job.id });
+  } catch (error) {
+    console.error('[Birthday Messages] POST job:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.patch('/jobs/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { telefone, scheduled_at, status } = req.body || {};
+    const { telefone, scheduled_at, status, mensagem } = req.body || {};
     const existing = await pool.query(
       `SELECT id, status
        FROM birthday_message_jobs
@@ -185,6 +232,19 @@ router.patch('/jobs/:id', async (req, res) => {
       idx += 1;
       values.push(parsed.toISOString());
       updates.push(`scheduled_at = $${idx}`);
+    }
+
+    if (mensagem !== undefined) {
+      const text = String(mensagem || '').trim();
+      if (text.length === 0) {
+        return res.status(400).json({ error: 'Mensagem não pode ficar vazia.' });
+      }
+      if (text.length > 4000) {
+        return res.status(400).json({ error: 'Mensagem muito longa (máx. 4000 caracteres).' });
+      }
+      idx += 1;
+      values.push(text);
+      updates.push(`mensagem_renderizada = $${idx}`);
     }
 
     if (status !== undefined) {

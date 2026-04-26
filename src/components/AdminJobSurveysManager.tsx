@@ -1258,18 +1258,38 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                 setSelectedSurvey(null);
                 navigate('/admin/job-surveys');
               }}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-700"
             >
               ← Voltar à Lista
             </Button>
             
             {/* Status Summary */}
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-medium">Candidatos:</span>
-              <Badge variant="outline">{statusCounts.total} Total</Badge>
-              <Badge variant="secondary">{statusCounts.pending} Pendentes</Badge>
-              <Badge variant="secondary">{statusCounts.analyzing} Analisando</Badge>
-              <Badge variant="secondary">{statusCounts.qualified} Qualificados</Badge>
+              <span className="font-medium text-gray-800 dark:text-gray-100">Candidatos:</span>
+              <Badge
+                variant="outline"
+                className="border-gray-300 bg-white text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              >
+                {statusCounts.total} Total
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-200"
+              >
+                {statusCounts.pending} Pendentes
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-700/50 dark:bg-blue-900/30 dark:text-blue-200"
+              >
+                {statusCounts.analyzing} Analisando
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-200"
+              >
+                {statusCounts.qualified} Qualificados
+              </Badge>
             </div>
           </div>
           
@@ -2293,7 +2313,14 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-lg font-semibold">{survey.title}</h3>
-                          <Badge variant={survey.is_active ? "secondary" : "secondary"}>
+                          <Badge
+                            variant="outline"
+                            className={
+                              survey.is_active
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-200'
+                                : 'border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'
+                            }
+                          >
                             {survey.is_active ? 'Ativo' : 'Inativo'}
                           </Badge>
                           {survey.visible_on_portal === false && (
@@ -2343,7 +2370,10 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                             {survey.dynamic_questions?.length ? ` • ${survey.dynamic_questions.length} dinâmicas (IA)` : ''}
                           </div>
                           <div className="flex items-center gap-2 mt-1 sm:mt-0">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-700/50 dark:bg-violet-900/30 dark:text-violet-200"
+                            >
                               IA ativa
                             </Badge>
                             <span>

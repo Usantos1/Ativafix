@@ -149,6 +149,19 @@ export default function Clientes() {
   const [birthdaySaving, setBirthdaySaving] = useState(false);
   const [birthdaySyncing, setBirthdaySyncing] = useState(false);
   const [birthdayProcessing, setBirthdayProcessing] = useState(false);
+
+  // Edição/cancelamento de mensagem para clientes da lista "Aniversariantes do mês"
+  const [editingBirthdayClient, setEditingBirthdayClient] = useState<{
+    id: string;
+    nome: string | null;
+    job_id: string | null;
+    job_status: string | null;
+  } | null>(null);
+  const [editBirthdayMessage, setEditBirthdayMessage] = useState('');
+  const [editBirthdayPhone, setEditBirthdayPhone] = useState('');
+  const [editBirthdayScheduledAt, setEditBirthdayScheduledAt] = useState('');
+  const [savingBirthdayEdit, setSavingBirthdayEdit] = useState(false);
+  const [cancellingBirthdayId, setCancellingBirthdayId] = useState<string | null>(null);
   
   const { 
     clientes, 
@@ -206,6 +219,7 @@ export default function Clientes() {
           sent_at: string | null;
           error_message: string | null;
           skip_reason: string | null;
+          mensagem_renderizada: string | null;
         }>;
       };
     },
@@ -671,6 +685,150 @@ export default function Clientes() {
         description: getDemoAwareErrorMessage(error, 'Não foi possível remover o agendamento.'),
         variant: 'destructive',
       });
+    }
+  };
+
+  // Converte ISO -> string aceita por <input type="datetime-local"> no fuso local
+  const isoToLocalInput = (iso: string | null | undefined): string => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return '';
+    }
+  };
+
+  const buildDefaultBirthdayMessage = (nome?: string | null) => {
+    const primeiroNome = (nome || 'Cliente').split(' ')[0];
+    return `🎉 *Feliz Aniversário, ${primeiroNome}!*\n\nDesejamos um dia maravilhoso, repleto de saúde, alegria e conquistas. Parabéns!`;
+  };
+
+  const handleOpenEditBirthday = (cliente: {
+    id: string;
+    nome: string | null;
+    whatsapp: string | null;
+    telefone: string | null;
+    telefone2: string | null;
+    job_id: string | null;
+    job_status: string | null;
+    scheduled_at: string | null;
+    mensagem_renderizada: string | null;
+  }) => {
+    setEditingBirthdayClient({
+      id: cliente.id,
+      nome: cliente.nome,
+      job_id: cliente.job_id,
+      job_status: cliente.job_status,
+    });
+    setEditBirthdayMessage(
+      cliente.mensagem_renderizada && cliente.mensagem_renderizada.trim().length > 0
+        ? cliente.mensagem_renderizada
+        : buildDefaultBirthdayMessage(cliente.nome)
+    );
+    setEditBirthdayPhone(cliente.whatsapp || cliente.telefone || cliente.telefone2 || '');
+    setEditBirthdayScheduledAt(isoToLocalInput(cliente.scheduled_at));
+  };
+
+  const handleSaveBirthdayEdit = async () => {
+    if (!editingBirthdayClient) return;
+    const mensagem = editBirthdayMessage.trim();
+    if (!mensagem) {
+      toast({ title: 'Mensagem obrigatória', description: 'Escreva o texto da mensagem antes de salvar.', variant: 'destructive' });
+      return;
+    }
+
+    let scheduledIso: string | undefined;
+    if (editBirthdayScheduledAt) {
+      const parsed = new Date(editBirthdayScheduledAt);
+      if (Number.isNaN(parsed.getTime())) {
+        toast({ title: 'Data/hora inválida', variant: 'destructive' });
+        return;
+      }
+      scheduledIso = parsed.toISOString();
+    }
+
+    setSavingBirthdayEdit(true);
+    try {
+      if (editingBirthdayClient.job_id) {
+        const payload: Record<string, any> = {
+          mensagem,
+          status: 'agendado',
+        };
+        if (editBirthdayPhone) payload.telefone = editBirthdayPhone;
+        if (scheduledIso) payload.scheduled_at = scheduledIso;
+        const { error } = await apiClient.patch(`/birthday-messages/jobs/${editingBirthdayClient.job_id}`, payload);
+        if (error) {
+          throw new Error(typeof error === 'string' ? error : (error as any)?.message || 'Erro ao atualizar mensagem');
+        }
+      } else {
+        const payload: Record<string, any> = {
+          cliente_id: editingBirthdayClient.id,
+          mensagem,
+        };
+        if (editBirthdayPhone) payload.telefone = editBirthdayPhone;
+        if (scheduledIso) payload.scheduled_at = scheduledIso;
+        const { error } = await apiClient.post(`/birthday-messages/jobs`, payload);
+        if (error) {
+          throw new Error(typeof error === 'string' ? error : (error as any)?.message || 'Erro ao agendar mensagem');
+        }
+      }
+
+      await Promise.all([refetchBirthdayJobs(), refetchBirthdayUpcoming()]);
+      toast({
+        title: editingBirthdayClient.job_id ? 'Mensagem atualizada!' : 'Mensagem agendada!',
+        description: 'Alterações salvas com sucesso.',
+      });
+      setEditingBirthdayClient(null);
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description: getDemoAwareErrorMessage(error, 'Não foi possível salvar a mensagem.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingBirthdayEdit(false);
+    }
+  };
+
+  const handleCancelBirthdayClient = async (cliente: {
+    id: string;
+    nome: string | null;
+    job_id: string | null;
+    job_status: string | null;
+  }) => {
+    if (!cliente.job_id) {
+      toast({
+        title: 'Nada para cancelar',
+        description: 'Este cliente ainda não possui mensagem agendada.',
+      });
+      return;
+    }
+    const confirmar = window.confirm(
+      `Cancelar a mensagem de aniversário de "${cliente.nome || 'cliente'}"?`
+    );
+    if (!confirmar) return;
+
+    setCancellingBirthdayId(cliente.id);
+    try {
+      const { error } = await apiClient.patch(`/birthday-messages/jobs/${cliente.job_id}`, {
+        status: 'cancelado',
+      });
+      if (error) {
+        throw new Error(typeof error === 'string' ? error : (error as any)?.message || 'Erro ao cancelar mensagem');
+      }
+      await Promise.all([refetchBirthdayJobs(), refetchBirthdayUpcoming()]);
+      toast({ title: 'Mensagem cancelada!' });
+    } catch (error) {
+      toast({
+        title: 'Erro ao cancelar',
+        description: getDemoAwareErrorMessage(error, 'Não foi possível cancelar a mensagem.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setCancellingBirthdayId(null);
     }
   };
 
@@ -1562,12 +1720,13 @@ export default function Clientes() {
                         <TableHead>Cliente</TableHead>
                         <TableHead>Telefone</TableHead>
                         <TableHead>Status (hoje)</TableHead>
+                        <TableHead className="text-right w-[110px]">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {loadingBirthdayUpcoming ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                             Carregando aniversariantes...
                           </TableCell>
                         </TableRow>
@@ -1582,6 +1741,9 @@ export default function Clientes() {
                               return m === c.mes && d === c.dia;
                             } catch { return false; }
                           })();
+                          const isCancelled = c.job_status === 'cancelado';
+                          const isSent = c.job_status === 'enviado';
+                          const cancelDisabled = !c.job_id || isCancelled || isSent || cancellingBirthdayId === c.id;
                           return (
                             <TableRow key={c.id} className={isHoje ? 'bg-amber-50/60 dark:bg-amber-950/20' : ''}>
                               <TableCell className="font-medium">
@@ -1597,21 +1759,54 @@ export default function Clientes() {
                               <TableCell className="text-sm">{tel || <span className="text-xs text-muted-foreground">-</span>}</TableCell>
                               <TableCell>
                                 {c.job_status ? (
-                                  <Badge variant={c.job_status === 'enviado' ? 'default' : c.job_status === 'erro' ? 'destructive' : 'secondary'} className="text-[11px]">
+                                  <Badge variant={isSent ? 'default' : c.job_status === 'erro' ? 'destructive' : 'secondary'} className="text-[11px]">
                                     {c.job_status}
                                   </Badge>
                                 ) : isHoje ? (
-                                  <span className="text-[11px] text-muted-foreground">Clique em "Sincronizar" para agendar</span>
+                                  <span className="text-[11px] text-muted-foreground">Sem agendamento</span>
                                 ) : (
                                   <span className="text-[11px] text-muted-foreground">-</span>
                                 )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleOpenEditBirthday(c)}
+                                    title={c.job_id ? 'Editar mensagem' : 'Criar/editar mensagem'}
+                                    disabled={isSent}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive disabled:opacity-40"
+                                    onClick={() => handleCancelBirthdayClient({
+                                      id: c.id,
+                                      nome: c.nome,
+                                      job_id: c.job_id,
+                                      job_status: c.job_status,
+                                    })}
+                                    title={
+                                      !c.job_id ? 'Sem mensagem agendada' :
+                                      isSent ? 'Mensagem já enviada' :
+                                      isCancelled ? 'Já cancelada' :
+                                      'Cancelar mensagem'
+                                    }
+                                    disabled={cancelDisabled}
+                                  >
+                                    <Ban className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                             Nenhum cliente com aniversário no mês corrente.
                           </TableCell>
                         </TableRow>
@@ -1637,6 +1832,114 @@ export default function Clientes() {
               >
                 {birthdaySaving ? 'Salvando...' : 'Salvar Configuração'}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Edição da Mensagem de Aniversário (por cliente da lista) */}
+        <Dialog
+          open={!!editingBirthdayClient}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingBirthdayClient(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Cake className="h-5 w-5 text-pink-500" />
+                {editingBirthdayClient?.job_id ? 'Editar mensagem de aniversário' : 'Agendar mensagem de aniversário'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingBirthdayClient?.nome
+                  ? <>Cliente: <span className="font-medium">{editingBirthdayClient.nome}</span></>
+                  : 'Personalize a mensagem que será enviada via WhatsApp.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="edit-birthday-phone">Telefone (WhatsApp)</Label>
+                  <Input
+                    id="edit-birthday-phone"
+                    value={editBirthdayPhone}
+                    onChange={(e) => setEditBirthdayPhone(e.target.value)}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-birthday-scheduled">Data/hora do envio</Label>
+                  <Input
+                    id="edit-birthday-scheduled"
+                    type="datetime-local"
+                    value={editBirthdayScheduledAt}
+                    onChange={(e) => setEditBirthdayScheduledAt(e.target.value)}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Deixe em branco para usar o horário padrão configurado.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-birthday-message">Mensagem</Label>
+                <Textarea
+                  id="edit-birthday-message"
+                  value={editBirthdayMessage}
+                  onChange={(e) => setEditBirthdayMessage(e.target.value)}
+                  rows={8}
+                  className="font-mono text-sm"
+                  placeholder="Escreva a mensagem que será enviada..."
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {editBirthdayMessage.length}/4000 caracteres
+                </p>
+              </div>
+
+              {editingBirthdayClient?.job_status && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 px-3 py-2">
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    Status atual: <span className="font-semibold">{editingBirthdayClient.job_status}</span>.
+                    Ao salvar, a mensagem voltará para a fila como <span className="font-semibold">agendado</span>.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingBirthdayClient(null)}
+                disabled={savingBirthdayEdit}
+                className="w-full sm:w-auto"
+              >
+                Fechar
+              </Button>
+              {editingBirthdayClient?.job_id && editingBirthdayClient.job_status !== 'cancelado' && editingBirthdayClient.job_status !== 'enviado' && (
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={async () => {
+                    if (!editingBirthdayClient) return;
+                    await handleCancelBirthdayClient(editingBirthdayClient);
+                    setEditingBirthdayClient(null);
+                  }}
+                  disabled={savingBirthdayEdit || cancellingBirthdayId === editingBirthdayClient.id}
+                >
+                  <Ban className="h-4 w-4 mr-1" />
+                  Cancelar mensagem
+                </Button>
+              )}
+              <LoadingButton
+                onClick={handleSaveBirthdayEdit}
+                loading={savingBirthdayEdit}
+                disabled={savingBirthdayEdit || editBirthdayMessage.trim().length === 0}
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+              >
+                {editingBirthdayClient?.job_id ? 'Salvar alterações' : 'Agendar mensagem'}
+              </LoadingButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>

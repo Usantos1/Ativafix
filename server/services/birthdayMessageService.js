@@ -328,7 +328,8 @@ export async function listBirthdayClients(pool, companyId, options = {}) {
        j.scheduled_at,
        j.sent_at,
        j.error_message,
-       j.skip_reason
+       j.skip_reason,
+       j.mensagem_renderizada
      FROM clientes c
      LEFT JOIN birthday_message_jobs j
        ON j.cliente_id = c.id
@@ -346,6 +347,91 @@ export async function listBirthdayClients(pool, companyId, options = {}) {
     total: result.rows.length,
     clientes: result.rows,
   };
+}
+
+/**
+ * Garante (ou cria) um job de aniversário para um cliente específico em uma
+ * data de referência (default: hoje, no fuso de SP). Retorna o job final.
+ * Útil para o usuário editar/agendar manualmente a partir da lista de
+ * "Aniversariantes do mês", mesmo quando ainda não há job sincronizado.
+ */
+export async function ensureBirthdayJobForClient(pool, companyId, clienteId, options = {}) {
+  const { sourceDate = null, scheduledAt = null, mensagem = null } = options;
+
+  const client = await pool.connect();
+  try {
+    const settingsRow = await getBirthdaySettingsRow(client, companyId);
+    const effectiveSettings = settingsRow || {
+      horario_envio: '09:00',
+      timezone: 'America/Sao_Paulo',
+      template_mensagem: DEFAULT_BIRTHDAY_TEMPLATE,
+    };
+    const timeZone = effectiveSettings.timezone || 'America/Sao_Paulo';
+    const localDate = formatLocalDateParts(new Date(), timeZone);
+    const finalSourceDate = sourceDate || localDate.sourceDate;
+
+    const clienteResult = await client.query(
+      `SELECT id, nome, whatsapp, telefone, telefone2, data_nascimento
+       FROM clientes
+       WHERE id = $1 AND company_id = $2
+       LIMIT 1`,
+      [clienteId, companyId]
+    );
+    const cliente = clienteResult.rows[0];
+    if (!cliente) {
+      throw new Error('Cliente não encontrado.');
+    }
+
+    const companyResult = await client.query(
+      'SELECT name FROM companies WHERE id = $1',
+      [companyId]
+    );
+    const companyName = companyResult.rows[0]?.name || '';
+
+    const finalScheduledAt = scheduledAt
+      ? new Date(scheduledAt)
+      : computeScheduledAtForToday(timeZone, effectiveSettings.horario_envio);
+
+    const rawPhone = resolveClientPhone(cliente);
+    const normalized = normalizeWhatsappNumber(rawPhone);
+
+    const renderedMessage = mensagem && String(mensagem).trim().length > 0
+      ? String(mensagem).trim()
+      : buildBirthdayMessage(effectiveSettings, cliente, companyName, finalScheduledAt);
+
+    const status = normalized.ok ? 'agendado' : 'cancelado';
+    const skipReason = normalized.ok ? null : (normalized.reason || 'Telefone inválido');
+
+    const insertResult = await client.query(
+      `INSERT INTO birthday_message_jobs (
+         company_id, cliente_id, telefone, mensagem_renderizada, status,
+         scheduled_at, source_date, template_key, skip_reason
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'birthday-default', $8)
+       ON CONFLICT (company_id, cliente_id, source_date) DO UPDATE
+         SET telefone = EXCLUDED.telefone,
+             mensagem_renderizada = EXCLUDED.mensagem_renderizada,
+             status = EXCLUDED.status,
+             scheduled_at = EXCLUDED.scheduled_at,
+             skip_reason = EXCLUDED.skip_reason,
+             error_message = NULL,
+             updated_at = now()
+       RETURNING *`,
+      [
+        companyId,
+        cliente.id,
+        normalized.ok ? normalized.e164 : (rawPhone || null),
+        renderedMessage,
+        status,
+        finalScheduledAt.toISOString(),
+        finalSourceDate,
+        skipReason,
+      ]
+    );
+
+    return insertResult.rows[0];
+  } finally {
+    client.release();
+  }
 }
 
 export async function processDueBirthdayMessages(pool, batchSize = 25, companyId = null) {
