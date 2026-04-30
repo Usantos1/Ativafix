@@ -42,6 +42,7 @@ import { VoucherPayment } from '@/components/pdv/VoucherPayment';
 import { useRefunds } from '@/hooks/useRefunds';
 import { usePaymentMethods as usePaymentMethodsHook } from '@/hooks/usePaymentMethods';
 import { scheduleOsPosVendaFollowup } from '@/utils/osPosVendaFollowupSchedule';
+import { getAtivaCrmOsTagId } from '@/utils/ativaCrmOsTags';
 
 const PDV_SEARCH_FIELD_KEY = 'primecamp_pdv_search_field';
 
@@ -1890,7 +1891,12 @@ export default function NovaVenda() {
                       }
                       
                       if (numero.length >= 12 && numero.length <= 13) {
-                        await sendWhatsAppMessage({ number: numero, body: mensagem });
+                        await sendWhatsAppMessage({
+                          number: numero,
+                          body: mensagem,
+                          tagId: getAtivaCrmOsTagId(novoStatus),
+                          contactName: os.cliente_nome || 'Cliente',
+                        });
                       }
                     }
                   }
@@ -3630,7 +3636,12 @@ _PrimeCamp Assistência Técnica_`;
                           }
                           
                           if (numero.length >= 12 && numero.length <= 13) {
-                            await sendWhatsAppMessage({ number: numero, body: mensagem });
+                            await sendWhatsAppMessage({
+                              number: numero,
+                              body: mensagem,
+                              tagId: getAtivaCrmOsTagId('entregue_faturada'),
+                              contactName: os.cliente_nome || 'Cliente',
+                            });
                           }
                         }
                       }

@@ -8,6 +8,10 @@ interface SendMessageData {
   number: string;
   body: string;
   url?: string;
+  tagId?: number;
+  ticketId?: string | number;
+  contactName?: string;
+  email?: string;
 }
 
 export function useWhatsApp() {

@@ -67,6 +67,7 @@ import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { usePaymentMethods as usePaymentMethodsHook } from '@/hooks/usePaymentMethods';
 import { useRegisterPagamentoOS } from '@/hooks/usePDV';
 import { apiClient } from '@/integrations/api/client';
+import { getAtivaCrmOsTagId } from '@/utils/ativaCrmOsTags';
 
 interface OrdemServicoFormProps {
   osId?: string;
@@ -2226,7 +2227,13 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
               }
               
               if (numero.length >= 12 && numero.length <= 13) {
-                await sendMessage({ number: numero, body: mensagem });
+                await sendMessage({
+                  number: numero,
+                  body: mensagem,
+                  tagId: getAtivaCrmOsTagId(statusInicial),
+                  contactName: selectedCliente?.nome || novaOS.cliente_nome || 'Cliente',
+                  email: selectedCliente?.email || undefined,
+                });
               }
             }
           }
@@ -2339,7 +2346,10 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
           if (numero.length >= 12 && numero.length <= 13) {
             await sendMessage({
               number: numero,
-              body: mensagem
+              body: mensagem,
+              tagId: getAtivaCrmOsTagId(status),
+              contactName: cliente?.nome || currentOS.cliente_nome || 'Cliente',
+              email: cliente?.email || undefined,
             });
           }
         } catch (error: any) {
@@ -2518,7 +2528,13 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
             if (numero.length === 10 || numero.length === 11) numero = '55' + numero;
           }
           if (numero.length >= 12 && numero.length <= 13) {
-            await sendMessage({ number: numero, body: mensagem });
+            await sendMessage({
+              number: numero,
+              body: mensagem,
+              tagId: getAtivaCrmOsTagId(pendingStatusChange),
+              contactName: cliente?.nome || currentOS.cliente_nome || 'Cliente',
+              email: cliente?.email || undefined,
+            });
           }
         } catch (error: any) {
           console.error('Erro ao enviar notificação de aprovação:', error);
@@ -2653,7 +2669,10 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
       // Enviar via API do Ativa CRM
       const result = await sendMessage({
         number: numero,
-        body: mensagem
+        body: mensagem,
+        tagId: getAtivaCrmOsTagId(os.status),
+        contactName: cliente?.nome || os.cliente_nome || 'Cliente',
+        email: cliente?.email || undefined,
       });
 
       // O hook useWhatsApp já exibe toast de sucesso
