@@ -67,7 +67,6 @@ import { useCompanySegment } from '@/hooks/useCompanySegment';
 import { usePaymentMethods as usePaymentMethodsHook } from '@/hooks/usePaymentMethods';
 import { useRegisterPagamentoOS } from '@/hooks/usePDV';
 import { apiClient } from '@/integrations/api/client';
-import { getAtivaCrmOsTagId } from '@/utils/ativaCrmOsTags';
 
 interface OrdemServicoFormProps {
   osId?: string;
@@ -2230,7 +2229,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
                 await sendMessage({
                   number: numero,
                   body: mensagem,
-                  tagId: getAtivaCrmOsTagId(statusInicial),
+                  tagId: configAberta.ativa_crm_tag_id ?? undefined,
                   contactName: selectedCliente?.nome || novaOS.cliente_nome || 'Cliente',
                   email: selectedCliente?.email || undefined,
                 });
@@ -2347,7 +2346,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
             await sendMessage({
               number: numero,
               body: mensagem,
-              tagId: getAtivaCrmOsTagId(status),
+              tagId: config.ativa_crm_tag_id ?? undefined,
               contactName: cliente?.nome || currentOS.cliente_nome || 'Cliente',
               email: cliente?.email || undefined,
             });
@@ -2531,7 +2530,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
             await sendMessage({
               number: numero,
               body: mensagem,
-              tagId: getAtivaCrmOsTagId(pendingStatusChange),
+              tagId: config.ativa_crm_tag_id ?? undefined,
               contactName: cliente?.nome || currentOS.cliente_nome || 'Cliente',
               email: cliente?.email || undefined,
             });
@@ -2603,6 +2602,7 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
 
     const cliente = getClienteById(os.cliente_id);
     const telefone = os.telefone_contato || cliente?.whatsapp || cliente?.telefone;
+    const configStatusAtual = getConfigByStatus(os.status);
     
     if (!telefone) {
       console.error('[handleWhatsApp] Telefone não encontrado');
@@ -2670,7 +2670,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
       const result = await sendMessage({
         number: numero,
         body: mensagem,
-        tagId: getAtivaCrmOsTagId(os.status),
+        tagId: configStatusAtual?.ativa_crm_tag_id ?? undefined,
         contactName: cliente?.nome || os.cliente_nome || 'Cliente',
         email: cliente?.email || undefined,
       });

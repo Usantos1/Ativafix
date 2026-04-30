@@ -109,20 +109,22 @@ export interface ConfiguracaoStatus {
   mensagem_whatsapp?: string;
   ordem: number;
   ativo: boolean;
+  /** ID da etiqueta no Ativa CRM aplicada ao ticket quando a OS entra neste status */
+  ativa_crm_tag_id?: number | null;
   /** Ação ao mudar para este status: fechar OS, cancelar OS ou nenhuma */
   acao?: AcaoStatusOS;
 }
 
 export const STATUS_OS_PADRAO: ConfiguracaoStatus[] = [
-  { id: '1', status: 'aberta', label: 'Aberta', cor: 'bg-blue-500', notificar_whatsapp: false, ordem: 1, ativo: true, acao: 'nenhuma' },
+  { id: '1', status: 'aberta', label: 'Aberta', cor: 'bg-blue-500', notificar_whatsapp: false, ordem: 1, ativo: true, ativa_crm_tag_id: 2716, acao: 'nenhuma' },
   { id: '2', status: 'aguardando_orcamento', label: 'Aguardando Orçamento', cor: 'bg-yellow-500', notificar_whatsapp: false, ordem: 2, ativo: true, acao: 'nenhuma' },
   { id: '3', status: 'orcamento_enviado', label: 'Orçamento Enviado', cor: 'bg-orange-500', notificar_whatsapp: true, mensagem_whatsapp: 'Olá {cliente}! O orçamento da sua OS #{numero} está pronto.', ordem: 3, ativo: true, acao: 'nenhuma' },
-  { id: '4', status: 'aprovado', label: 'Aprovado', cor: 'bg-green-500', notificar_whatsapp: false, ordem: 4, ativo: true, acao: 'nenhuma' },
-  { id: '5', status: 'em_andamento', label: 'Em Andamento', cor: 'bg-purple-500', notificar_whatsapp: false, ordem: 5, ativo: true, acao: 'nenhuma' },
+  { id: '4', status: 'aprovado', label: 'Aprovado', cor: 'bg-green-500', notificar_whatsapp: false, ordem: 4, ativo: true, ativa_crm_tag_id: 2716, acao: 'nenhuma' },
+  { id: '5', status: 'em_andamento', label: 'Em Andamento', cor: 'bg-purple-500', notificar_whatsapp: false, ordem: 5, ativo: true, ativa_crm_tag_id: 2716, acao: 'nenhuma' },
   { id: '6', status: 'aguardando_peca', label: 'Aguardando Peça', cor: 'bg-red-500', notificar_whatsapp: true, mensagem_whatsapp: 'Olá {cliente}! Sua OS #{numero} está aguardando peça.', ordem: 6, ativo: true, acao: 'nenhuma' },
-  { id: '7', status: 'finalizada', label: 'Finalizada', cor: 'bg-emerald-500', notificar_whatsapp: true, mensagem_whatsapp: 'Olá {cliente}! Seu aparelho da OS #{numero} está pronto!', ordem: 7, ativo: true, acao: 'nenhuma' },
+  { id: '7', status: 'finalizada', label: 'Finalizada', cor: 'bg-emerald-500', notificar_whatsapp: true, mensagem_whatsapp: 'Olá {cliente}! Seu aparelho da OS #{numero} está pronto!', ordem: 7, ativo: true, ativa_crm_tag_id: 2717, acao: 'nenhuma' },
   { id: '8', status: 'aguardando_retirada', label: 'Aguardando Retirada', cor: 'bg-cyan-500', notificar_whatsapp: false, ordem: 8, ativo: true, acao: 'nenhuma' },
-  { id: '9', status: 'entregue', label: 'Entregue', cor: 'bg-gray-500', notificar_whatsapp: true, mensagem_whatsapp: 'Obrigado pela preferência!', ordem: 9, ativo: true, acao: 'fechar_os' },
+  { id: '9', status: 'entregue', label: 'Entregue', cor: 'bg-gray-500', notificar_whatsapp: true, mensagem_whatsapp: 'Obrigado pela preferência!', ordem: 9, ativo: true, ativa_crm_tag_id: 2717, acao: 'fechar_os' },
   { id: '10', status: 'cancelada', label: 'Cancelada', cor: 'bg-gray-400', notificar_whatsapp: false, ordem: 10, ativo: true, acao: 'cancelar_os' },
 ];
 

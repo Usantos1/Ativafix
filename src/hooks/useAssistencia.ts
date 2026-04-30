@@ -1222,6 +1222,7 @@ function rowToConfig(row: any): ConfiguracaoStatus {
     mensagem_whatsapp: row.mensagem_whatsapp ?? undefined,
     ordem: Number(row.ordem) || 0,
     ativo: row.ativo !== false,
+    ativa_crm_tag_id: row.ativa_crm_tag_id != null ? Number(row.ativa_crm_tag_id) : null,
     acao: (row.acao as AcaoStatusOS) || 'nenhuma',
   };
 }
@@ -1265,6 +1266,7 @@ export function useConfiguracaoStatus() {
           mensagem_whatsapp: r.mensagem_whatsapp ?? null,
           ordem: r.ordem,
           ativo: r.ativo,
+          ativa_crm_tag_id: r.ativa_crm_tag_id ?? null,
           acao: r.acao ?? 'nenhuma',
           company_id: companyId,
         }));
@@ -1308,6 +1310,7 @@ export function useConfiguracaoStatus() {
     if (data.mensagem_whatsapp !== undefined) payload.mensagem_whatsapp = data.mensagem_whatsapp ?? null;
     if (data.ordem !== undefined) payload.ordem = data.ordem;
     if (data.ativo !== undefined) payload.ativo = data.ativo;
+    if (data.ativa_crm_tag_id !== undefined) payload.ativa_crm_tag_id = data.ativa_crm_tag_id ?? null;
     if (data.acao !== undefined) payload.acao = data.acao;
     if (Object.keys(payload).length === 0) {
       setConfiguracoes(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
@@ -1339,6 +1342,7 @@ export function useConfiguracaoStatus() {
       mensagem_whatsapp: data.mensagem_whatsapp ?? null,
       ordem: data.ordem ?? maxOrdem + 1,
       ativo: data.ativo !== false,
+      ativa_crm_tag_id: data.ativa_crm_tag_id ?? null,
       acao: data.acao ?? 'nenhuma',
       company_id: companyId,
     };

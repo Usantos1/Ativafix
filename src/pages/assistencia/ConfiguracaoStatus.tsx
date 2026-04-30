@@ -49,6 +49,7 @@ export default function ConfiguracaoStatusPage() {
     mensagem_whatsapp: '',
     ordem: 0,
     ativo: true,
+    ativa_crm_tag_id: '',
     acao: 'nenhuma' as AcaoStatusOS,
   });
   const [checklistForm, setChecklistForm] = useState({
@@ -71,6 +72,7 @@ export default function ConfiguracaoStatusPage() {
       mensagem_whatsapp: '',
       ordem: configuracoes.length + 1,
       ativo: true,
+      ativa_crm_tag_id: '',
       acao: 'nenhuma',
     });
   };
@@ -86,6 +88,7 @@ export default function ConfiguracaoStatusPage() {
       mensagem_whatsapp: config.mensagem_whatsapp || '',
       ordem: config.ordem,
       ativo: config.ativo,
+      ativa_crm_tag_id: config.ativa_crm_tag_id != null ? String(config.ativa_crm_tag_id) : '',
       acao: config.acao ?? 'nenhuma',
     });
   };
@@ -96,6 +99,18 @@ export default function ConfiguracaoStatusPage() {
         title: 'Label obrigatório', 
         description: 'Informe o nome do status.',
         variant: 'destructive' 
+      });
+      return;
+    }
+
+    const ativaCrmTagId = editForm.ativa_crm_tag_id.trim()
+      ? Number(editForm.ativa_crm_tag_id)
+      : null;
+    if (ativaCrmTagId != null && (!Number.isInteger(ativaCrmTagId) || ativaCrmTagId <= 0)) {
+      toast({
+        title: 'ID da etiqueta inválido',
+        description: 'Informe um número inteiro positivo para a etiqueta do Ativa CRM.',
+        variant: 'destructive',
       });
       return;
     }
@@ -126,6 +141,7 @@ export default function ConfiguracaoStatusPage() {
           mensagem_whatsapp: editForm.mensagem_whatsapp || undefined,
           ordem: editForm.ordem,
           ativo: editForm.ativo,
+          ativa_crm_tag_id: ativaCrmTagId,
           acao: editForm.acao,
         });
         toast({ title: 'Status criado com sucesso' });
@@ -139,6 +155,7 @@ export default function ConfiguracaoStatusPage() {
           mensagem_whatsapp: editForm.mensagem_whatsapp?.trim() || null,
           ordem: editForm.ordem,
           ativo: editForm.ativo,
+          ativa_crm_tag_id: ativaCrmTagId,
           acao: editForm.acao,
         });
         toast({ title: 'Configuração atualizada com sucesso' });
@@ -441,6 +458,7 @@ export default function ConfiguracaoStatusPage() {
                   <TableHead className="font-semibold bg-muted/60 border-r border-gray-200">Label</TableHead>
                   <TableHead className="font-semibold bg-muted/60 border-r border-gray-200">Cor</TableHead>
                   <TableHead className="font-semibold bg-muted/60 border-r border-gray-200">Ação</TableHead>
+                  <TableHead className="font-semibold bg-muted/60 border-r border-gray-200">Tag Ativa CRM</TableHead>
                   <TableHead className="font-semibold bg-muted/60 border-r border-gray-200">Notificar WhatsApp</TableHead>
                   <TableHead className="font-semibold bg-muted/60 border-r border-gray-200">Mensagem</TableHead>
                   <TableHead className="font-semibold bg-muted/60 border-r border-gray-200">Ativo</TableHead>
@@ -468,6 +486,13 @@ export default function ConfiguracaoStatusPage() {
                     </TableCell>
                     <TableCell className="border-r border-gray-200 text-xs">
                       {config.acao === 'fechar_os' ? 'Fechar a OS' : config.acao === 'cancelar_os' ? 'Cancelar a OS' : 'Nenhuma'}
+                    </TableCell>
+                    <TableCell className="border-r border-gray-200">
+                      {config.ativa_crm_tag_id ? (
+                        <code className="text-xs bg-muted px-2 py-1 rounded">{config.ativa_crm_tag_id}</code>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="border-r border-gray-200">
                       {config.notificar_whatsapp ? (
@@ -555,6 +580,10 @@ export default function ConfiguracaoStatusPage() {
                     <div>
                       <p className="text-[10px] text-muted-foreground">Ação</p>
                       <span className="text-xs">{config.acao === 'fechar_os' ? 'Fechar a OS' : config.acao === 'cancelar_os' ? 'Cancelar a OS' : 'Nenhuma'}</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Tag Ativa CRM</p>
+                      <span className="text-xs">{config.ativa_crm_tag_id || '-'}</span>
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-gray-200">
                       <span className="text-[10px] text-muted-foreground">WhatsApp</span>
@@ -922,7 +951,7 @@ export default function ConfiguracaoStatusPage() {
           setIsCreating(false);
         }
       }}>
-        <DialogContent className="max-w-[95vw] md:max-w-2xl p-3 md:p-6">
+        <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto p-3 md:p-6">
           <DialogHeader>
             <DialogTitle className="text-base md:text-lg">{isCreating ? 'Criar Novo Status' : 'Editar Configuração'}</DialogTitle>
             <DialogDescription className="text-xs md:text-sm">
@@ -1013,6 +1042,22 @@ export default function ConfiguracaoStatusPage() {
               </Select>
               <p className="text-[10px] md:text-xs text-muted-foreground">
                 Ex.: &quot;Fechar a OS&quot; marca a ordem como concluída; &quot;Cancelar&quot; marca como cancelada.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 md:space-y-2">
+              <Label className="text-xs md:text-sm">ID da etiqueta no Ativa CRM</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={editForm.ativa_crm_tag_id}
+                onChange={(e) => setEditForm(prev => ({ ...prev, ativa_crm_tag_id: e.target.value }))}
+                placeholder="Ex: 2716"
+                className="h-9 md:h-10 text-sm border-2 border-gray-300"
+              />
+              <p className="text-[10px] md:text-xs text-muted-foreground">
+                Quando a OS entrar neste status e houver envio pelo Ativa CRM, esta etiqueta será aplicada ao ticket. Deixe vazio para não aplicar etiqueta.
               </p>
             </div>
 
@@ -1108,7 +1153,7 @@ export default function ConfiguracaoStatusPage() {
           setIsCreatingChecklist(false);
         }
       }}>
-        <DialogContent className="max-w-[95vw] md:max-w-2xl p-3 md:p-6">
+        <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto p-3 md:p-6">
           <DialogHeader>
             <DialogTitle className="text-base md:text-lg">{isCreatingChecklist ? 'Criar Novo Item de Checklist' : 'Editar Item de Checklist'}</DialogTitle>
             <DialogDescription className="text-xs md:text-sm">

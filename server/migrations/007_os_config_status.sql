@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS os_config_status (
   mensagem_whatsapp TEXT,
   ordem INTEGER NOT NULL DEFAULT 1,
   ativo BOOLEAN DEFAULT true,
+  ativa_crm_tag_id INTEGER,
   acao VARCHAR(40) DEFAULT 'nenhuma',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -23,3 +24,4 @@ CREATE TABLE IF NOT EXISTS os_config_status (
 CREATE INDEX IF NOT EXISTS idx_os_config_status_company ON os_config_status(company_id);
 
 COMMENT ON TABLE os_config_status IS 'Configuração de status de OS por empresa (label, cor, WhatsApp, ação). Uma única config global por empresa.';
+COMMENT ON COLUMN os_config_status.ativa_crm_tag_id IS 'ID da etiqueta no Ativa CRM aplicada quando a OS entra neste status.';
