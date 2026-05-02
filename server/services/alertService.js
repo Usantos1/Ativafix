@@ -45,12 +45,39 @@ function formatBRL(num) {
   }
 }
 
+function parseCurrencyNumber(value) {
+  if (typeof value === 'number') return value;
+  const cleaned = String(value).trim().replace(/[^\d.,-]/g, '');
+  if (!cleaned) return NaN;
+
+  const lastDot = cleaned.lastIndexOf('.');
+  const lastComma = cleaned.lastIndexOf(',');
+
+  if (lastDot !== -1 && lastComma !== -1) {
+    // Usa o último separador como decimal: "1.650,00" e "1,650.00".
+    return lastComma > lastDot
+      ? Number(cleaned.replace(/\./g, '').replace(',', '.'))
+      : Number(cleaned.replace(/,/g, ''));
+  }
+
+  if (lastComma !== -1) {
+    return Number(cleaned.replace(/\./g, '').replace(',', '.'));
+  }
+
+  if (lastDot !== -1) {
+    const [, decimals = ''] = cleaned.split('.');
+    if (decimals.length === 3) return Number(cleaned.replace(/\./g, ''));
+  }
+
+  return Number(cleaned);
+}
+
 function maybeFormatCurrency(key, value) {
   if (!CURRENCY_VARS.has(key)) return value;
   if (value == null || value === '') return value;
   // Se já parece formatado (contém "R$"), mantém.
   if (typeof value === 'string' && /r\$/i.test(value)) return value;
-  const num = typeof value === 'number' ? value : Number(String(value).replace(/\./g, '').replace(',', '.'));
+  const num = parseCurrencyNumber(value);
   if (!Number.isFinite(num)) return value;
   return formatBRL(num);
 }

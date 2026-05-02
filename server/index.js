@@ -3245,6 +3245,49 @@ app.post('/api/delete/:table', async (req, res) => {
       }
     }
 
+    if (tableNameOnly.toLowerCase() === 'bills_to_pay') {
+      try {
+        const billsToDelete = await pool.query(
+          `SELECT id FROM ${tableName} ${finalWhereClause}`,
+          finalParams
+        );
+        const billIds = billsToDelete.rows.map((row) => row.id).filter(Boolean);
+
+        if (billIds.length > 0) {
+          try {
+            await pool.query(
+              'DELETE FROM public.financial_alerts WHERE bill_id = ANY($1::uuid[])',
+              [billIds]
+            );
+          } catch (cleanupErr) {
+            console.warn('[Delete] bills_to_pay: aviso ao limpar financial_alerts:', cleanupErr.message);
+          }
+
+          try {
+            await pool.query(
+              `DELETE FROM public.financial_transactions
+               WHERE reference_type = 'bill'
+                 AND reference_id = ANY($1::uuid[])`,
+              [billIds]
+            );
+          } catch (cleanupErr) {
+            console.warn('[Delete] bills_to_pay: aviso ao limpar financial_transactions:', cleanupErr.message);
+          }
+
+          try {
+            await pool.query(
+              'UPDATE public.treasury_movements SET bill_id = NULL WHERE bill_id = ANY($1::uuid[])',
+              [billIds]
+            );
+          } catch (cleanupErr) {
+            console.warn('[Delete] bills_to_pay: aviso ao desvincular treasury_movements:', cleanupErr.message);
+          }
+        }
+      } catch (cleanupErr) {
+        console.warn('[Delete] bills_to_pay: aviso ao preparar limpeza de vínculos:', cleanupErr.message);
+      }
+    }
+
     const sql = `
       DELETE FROM ${tableName}
       ${finalWhereClause}

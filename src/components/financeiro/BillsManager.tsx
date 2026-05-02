@@ -277,7 +277,7 @@ export function BillsManager({ month, startDate, endDate, valuesVisible = true }
     onError: (error: any) => {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao excluir conta.',
+        description: error.message || error.error || 'Erro ao excluir conta.',
         variant: 'destructive',
       });
     },
@@ -508,7 +508,12 @@ export function BillsManager({ month, startDate, endDate, valuesVisible = true }
 
   const handleConfirmDeleteRecurring = async () => {
     if (deletingRecurringBillId) {
-      await deleteBill.mutateAsync(deletingRecurringBillId);
+      const deletedId = deletingRecurringBillId;
+      await deleteBill.mutateAsync(deletedId);
+      if (editingBill?.id === deletedId) {
+        setEditingBill(null);
+        setIsDialogOpen(false);
+      }
       setDeletingRecurringBillId(null);
     }
   };
