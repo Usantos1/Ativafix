@@ -242,7 +242,8 @@ const App = () => {
               <Route path="/pdv/relatorios" element={<Navigate to="/relatorios" replace />} />
               <Route path="/pdv/relatorios/:tab" element={<Navigate to="/relatorios" replace />} />
               <Route path="/pdv/configuracao-cupom" element={<PermissionRoute permission={["vendas.manage", "vendas.create"]}><ConfiguracaoCupom /></PermissionRoute>} />
-              <Route path="/pdv/devolucoes" element={<PermissionRoute permission="vendas.manage"><Devolucoes /></PermissionRoute>} />
+              <Route path="/devolucoes" element={<PermissionRoute permission="vendas.manage"><Devolucoes /></PermissionRoute>} />
+              <Route path="/pdv/devolucoes" element={<Navigate to="/devolucoes" replace />} />
               <Route path="/cupom/:id" element={<CupomView />} />
               
               {/* Sistema IA-First Financeiro */}

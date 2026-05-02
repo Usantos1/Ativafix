@@ -1710,7 +1710,7 @@ export function ProductFormOptimized({
                                     onClick={() => {
                                       if (mov.ref_tipo === 'OS') navigate(`/os/${mov.ref_id}`);
                                       if (['Venda', 'Cancelamento'].includes(mov.ref_tipo)) navigate(`/pdv/venda/${mov.ref_id}`);
-                                      if (['Devolução', 'Troca', 'Perda'].includes(mov.ref_tipo)) navigate(`/pdv/devolucoes`);
+                                      if (['Devolução', 'Troca', 'Perda'].includes(mov.ref_tipo)) navigate(`/devolucoes`);
                                     }}
                                     title={`Abrir ${mov.ref_tipo}`}
                                   >

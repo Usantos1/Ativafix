@@ -834,7 +834,7 @@ export default function Vendas() {
               <PermissionGate permission="vendas.create">
                 <div className="flex gap-2 flex-wrap">
                   <Button 
-                    onClick={() => navigate('/pdv/devolucoes')} 
+                    onClick={() => navigate('/devolucoes')} 
                     size="sm"
                     variant="ghost"
                     className="gap-1 h-9 min-h-[44px] md:min-h-0 text-muted-foreground hover:text-foreground rounded-full touch-manipulation"
@@ -1158,7 +1158,7 @@ export default function Vendas() {
                                       <DropdownMenuItem 
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          navigate(`/pdv/devolucoes?sale=${sale.id}`);
+                                          navigate(`/devolucoes?sale=${sale.id}`);
                                         }}
                                       >
                                         <ReceiptText className="h-4 w-4 mr-2" />
@@ -1379,7 +1379,7 @@ export default function Vendas() {
                                     <DropdownMenuItem 
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(`/pdv/devolucoes?sale=${sale.id}`);
+                                        navigate(`/devolucoes?sale=${sale.id}`);
                                       }}
                                     >
                                       <ReceiptText className="h-4 w-4 mr-2" />

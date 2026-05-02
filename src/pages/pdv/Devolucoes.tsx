@@ -293,7 +293,7 @@ export default function Devolucoes() {
         fetchVouchers();
         
         // Limpar parâmetro da URL
-        navigate('/pdv/devolucoes', { replace: true });
+        navigate('/devolucoes', { replace: true });
       }
     } catch (error: any) {
       toast({
@@ -675,71 +675,67 @@ export default function Devolucoes() {
       title="Devoluções e Vouchers"
       subtitle="Gerencie devoluções, trocas e cupons de crédito"
     >
-      <div className="flex flex-col gap-3 md:gap-6 pb-8 min-w-0 [&_button]:rounded-full [&_input]:rounded-full [&_[role=combobox]]:rounded-full">
-        {/* Estatísticas — mobile: compactos */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-4">
-          <Card className="rounded-lg md:rounded-lg touch-manipulation">
-            <CardHeader className="py-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
-              <CardDescription className="text-[10px] sm:text-sm leading-tight">Total de Vouchers</CardDescription>
-              <CardTitle className="text-lg sm:text-2xl tabular-nums leading-tight">{stats.totalVouchers}</CardTitle>
-            </CardHeader>
+      <div className="flex flex-col gap-3 pb-8 min-w-0 [&_button]:rounded-full [&_input]:rounded-full [&_[role=combobox]]:rounded-full">
+        {/* Estatísticas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+          <Card className="border-2 border-slate-300 dark:border-slate-700 rounded-2xl md:rounded-full overflow-hidden touch-manipulation">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-4 md:px-5 py-0 min-w-0">
+              <span className="text-xs sm:text-sm text-muted-foreground truncate">Total de Vouchers</span>
+              <span className="text-lg font-bold tabular-nums shrink-0">{stats.totalVouchers}</span>
+            </CardContent>
           </Card>
-          <Card className="rounded-lg md:rounded-lg touch-manipulation">
-            <CardHeader className="py-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
-              <CardDescription className="text-[10px] sm:text-sm leading-tight">Vouchers Ativos</CardDescription>
-              <CardTitle className="text-lg sm:text-2xl text-green-600 tabular-nums leading-tight">{stats.activeVouchers}</CardTitle>
-            </CardHeader>
+          <Card className="border-2 border-green-500 rounded-2xl md:rounded-full overflow-hidden touch-manipulation">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-4 md:px-5 py-0 min-w-0">
+              <span className="text-xs sm:text-sm text-muted-foreground truncate">Vouchers Ativos</span>
+              <span className="text-lg font-bold text-green-600 tabular-nums shrink-0">{stats.activeVouchers}</span>
+            </CardContent>
           </Card>
-          <Card className="rounded-lg md:rounded-lg touch-manipulation">
-            <CardHeader className="py-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
-              <CardDescription className="text-[10px] sm:text-sm leading-tight">Saldo em Vouchers</CardDescription>
-              <CardTitle className="text-lg sm:text-2xl text-blue-600 tabular-nums leading-tight">{formatCurrency(stats.totalValue)}</CardTitle>
-            </CardHeader>
+          <Card className="border-2 border-blue-500 rounded-2xl md:rounded-full overflow-hidden touch-manipulation">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-4 md:px-5 py-0 min-w-0">
+              <span className="text-xs sm:text-sm text-muted-foreground truncate">Saldo em Vouchers</span>
+              <span className="text-lg font-bold text-blue-600 tabular-nums shrink-0">{formatCurrency(stats.totalValue)}</span>
+            </CardContent>
           </Card>
-          <Card className="rounded-lg md:rounded-lg touch-manipulation col-span-2 md:col-span-1">
-            <CardHeader className="py-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
-              <CardDescription className="text-[10px] sm:text-sm leading-tight">Total de Devoluções</CardDescription>
-              <CardTitle className="text-lg sm:text-2xl tabular-nums leading-tight">{stats.totalRefunds}</CardTitle>
-            </CardHeader>
+          <Card className="border-2 border-orange-500 rounded-2xl md:rounded-full overflow-hidden touch-manipulation col-span-2 md:col-span-1">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-4 md:px-5 py-0 min-w-0">
+              <span className="text-xs sm:text-sm text-muted-foreground truncate">Total de Devoluções</span>
+              <span className="text-lg font-bold tabular-nums shrink-0">{stats.totalRefunds}</span>
+            </CardContent>
           </Card>
         </div>
 
-        {/* Validar Voucher — compacto */}
-        <Card className="rounded-lg md:rounded-lg overflow-hidden">
-          <CardHeader className="py-2 px-3 sm:py-3 sm:px-6">
-            <CardTitle className="text-sm sm:text-lg flex items-center gap-2">
-              <QrCode className="h-4 w-4 sm:h-5 sm:w-5" />
+        {/* Validar Voucher */}
+        <Card className="rounded-2xl md:rounded-full overflow-hidden border-2 border-slate-300 dark:border-slate-700">
+          <CardContent className="flex flex-col md:flex-row md:items-center gap-2 p-3 md:px-5 md:py-3">
+            <div className="flex items-center gap-2 font-semibold text-sm shrink-0">
+              <QrCode className="h-4 w-4" />
               Validar Voucher
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-2 px-3 sm:py-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Código do voucher (ex: VC-ABC123)"
-                value={validationCode}
-                onChange={(e) => setValidationCode(e.target.value.toUpperCase())}
-                className="flex-1 min-w-0 h-10 sm:h-10 rounded-lg touch-manipulation text-sm"
-              />
-              <Button
-                onClick={handleValidateVoucher}
-                disabled={loading}
-                className="h-10 rounded-lg touch-manipulation shrink-0"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Validar
-              </Button>
             </div>
+            <Input
+              placeholder="Código do voucher (ex: VC-ABC123)"
+              value={validationCode}
+              onChange={(e) => setValidationCode(e.target.value.toUpperCase())}
+              className="flex-1 min-w-0 h-11 md:h-10 touch-manipulation text-sm"
+            />
+            <Button
+              onClick={handleValidateVoucher}
+              disabled={loading}
+              className="h-11 md:h-10 px-5 touch-manipulation shrink-0"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Validar
+            </Button>
           </CardContent>
         </Card>
 
       {/* Tabs — mesmo estilo de Relatórios: centralizado, sem corte, botões visíveis */}
       <div className="w-full min-w-0 overflow-visible">
         <Tabs defaultValue="vouchers" className="w-full min-w-0 space-y-4 overflow-visible">
-          <TabsList className="h-auto grid w-full grid-cols-2 gap-2 p-2 pb-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl min-h-[3.25rem] items-center justify-items-center overflow-visible bg-muted/40 mb-1 shadow-sm">
+          <TabsList className="h-auto grid w-full grid-cols-2 gap-2 p-2 border-2 border-gray-300 dark:border-gray-600 rounded-full min-h-[3.25rem] items-center justify-items-center overflow-visible bg-muted/40 mb-1 shadow-sm">
             <TabsTrigger
               value="vouchers"
               className={cn(
-                "w-full min-h-11 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm",
+                "w-full min-h-11 rounded-full font-semibold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm",
                 "data-[state=inactive]:bg-gray-200 data-[state=inactive]:text-gray-800 data-[state=inactive]:shadow-sm",
                 "dark:data-[state=inactive]:bg-gray-700 dark:data-[state=inactive]:text-gray-100",
                 "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
@@ -751,7 +747,7 @@ export default function Devolucoes() {
             <TabsTrigger
               value="refunds"
               className={cn(
-                "w-full min-h-11 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm",
+                "w-full min-h-11 rounded-full font-semibold flex items-center justify-center gap-2 transition-all text-xs sm:text-sm",
                 "data-[state=inactive]:bg-gray-200 data-[state=inactive]:text-gray-800 data-[state=inactive]:shadow-sm",
                 "dark:data-[state=inactive]:bg-gray-700 dark:data-[state=inactive]:text-gray-100",
                 "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
@@ -763,23 +759,23 @@ export default function Devolucoes() {
           </TabsList>
 
           <TabsContent value="vouchers" className="mt-3 overflow-visible min-h-0">
-          <Card className="rounded-lg md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 pt-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
+          <Card className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-2 py-3 px-3 sm:px-6">
               <div className="min-w-0">
                 <CardTitle className="text-sm sm:text-lg">Vouchers Emitidos</CardTitle>
                 <CardDescription className="text-[10px] sm:text-sm hidden sm:block">Cupons de crédito únicos e rastreáveis</CardDescription>
               </div>
-              <div className="flex gap-1.5 w-full sm:w-auto">
+              <div className="flex gap-2 w-full md:w-auto md:items-center">
                 <Input
                   placeholder="Buscar por código ou cliente..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 sm:w-64 h-10 rounded-lg touch-manipulation text-sm"
+                  className="flex-1 md:w-72 h-11 md:h-10 touch-manipulation text-sm"
                 />
                 <Button
                   variant="outline"
                   onClick={() => fetchVouchers()}
-                  className="h-10 w-10 p-0 rounded-lg touch-manipulation shrink-0"
+                  className="h-11 md:h-10 w-11 md:w-10 p-0 touch-manipulation shrink-0"
                   aria-label="Atualizar lista"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -900,10 +896,28 @@ export default function Devolucoes() {
         </TabsContent>
 
         <TabsContent value="refunds" className="mt-3 overflow-visible min-h-0">
-          <Card className="rounded-lg md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <CardHeader className="py-2 px-2 sm:pb-2 sm:pt-3 sm:px-6">
-              <CardTitle className="text-sm sm:text-lg">Histórico de Devoluções</CardTitle>
-              <CardDescription className="text-[10px] sm:text-sm hidden sm:block">Todas as devoluções processadas</CardDescription>
+          <Card className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-2 py-3 px-3 sm:px-6">
+              <div className="min-w-0">
+                <CardTitle className="text-sm sm:text-lg">Histórico de Devoluções</CardTitle>
+                <CardDescription className="text-[10px] sm:text-sm hidden sm:block">Todas as devoluções processadas</CardDescription>
+              </div>
+              <div className="flex gap-2 w-full md:w-auto md:items-center">
+                <Input
+                  placeholder="Buscar por nº ou cliente..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex-1 md:w-72 h-11 md:h-10 touch-manipulation text-sm"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fetchRefunds()}
+                  className="h-11 md:h-10 w-11 md:w-10 p-0 touch-manipulation shrink-0"
+                  aria-label="Atualizar devoluções"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="px-2 py-2 sm:px-6 sm:py-4">
               {loading ? (
@@ -1297,7 +1311,7 @@ export default function Devolucoes() {
           setSaleData(null);
           setSelectedItems([]);
           setRefundReason('');
-          navigate('/pdv/devolucoes', { replace: true });
+          navigate('/devolucoes', { replace: true });
         }
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto [&_button]:rounded-full [&_input]:rounded-full [&_[role=combobox]]:rounded-full">
@@ -1560,7 +1574,7 @@ export default function Devolucoes() {
               variant="outline" 
               onClick={() => {
                 setRefundDialogOpen(false);
-                navigate('/pdv/devolucoes', { replace: true });
+                navigate('/devolucoes', { replace: true });
               }}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
