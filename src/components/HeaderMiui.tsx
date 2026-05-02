@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppBarMiui } from "@/components/AppBarMiui";
 import { Bell, Eye, EyeOff, LogOut, Settings, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useValuesVisibility } from "@/hooks/useValuesVisibility";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -20,6 +19,7 @@ interface HeaderMiuiProps {
   notificationCount: number;
   canOpenSettings: boolean;
   onOpenNotifications: () => void;
+  onOpenProfile: () => void;
   onOpenSettings: () => void;
   onSignOut: () => void | Promise<void>;
   headerActions?: React.ReactNode;
@@ -33,6 +33,7 @@ export function HeaderMiui({
   notificationCount,
   canOpenSettings,
   onOpenNotifications,
+  onOpenProfile,
   onOpenSettings,
   onSignOut,
   headerActions,
@@ -41,7 +42,6 @@ export function HeaderMiui({
   userEmail,
   currentTime,
 }: HeaderMiuiProps) {
-  const navigate = useNavigate();
   const [valuesVisible, setValuesVisible] = useValuesVisibility();
   const isMobile = useIsMobile();
 
@@ -126,7 +126,7 @@ export function HeaderMiui({
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate("/perfil")}>
+              <DropdownMenuItem onSelect={onOpenProfile}>
                 <User className="mr-2 h-4 w-4" />
                 Editar perfil
               </DropdownMenuItem>

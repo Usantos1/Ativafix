@@ -9,6 +9,7 @@ import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
 import { usePermissions } from "@/hooks/usePermissions"
 import { HeaderMiui } from "./HeaderMiui"
 import { FinanceiroNavMenu } from "@/components/financeiro/FinanceiroNavMenu"
+import { UserProfileModal } from "@/components/UserProfileModal"
 
 /** Apenas a empresa 1 (administradora) pode alterar nome e cores do sistema. */
 const ADMIN_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
@@ -34,6 +35,7 @@ interface ModernLayoutProps {
 export function ModernLayout({ children, headerActions }: ModernLayoutProps) {
   const location = useLocation()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [notificationCount, setNotificationCount] = useState(3)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -55,6 +57,12 @@ export function ModernLayout({ children, headerActions }: ModernLayoutProps) {
     return () => window.removeEventListener('open-notification-panel', openPanel)
   }, [])
 
+  useEffect(() => {
+    const openProfile = () => setIsProfileOpen(true)
+    window.addEventListener('open-profile-modal', openProfile)
+    return () => window.removeEventListener('open-profile-modal', openProfile)
+  }, [])
+
   const hideDemoBanner = isEmbeddedInLp()
 
   return (
@@ -68,6 +76,7 @@ export function ModernLayout({ children, headerActions }: ModernLayoutProps) {
               notificationCount={notificationCount}
               canOpenSettings={canOpenSettings}
               onOpenNotifications={() => setIsNotificationOpen(true)}
+              onOpenProfile={() => setIsProfileOpen(true)}
               onOpenSettings={() => setIsSettingsOpen(true)}
               onSignOut={signOut}
               headerActions={headerActions}
@@ -95,6 +104,10 @@ export function ModernLayout({ children, headerActions }: ModernLayoutProps) {
         isOpen={isNotificationOpen} 
         onClose={() => setIsNotificationOpen(false)}
         onNotificationChange={(count) => setNotificationCount(count)}
+      />
+      <UserProfileModal
+        open={isProfileOpen}
+        onOpenChange={setIsProfileOpen}
       />
       
       <SettingsModal 

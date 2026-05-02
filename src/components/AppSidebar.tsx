@@ -68,6 +68,7 @@ export function AppSidebar() {
   const logoUrl = config.logo || getDefaultConfigByHost().logo || "https://primecamp.com.br/wp-content/uploads/2025/07/Design-sem-nome-4.png";
   const { hasPermission, loading: permissionsLoading, isAdmin } = usePermissions();
   const { menuToUse, useRoleMenu, useSegmentOrRoleList, roleDisplayName, userIsAdmin } = useCompanyNavigationData();
+  const profileAvatarUrl = (profile as { avatar_url?: string | null } | null)?.avatar_url;
 
   // Buscar nome da empresa
   const { data: companyData } = useQuery({
@@ -254,9 +255,9 @@ export function AppSidebar() {
                 {/* Avatar com foto ou iniciais */}
                 <div className="relative">
                   <Avatar className="h-10 w-10 border-2 border-emerald-400 dark:border-emerald-500 shadow-sm">
-                    {(profile as any)?.avatar_url ? (
+                    {profileAvatarUrl ? (
                       <img 
-                        src={(profile as any).avatar_url} 
+                        src={profileAvatarUrl} 
                         alt={profile?.display_name || 'Avatar'} 
                         className="h-full w-full object-cover"
                       />
@@ -285,7 +286,7 @@ export function AppSidebar() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="top" className="w-48">
-              <DropdownMenuItem onClick={() => navigate('/perfil')}>
+              <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent('open-profile-modal'))}>
                 <UserCog className="h-4 w-4 mr-2" />
                 Gerenciar Perfil
               </DropdownMenuItem>
@@ -304,9 +305,9 @@ export function AppSidebar() {
             <DropdownMenuTrigger asChild>
               <button className="w-10 h-10 flex items-center justify-center hover:bg-sidebar-accent rounded-lg transition-colors mx-auto relative">
                 <Avatar className="h-8 w-8 border-2 border-emerald-400 dark:border-emerald-500">
-                  {(profile as any)?.avatar_url ? (
+                  {profileAvatarUrl ? (
                     <img 
-                      src={(profile as any).avatar_url} 
+                      src={profileAvatarUrl} 
                       alt={profile?.display_name || 'Avatar'} 
                       className="h-full w-full object-cover"
                     />
@@ -325,7 +326,7 @@ export function AppSidebar() {
                 {profile?.display_name || user?.email?.split('@')[0]}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/perfil')}>
+              <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent('open-profile-modal'))}>
                 <UserCog className="h-4 w-4 mr-2" />
                 Gerenciar Perfil
               </DropdownMenuItem>

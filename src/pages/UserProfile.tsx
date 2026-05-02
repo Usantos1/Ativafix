@@ -27,7 +27,11 @@ const ROLE_LABELS: Record<string, string> = {
   member: 'Membro',
 };
 
-export default function UserProfile() {
+interface UserProfileContentProps {
+  compact?: boolean;
+}
+
+export function UserProfileContent({ compact = false }: UserProfileContentProps) {
   const { user, profile, isAdmin } = useAuth();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +66,7 @@ export default function UserProfile() {
         display_name: profile.display_name || '',
         phone: profile.phone || '',
         department: profile.department || '',
-        avatar_url: (profile as any).avatar_url || ''
+        avatar_url: (profile as { avatar_url?: string | null }).avatar_url || ''
       });
     }
   }, [profile]);
@@ -127,9 +131,9 @@ export default function UserProfile() {
 
       toast.success('Senha alterada com sucesso!');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error changing password:', error);
-      toast.error(error.message || 'Erro ao alterar senha');
+      toast.error(error instanceof Error ? error.message : 'Erro ao alterar senha');
     } finally {
       setLoading(false);
     }
@@ -248,13 +252,12 @@ export default function UserProfile() {
   };
 
   const roleLabel = ROLE_LABELS[profile?.role || 'member'] || profile?.role || 'Membro';
+  const containerClassName = compact
+    ? 'space-y-4 pb-2'
+    : 'max-w-3xl mx-auto space-y-6 pb-8';
 
   return (
-    <ModernLayout 
-      title="Meu Perfil" 
-      subtitle="Gerencie suas informações pessoais e configurações"
-    >
-      <div className="max-w-3xl mx-auto space-y-6 pb-8" style={{ minHeight: '100%' }}>
+      <div className={containerClassName} style={{ minHeight: compact ? undefined : '100%' }}>
         {/* Header com Avatar */}
         <Card>
           <CardContent className="pt-6">
@@ -565,6 +568,16 @@ export default function UserProfile() {
           </TabsContent>
         </Tabs>
       </div>
+  );
+}
+
+export default function UserProfile() {
+  return (
+    <ModernLayout
+      title="Meu Perfil"
+      subtitle="Gerencie suas informações pessoais e configurações"
+    >
+      <UserProfileContent />
     </ModernLayout>
   );
 }

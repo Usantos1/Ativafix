@@ -64,6 +64,26 @@ dotenv.config({ path: join(__dirname, '..', '.env') });
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MAX_SAFE_TIMEOUT_MS = 2_147_000_000; // Limite do setTimeout em Node.js (~24,8 dias)
+const VALID_OPENAI_MODELS = [
+  'gpt-5.5',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gpt-5.2',
+  'gpt-5.2-chat-latest',
+  'gpt-5.1',
+  'gpt-5',
+  'gpt-5-mini',
+  'gpt-4.1',
+  'gpt-4.1-mini',
+  'gpt-4o',
+  'gpt-4o-mini',
+  'gpt-4-turbo',
+  'gpt-4',
+  'o1',
+  'o1-mini',
+  'o1-preview',
+  'o3-mini',
+];
 
 function scheduleLongTimeout(callback, delayMs) {
   const delay = Math.max(0, Number(delayMs) || 0);
@@ -4445,9 +4465,7 @@ app.post('/api/functions/analyze-candidate', authenticateToken, async (req, res)
       const settings = typeof value === 'string' ? JSON.parse(value) : value;
       openaiApiKey = settings.aiApiKey;
       const configuredModel = settings.aiModel || 'gpt-4o-mini';
-      // Validar modelo - gpt-5 não existe, usar fallback
-      const validModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'o1', 'o1-mini', 'o1-preview', 'o3-mini'];
-      if (validModels.includes(configuredModel)) {
+      if (VALID_OPENAI_MODELS.includes(configuredModel)) {
         openaiModel = configuredModel;
       } else {
         console.warn(`[Analyze Candidate] Modelo inválido '${configuredModel}' configurado. Usando fallback 'gpt-4o-mini'.`);
@@ -4663,9 +4681,7 @@ app.post('/api/functions/generate-interview-questions', authenticateToken, async
       const settings = typeof value === 'string' ? JSON.parse(value) : value;
       openaiApiKey = settings.aiApiKey;
       const configuredModel = settings.aiModel || 'gpt-4o-mini';
-      // Validar modelo - gpt-5 não existe, usar fallback
-      const validModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'o1', 'o1-mini', 'o1-preview', 'o3-mini'];
-      if (validModels.includes(configuredModel)) {
+      if (VALID_OPENAI_MODELS.includes(configuredModel)) {
         openaiModel = configuredModel;
       } else {
         console.warn(`[Generate Interview Questions] Modelo inválido '${configuredModel}' configurado. Usando fallback 'gpt-4o-mini'.`);
@@ -4867,9 +4883,7 @@ app.post('/api/functions/generate-dynamic-questions', authenticateToken, async (
         const settings = typeof value === 'string' ? JSON.parse(value) : value;
         openaiApiKey = settings.aiApiKey;
         const configuredModel = settings.aiModel || 'gpt-4o-mini';
-        // Validar modelo
-        const validModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'o1', 'o1-mini', 'o1-preview', 'o3-mini'];
-        if (validModels.includes(configuredModel)) {
+        if (VALID_OPENAI_MODELS.includes(configuredModel)) {
           openaiModel = configuredModel;
         }
       }
@@ -5042,8 +5056,7 @@ app.post('/api/functions/evaluate-interview-transcription', authenticateToken, a
       const settings = typeof value === 'string' ? JSON.parse(value) : value;
       openaiApiKey = settings.aiApiKey;
       const configuredModel = settings.aiModel || 'gpt-4o-mini';
-      const validModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'o1', 'o1-mini', 'o1-preview', 'o3-mini'];
-      if (validModels.includes(configuredModel)) {
+      if (VALID_OPENAI_MODELS.includes(configuredModel)) {
         openaiModel = configuredModel;
       } else {
         console.warn(`[Evaluate Interview] Modelo inválido '${configuredModel}' configurado. Usando fallback 'gpt-4o-mini'.`);
@@ -5294,8 +5307,7 @@ app.post('/api/functions/generate-os-with-ai', authenticateToken, async (req, re
       const settings = typeof value === 'string' ? JSON.parse(value) : value;
       openaiApiKey = settings.aiApiKey;
       const configuredModel = settings.aiModel || 'gpt-4o-mini';
-      const validModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'o1', 'o1-mini', 'o1-preview', 'o3-mini'];
-      if (validModels.includes(configuredModel)) {
+      if (VALID_OPENAI_MODELS.includes(configuredModel)) {
         openaiModel = configuredModel;
       } else {
         console.warn(`[Generate OS AI] Modelo inválido '${configuredModel}'. Usando fallback 'gpt-4o-mini'.`);

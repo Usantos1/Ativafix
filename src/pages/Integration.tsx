@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ModernLayout } from '@/components/ModernLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,21 @@ import { ApiManager } from '@/components/ApiManager';
 const TAB_VALUES = ['api', 'crm', 'telegram', 'ia'] as const;
 type TabValue = (typeof TAB_VALUES)[number];
 
+const OPENAI_MODELS = [
+  { value: 'gpt-5.5', label: 'GPT-5.5 (mais avançado)' },
+  { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini (rápido/custo menor)' },
+  { value: 'gpt-5.4-nano', label: 'GPT-5.4 Nano (mais econômico)' },
+  { value: 'gpt-5.2', label: 'GPT-5.2' },
+  { value: 'gpt-5.2-chat-latest', label: 'GPT-5.2 Chat Latest' },
+  { value: 'gpt-5.1', label: 'GPT-5.1' },
+  { value: 'gpt-5', label: 'GPT-5' },
+  { value: 'gpt-5-mini', label: 'GPT-5 Mini' },
+  { value: 'gpt-4.1', label: 'GPT-4.1' },
+  { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+  { value: 'gpt-4o', label: 'GPT-4o' },
+  { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+] as const;
+
 interface IntegrationSettings {
   ativaCrmToken: string;
   ativaCrmSensitiveToken: string;
@@ -26,6 +41,23 @@ interface IntegrationSettings {
   aiProvider?: 'openai';
   aiApiKey?: string;
   aiModel?: string;
+}
+
+interface WhatsAppTestResponse {
+  warning?: string;
+  success?: boolean;
+  message?: string;
+  error?: string;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object') {
+    const candidate = error as { message?: unknown; error?: { message?: unknown } };
+    if (typeof candidate.error?.message === 'string') return candidate.error.message;
+    if (typeof candidate.message === 'string') return candidate.message;
+  }
+  return fallback;
 }
 
 export default function Integration() {
@@ -118,11 +150,7 @@ export default function Integration() {
     }
   }, [telegramChatIdSaida, chatIdSaida, updateChatIdSaida]);
 
-  useEffect(() => {
-    loadSettings();
-  }, [user?.company_id]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const { data, error } = await from('kv_store_2c4defad')
         .select('value')
@@ -144,7 +172,11 @@ export default function Integration() {
       console.error('Error loading settings:', error);
       // Não mostrar erro ao usuário se não existir configuração ainda
     }
-  };
+  }, [integrationKey]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const saveSettings = async () => {
     if (!isAdmin) {
@@ -158,7 +190,7 @@ export default function Integration() {
       const result = await from('kv_store_2c4defad')
         .upsert({
           key: integrationKey,
-          value: settings as any
+          value: settings as Record<string, unknown>
         }, {
           onConflict: 'key'
         });
@@ -167,9 +199,9 @@ export default function Integration() {
 
       toast.success('Configurações salvas com sucesso!');
       loadSettings(); // Recarregar após salvar
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving settings:', error);
-      const errorMsg = error?.error?.message || error?.message || 'Erro ao salvar configurações';
+      const errorMsg = getErrorMessage(error, 'Erro ao salvar configurações');
       toast.error(`Erro ao salvar: ${errorMsg}`);
     } finally {
       setLoading(false);
@@ -202,8 +234,8 @@ export default function Integration() {
         }),
       });
       
-      let data: any = null;
-      let error: any = null;
+      let data: WhatsAppTestResponse | null = null;
+      let error: unknown = null;
       
       if (!response.ok) {
         error = await response.json().catch(() => ({ error: 'Erro ao enviar mensagem' }));
@@ -235,7 +267,7 @@ export default function Integration() {
       toast.success('✅ Mensagem de teste enviada com sucesso!');
     } catch (error) {
       console.error('Error testing WhatsApp:', error);
-      toast.error(`❌ Erro ao enviar mensagem: ${error.message}`);
+      toast.error(`❌ Erro ao enviar mensagem: ${getErrorMessage(error, 'Erro desconhecido')}`);
     } finally {
       setLoading(false);
     }
@@ -554,12 +586,11 @@ export default function Integration() {
                   <SelectValue placeholder="Selecione o modelo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gpt-5">GPT-5 (Avançado)</SelectItem>
-                  <SelectItem value="gpt-5-mini">GPT-5 Mini</SelectItem>
-                  <SelectItem value="chatgpt-5.1">ChatGPT 5.1</SelectItem>
-                  <SelectItem value="chatgpt-5.1-mini">ChatGPT 5.1 Mini</SelectItem>
-                  <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
-                  <SelectItem value="gpt-4.1-mini">GPT-4.1 Mini</SelectItem>
+                  {OPENAI_MODELS.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
