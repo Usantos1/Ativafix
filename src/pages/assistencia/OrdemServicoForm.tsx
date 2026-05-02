@@ -5984,7 +5984,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                                     <TableCell className="text-right font-semibold">{currencyFormatters.brl(pag.valor)}</TableCell>
                                     <TableCell>
                                       {pag.sale_id && pag.sale_numero != null ? (
-                                        <Link to={`/pdv/vendas?highlight=${pag.sale_id}`} className="text-primary font-medium hover:underline">
+                                        <Link to={`/vendas?highlight=${pag.sale_id}`} className="text-primary font-medium hover:underline">
                                           Venda #{pag.sale_numero}
                                         </Link>
                                       ) : (

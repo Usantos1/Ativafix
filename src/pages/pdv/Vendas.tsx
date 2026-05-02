@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ModernLayout } from '@/components/ModernLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -112,6 +112,7 @@ export default function Vendas() {
 
   const [valuesVisible] = useValuesVisibility();
   const fmt = (n: number) => (valuesVisible ? currencyFormatters.brl(n) : MASKED_VALUE);
+  const cancelRequestsSectionRef = useRef<HTMLDivElement | null>(null);
 
   const pendingCancelRequests = useMemo(() => cancelRequests.filter(r => r.status === 'pending'), [cancelRequests]);
 
@@ -473,6 +474,18 @@ export default function Vendas() {
   const canCancelDirectly = isAdmin || profile?.department === 'gestao' || profile?.department === 'gerencia';
   const canDelete = isAdmin || profile?.department === 'gestao' || profile?.department === 'gerencia';
 
+  const handleCancelRequestsShortcut = () => {
+    if (pendingCancelRequests.length === 0) {
+      toast({
+        title: 'Nenhuma solicitação pendente',
+        description: 'As solicitações de cancelamento aparecerão aqui quando existirem.',
+      });
+      return;
+    }
+
+    cancelRequestsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // Abrir modal de exclusão
   const handleOpenDeleteDialog = (sale: Sale, e?: React.MouseEvent) => {
     // Prevenir propagação de eventos
@@ -691,78 +704,69 @@ export default function Vendas() {
           </div>
         </div>
 
-        {/* Estatísticas - Desktop: cards completos (refletem o período filtrado) */}
+        {/* Estatísticas - Desktop: cards em linha (refletem o período filtrado) */}
         <div className="hidden md:grid flex-shrink-0 grid-cols-4 gap-3">
-          <Card className="border-2 border-l-4 border-l-blue-500 border-gray-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3 px-6">
-              <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="px-6 pb-3">
-              <div className="text-2xl font-bold">{stats.totalHoje}</div>
-              <p className="text-xs text-muted-foreground mt-1">{fmt(stats.totalHojeValor)}</p>
+          <Card className="border-2 border-blue-500 rounded-full overflow-hidden">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-5 py-0 min-w-0">
+              <Calendar className="h-4 w-4 text-blue-600 shrink-0" />
+              <span className="text-sm font-medium truncate">Vendas Hoje</span>
+              <div className="text-right shrink-0">
+                <div className="text-lg font-bold tabular-nums">{stats.totalHoje}</div>
+                <p className="text-[11px] text-muted-foreground">{fmt(stats.totalHojeValor)}</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-2 border-l-4 border-l-green-500 border-gray-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3 px-6">
-              <CardTitle className="text-sm font-medium">Total do Período</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="px-6 pb-3">
-              <div className="text-2xl font-bold text-green-600">{fmt(stats.totalPeriodo)}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stats.qtdPeriodo} vendas pagas</p>
+          <Card className="border-2 border-green-500 rounded-full overflow-hidden">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-5 py-0 min-w-0">
+              <ShoppingCart className="h-4 w-4 text-green-600 shrink-0" />
+              <span className="text-sm font-medium truncate">Total do Período</span>
+              <div className="text-right shrink-0">
+                <div className="text-lg font-bold text-green-600 tabular-nums">{fmt(stats.totalPeriodo)}</div>
+                <p className="text-[11px] text-muted-foreground">{stats.qtdPeriodo} vendas pagas</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-2 border-l-4 border-l-purple-500 border-gray-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3 px-6">
-              <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="px-6 pb-3">
-              <div className="text-2xl font-bold text-purple-600">{fmt(stats.ticketMedio)}</div>
-              <p className="text-xs text-muted-foreground mt-1">por venda</p>
+          <Card className="border-2 border-purple-500 rounded-full overflow-hidden">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-5 py-0 min-w-0">
+              <DollarSign className="h-4 w-4 text-purple-600 shrink-0" />
+              <span className="text-sm font-medium truncate">Ticket Médio</span>
+              <div className="text-right shrink-0">
+                <div className="text-lg font-bold text-purple-600 tabular-nums">{fmt(stats.ticketMedio)}</div>
+                <p className="text-[11px] text-muted-foreground">por venda</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-2 border-l-4 border-l-orange-500 border-gray-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3 px-6">
-              <CardTitle className="text-sm font-medium">Rascunhos / Pendentes</CardTitle>
-              <Edit className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="px-6 pb-3">
-              <div className="text-2xl font-bold">
+          <Card className="border-2 border-orange-500 rounded-full overflow-hidden">
+            <CardContent className="flex h-14 items-center justify-between gap-3 px-5 py-0 min-w-0">
+              <Edit className="h-4 w-4 text-orange-600 shrink-0" />
+              <span className="text-sm font-medium truncate">Rascunhos / Pendentes</span>
+              <div className="text-right text-lg font-bold shrink-0">
                 <span className="text-yellow-600">{stats.rascunhos}</span>
                 <span className="text-muted-foreground mx-1">/</span>
                 <span className="text-orange-600">{stats.pendentes}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">no período</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Solicitações de cancelamento (admin/gestão) */}
-        {canCancelDirectly && (
-          <Card className="border-2 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
+        {canCancelDirectly && pendingCancelRequests.length > 0 && (
+          <Card ref={cancelRequestsSectionRef} className="border border-amber-200 bg-amber-50/40 dark:bg-amber-950/20 dark:border-amber-800 rounded-2xl">
             <CardHeader className="pb-2 pt-3 px-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   Solicitações de cancelamento
-                  {pendingCancelRequests.length > 0 && (
-                    <Badge variant="secondary" className="ml-1">{pendingCancelRequests.length}</Badge>
-                  )}
+                  <Badge variant="secondary" className="ml-1">{pendingCancelRequests.length}</Badge>
                 </CardTitle>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {pendingCancelRequests.length > 0
-                  ? 'Vendedores solicitaram cancelamento destas vendas. Aprove ou rejeite.'
-                  : 'Quando um vendedor solicitar cancelamento de uma venda, as solicitações aparecerão aqui.'}
+                Vendedores solicitaram cancelamento destas vendas. Aprove ou rejeite.
               </p>
             </CardHeader>
             <CardContent className="px-4 pb-3">
               {cancelRequestsLoading ? (
                 <p className="text-sm text-muted-foreground py-4">Carregando...</p>
-              ) : pendingCancelRequests.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-3">Nenhuma solicitação pendente.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -839,6 +843,23 @@ export default function Vendas() {
                     <ReceiptText className="h-4 w-4" />
                     <span className="text-xs hidden lg:inline">Devoluções</span>
                   </Button>
+                  {canCancelDirectly && (
+                    <Button
+                      onClick={handleCancelRequestsShortcut}
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1 h-9 min-h-[44px] md:min-h-0 text-muted-foreground hover:text-foreground rounded-full touch-manipulation"
+                      title="Solicitações de cancelamento"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-xs hidden lg:inline">Solic. cancelamento</span>
+                      {pendingCancelRequests.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                          {pendingCancelRequests.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  )}
                   <Button 
                     onClick={() => setImportDialogOpen(true)} 
                     size="sm"

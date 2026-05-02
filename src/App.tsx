@@ -229,7 +229,8 @@ const App = () => {
               {/* PDV - Frente de Caixa */}
               <Route path="/pdv" element={<PermissionRoute permission="vendas.create"><NovaVenda /></PermissionRoute>} />
               <Route path="/pdv/nova" element={<PermissionRoute permission="vendas.create"><NovaVenda /></PermissionRoute>} />
-              <Route path="/pdv/vendas" element={<PermissionRoute permission="vendas.view"><Vendas /></PermissionRoute>} />
+              <Route path="/vendas" element={<PermissionRoute permission="vendas.view"><Vendas /></PermissionRoute>} />
+              <Route path="/pdv/vendas" element={<Navigate to="/vendas" replace />} />
               {/* Dashboard Assistência Técnica */}
               <Route path="/assistencia" element={<PermissionRoute permission="os.view"><PDV /></PermissionRoute>} />
               <Route path="/pdv/venda/nova" element={<PermissionRoute permission="vendas.create"><NovaVenda /></PermissionRoute>} />

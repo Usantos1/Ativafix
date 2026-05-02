@@ -745,7 +745,7 @@ export default function NovaVenda() {
           description: 'Esta venda foi cancelada e não pode ser editada.',
           variant: 'destructive',
         });
-        navigate('/pdv/vendas');
+        navigate('/vendas');
         return;
       }
     }
@@ -1753,7 +1753,7 @@ export default function NovaVenda() {
       // Se for venda finalizada, usar force=true (apenas admin pode)
       await deleteSale(id, !sale?.is_draft && isAdmin);
       toast({ title: sale?.is_draft ? 'Rascunho excluído com sucesso!' : 'Venda excluída com sucesso!' });
-      navigate('/pdv/vendas');
+      navigate('/vendas');
     } catch (error: any) {
       console.error('Erro ao excluir rascunho:', error);
       toast({ 
@@ -2990,7 +2990,7 @@ _PrimeCamp Assistência Técnica_`;
                           variant="outline"
                           size="sm"
                           className="flex-1 text-xs"
-                          onClick={() => navigate('/pdv/vendas')}
+                          onClick={() => navigate('/vendas')}
                         >
                           Ver Vendas
                         </Button>
@@ -3123,7 +3123,7 @@ _PrimeCamp Assistência Técnica_`;
                       <button
                         type="button"
                         className="flex items-center gap-2 px-3 py-2 rounded-full border-2 border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:border-blue-400 dark:hover:border-blue-500 transition-all font-medium text-sm shadow-sm"
-                        onClick={() => navigate('/pdv/vendas')}
+                        onClick={() => navigate('/vendas')}
                       >
                         <BarChart3 className="h-4 w-4" />
                         {isAdmin ? 'Vendas' : 'Minhas vendas'}

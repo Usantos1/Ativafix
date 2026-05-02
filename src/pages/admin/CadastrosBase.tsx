@@ -102,7 +102,7 @@ export default function CadastrosBase() {
       title: 'Lista de Vendas',
       description: 'Consultar vendas',
       icon: ListChecks,
-      path: '/pdv/vendas',
+      path: '/vendas',
       color: 'text-indigo-600',
     },
     {

@@ -68,7 +68,7 @@ export const iconMap: Record<string, LucideIcon> = {
 
 const PDV_NAV_ITEMS: NavigationItem[] = [
   { label: 'PDV', description: 'Abrir o caixa e iniciar novas vendas', icon: ShoppingCart, path: '/pdv', section: 'operacao', contexts: ['pdv'] },
-  { label: 'Vendas', description: 'Consultar vendas realizadas e detalhes', icon: Receipt, path: '/pdv/vendas', section: 'operacao', contexts: ['pdv'] },
+  { label: 'Vendas', description: 'Consultar vendas realizadas e detalhes', icon: Receipt, path: '/vendas', section: 'operacao', contexts: ['pdv'] },
   { label: 'Caixa', description: 'Acompanhar abertura, sangria e fechamento', icon: DollarSign, path: '/pdv/caixa', section: 'operacao', contexts: ['pdv'] },
   { label: 'Clientes', description: 'Consultar e gerenciar cadastro de clientes', icon: Users, path: '/clientes', section: 'operacao', contexts: ['pdv'] },
   { label: 'Produtos', description: 'Visualizar catálogo e gestão de produtos', icon: Package, path: '/produtos', section: 'estoque', contexts: ['pdv'] },
@@ -89,6 +89,7 @@ export const QUICK_NAV_CONFIG: Record<string, NavigationItem[]> = {
   '/financeiro': FINANCEIRO_NAV_ITEMS,
   '/pos-venda': FINANCEIRO_NAV_ITEMS,
   '/pdv': PDV_NAV_ITEMS,
+  '/vendas': PDV_NAV_ITEMS,
   '/pdv/vendas': PDV_NAV_ITEMS,
   '/pdv/venda': PDV_NAV_ITEMS,
   '/os': PDV_NAV_ITEMS,
@@ -108,7 +109,7 @@ export const QUICK_NAV_CONFIG: Record<string, NavigationItem[]> = {
 export const operacaoItemsBase: NavigationItem[] = [
   { label: 'Dashboard', description: 'Resumo geral com indicadores da operação', path: '/', icon: Home, exact: true, section: 'operacao', groupLabel: 'Operação', contexts: ['global'] },
   { label: 'PDV', description: 'Abrir novas vendas no caixa', path: '/pdv', icon: ShoppingCart, exact: true, permission: 'vendas.create', section: 'operacao', groupLabel: 'Operação', contexts: ['pdv'] },
-  { label: 'Vendas', description: 'Consultar histórico e detalhes das vendas', path: '/pdv/vendas', icon: Receipt, exact: true, permission: 'vendas.view', section: 'operacao', groupLabel: 'Operação', contexts: ['pdv'] },
+  { label: 'Vendas', description: 'Consultar histórico e detalhes das vendas', path: '/vendas', icon: Receipt, exact: true, permission: 'vendas.view', section: 'operacao', groupLabel: 'Operação', contexts: ['pdv'] },
   { label: 'Devoluções', description: 'Gerenciar trocas e devoluções realizadas', path: '/pdv/devolucoes', icon: RefreshCw, permission: 'vendas.manage', section: 'operacao', groupLabel: 'Operação', contexts: ['pdv'] },
   { label: 'Ordem de Serviço', description: 'Criar e acompanhar ordens de serviço', path: '/os', icon: Wrench, permission: 'os.view', section: 'operacao', groupLabel: 'Operação', contexts: ['pdv'] },
   { label: 'Caixa', description: 'Conferir sessões, sangrias e suprimentos', path: '/pdv/caixa', icon: Wallet, exact: true, permission: 'caixa.view', section: 'operacao', groupLabel: 'Operação', contexts: ['pdv'] },
