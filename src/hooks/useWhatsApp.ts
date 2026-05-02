@@ -63,9 +63,15 @@ export function useWhatsApp() {
       
       // 🚫 Supabase Functions removido - usar API direta
       const API_URL = import.meta.env.VITE_API_URL || 'https://api.ativafix.com/api';
+      const authToken = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${API_URL}/whatsapp/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           action: 'send_message',
           data

@@ -3282,9 +3282,20 @@ function extractAtivaCrmTicketId(payload) {
   return ticketId ? String(ticketId) : null;
 }
 
-async function createAtivaCrmContact({ token, name, email, phone }) {
+async function createAtivaCrmContact({ token, name, email, phone, tagId }) {
   const cleanPhone = String(phone || '').replace(/\D/g, '');
   if (!cleanPhone) return null;
+
+  const numericTagId = tagId ? Number(tagId) : null;
+  const payload = {
+    name: name || cleanPhone,
+    email: email || '',
+    phone: cleanPhone,
+    number: cleanPhone,
+  };
+  if (numericTagId && Number.isFinite(numericTagId)) {
+    payload.tags = [numericTagId];
+  }
 
   const response = await fetch('https://api.ativacrm.com/api/contactCreate', {
     method: 'POST',
@@ -3292,16 +3303,38 @@ async function createAtivaCrmContact({ token, name, email, phone }) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      name: name || cleanPhone,
-      email: email || '',
-      phone: cleanPhone,
-    }),
+    body: JSON.stringify(payload),
   });
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     console.warn('[AtivaCRM] Falha ao criar contato:', response.status, result);
+    return { success: false, status: response.status, data: result };
+  }
+
+  return { success: true, status: response.status, data: result };
+}
+
+async function updateAtivaCrmContactTag({ token, phone, tagId }) {
+  const cleanPhone = String(phone || '').replace(/\D/g, '');
+  const numericTagId = tagId ? Number(tagId) : null;
+  if (!cleanPhone || !numericTagId || !Number.isFinite(numericTagId)) return null;
+
+  const response = await fetch('https://api.ativacrm.com/api/updatetag', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      number: cleanPhone,
+      tags: [numericTagId],
+    }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.warn('[AtivaCRM] Falha ao aplicar tag ao contato:', response.status, result);
     return { success: false, status: response.status, data: result };
   }
 
@@ -3376,7 +3409,17 @@ app.post('/api/whatsapp/send', async (req, res) => {
       name: data.contactName || data.name,
       email: data.email,
       phone: formattedNumber,
+      tagId: data.tagId,
     });
+
+    let contactTagResult = null;
+    if (data.tagId) {
+      contactTagResult = await updateAtivaCrmContactTag({
+        token: ativaCrmToken,
+        phone: formattedNumber,
+        tagId: data.tagId,
+      });
+    }
 
     // Enviar mensagem via API do Ativa CRM (documentação oficial)
     // URL: https://api.ativacrm.com/api/messages/send
@@ -3436,6 +3479,7 @@ app.post('/api/whatsapp/send', async (req, res) => {
       message: ativaCrmData.message || 'Mensagem enviada com sucesso',
       data: ativaCrmData,
       contact: contactResult,
+      contactTag: contactTagResult,
       tag: tagResult,
     });
   } catch (error) {
