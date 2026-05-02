@@ -3332,21 +3332,29 @@ async function createAtivaCrmContact({ token, name, email, phone, tagId }) {
 
   const numericTagId = tagId ? Number(tagId) : null;
   const payload = {
-    name: name || cleanPhone,
+    name: String(name || cleanPhone).trim(),
+    contactName: String(name || cleanPhone).trim(),
     email: email || '',
     phone: cleanPhone,
     number: cleanPhone,
+    whatsapp: cleanPhone,
   };
   if (numericTagId && Number.isFinite(numericTagId)) {
     payload.tags = [numericTagId];
   }
 
-  return postAtivaCrmApi({
-    token,
-    path: 'contactCreate',
-    payload,
-    label: 'criar contato',
-  });
+  const attempts = [];
+  for (const path of ['createcontact', 'contactCreate']) {
+    const result = await postAtivaCrmApi({
+      token,
+      path,
+      payload,
+      label: `criar contato (${path})`,
+    });
+    attempts.push(result);
+  }
+
+  return { success: attempts.some((attempt) => attempt.success), attempts };
 }
 
 async function updateAtivaCrmContact({ token, name, email, phone }) {
@@ -3354,10 +3362,12 @@ async function updateAtivaCrmContact({ token, name, email, phone }) {
   if (!cleanPhone || !name) return null;
 
   const payload = {
-    name,
+    name: String(name).trim(),
+    contactName: String(name).trim(),
     email: email || '',
     phone: cleanPhone,
     number: cleanPhone,
+    whatsapp: cleanPhone,
   };
 
   const attempts = [];
@@ -3369,10 +3379,9 @@ async function updateAtivaCrmContact({ token, name, email, phone }) {
       label: `atualizar contato (${path})`,
     });
     attempts.push(result);
-    if (result.success) return { success: true, attempts };
   }
 
-  return { success: false, attempts };
+  return { success: attempts.some((attempt) => attempt.success), attempts };
 }
 
 async function updateAtivaCrmContactTag({ token, phone, tagId, contactId, ticketId }) {
@@ -3505,6 +3514,13 @@ app.post('/api/whatsapp/send', async (req, res) => {
         body: data.body,
         tagId: data.tagId ? Number(data.tagId) : undefined,
         tags: data.tagId ? [Number(data.tagId)] : undefined,
+        contact: {
+          name: contactName,
+          number: formattedNumber,
+          phone: formattedNumber,
+          whatsapp: formattedNumber,
+          email: data.email || '',
+        },
       }),
     });
 
@@ -3529,6 +3545,13 @@ app.post('/api/whatsapp/send', async (req, res) => {
     }
 
     let tagResult = null;
+    const contactUpdateAfterSendResult = await updateAtivaCrmContact({
+      token: ativaCrmToken,
+      name: contactName,
+      email: data.email,
+      phone: formattedNumber,
+    });
+
     if (data.tagId) {
       const ticketId = data.ticketId || extractAtivaCrmTicketId(ativaCrmData);
       const contactId = extractAtivaCrmContactId(ativaCrmData);
@@ -3565,6 +3588,7 @@ app.post('/api/whatsapp/send', async (req, res) => {
       data: ativaCrmData,
       contact: contactResult,
       contactUpdate: contactUpdateResult,
+      contactUpdateAfterSend: contactUpdateAfterSendResult,
       contactTag: contactTagResult,
       tag: tagResult,
     });
