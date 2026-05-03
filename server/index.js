@@ -9044,6 +9044,31 @@ function extractProductModelSearchTerms(value) {
   return Array.from(terms).slice(0, 5);
 }
 
+function extractProductIntentSearchTerms(value) {
+  const normalized = normalizeProductSearchText(value);
+  if (!normalized) return [];
+
+  const terms = new Set();
+  const addTerms = (items) => items.forEach((item) => terms.add(item));
+
+  const groups = [
+    { match: /\b(tela|display|vidro|touch|frontal)\b/, terms: ['tela', 'display'] },
+    { match: /\b(bateria)\b/, terms: ['bateria'] },
+    { match: /\b(conector|carga|carregador)\b/, terms: ['conector', 'carga'] },
+    { match: /\b(camera|camera\s+frontal|camera\s+traseira|lente)\b/, terms: ['camera'] },
+    { match: /\b(alto\s+falante|campainha|auricular|speaker)\b/, terms: ['alto falante', 'speaker'] },
+    { match: /\b(sensor|proximidade|face\s*id)\b/, terms: ['sensor', 'proximidade', 'face id'] },
+    { match: /\b(carcaca|tampa|aro|chassi)\b/, terms: ['carcaca', 'tampa', 'aro'] },
+    { match: /\b(botao|power|volume|home)\b/, terms: ['botao', 'power', 'volume', 'home'] },
+  ];
+
+  groups.forEach((group) => {
+    if (group.match.test(normalized)) addTerms(group.terms);
+  });
+
+  return Array.from(terms).slice(0, 8);
+}
+
 function appendProductTextSearchFilter(sql, params, paramIndex, terms, columns = ['p.modelo', 'p.nome']) {
   const searchTerms = Array.isArray(terms) ? terms.filter(Boolean) : [];
   if (searchTerms.length === 0) return { sql, paramIndex };
@@ -9089,6 +9114,7 @@ app.get('/api/v1/produtos', validateApiToken, async (req, res) => {
     }
     const buscaTerms = busca ? extractProductModelSearchTerms(busca) : [];
     const modeloTerms = modelo ? extractProductModelSearchTerms(modelo) : [];
+    const productIntentTerms = extractProductIntentSearchTerms(`${busca || ''} ${modelo || ''}`);
 
     let query = `
       SELECT 
@@ -9111,6 +9137,12 @@ app.get('/api/v1/produtos', validateApiToken, async (req, res) => {
     
     if (modelo) {
       const filter = appendProductTextSearchFilter(query, params, paramIndex, modeloTerms);
+      query = filter.sql;
+      paramIndex = filter.paramIndex;
+    }
+
+    if (productIntentTerms.length > 0) {
+      const filter = appendProductTextSearchFilter(query, params, paramIndex, productIntentTerms, ['p.nome', 'p.referencia', 'p.grupo', 'p.sub_grupo']);
       query = filter.sql;
       paramIndex = filter.paramIndex;
     }
@@ -9219,6 +9251,11 @@ app.get('/api/v1/produtos', validateApiToken, async (req, res) => {
     }
     if (modelo) {
       const filter = appendProductTextSearchFilter(countQuery, countParams, countParamIndex, modeloTerms);
+      countQuery = filter.sql;
+      countParamIndex = filter.paramIndex;
+    }
+    if (productIntentTerms.length > 0) {
+      const filter = appendProductTextSearchFilter(countQuery, countParams, countParamIndex, productIntentTerms, ['p.nome', 'p.referencia', 'p.grupo', 'p.sub_grupo']);
       countQuery = filter.sql;
       countParamIndex = filter.paramIndex;
     }
