@@ -1234,6 +1234,7 @@ app.use((req, res, next) => {
       req.path.startsWith('/api/storage/') ||
       req.path.startsWith('/api/whatsapp/') ||
       req.path.startsWith('/api/webhook/leads/') ||
+      req.path.startsWith('/api/webhook/ativa-crm/') ||
       req.path.startsWith('/api/v1/') ||  // API pública v1 usa validateApiToken
       req.path.startsWith('/api/admin/revenda/') || // Rotas de revenda já têm autenticação própria
       req.path.startsWith('/api/api-tokens') || // Rotas de API tokens (admin apenas)
