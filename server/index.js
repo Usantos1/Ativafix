@@ -299,18 +299,29 @@ async function buildMetaOsPurchaseEvent(saleId) {
       s.total_pago,
       s.finalized_at,
       s.created_at,
+      s.cliente_id AS sale_cliente_id,
       s.cliente_nome AS sale_cliente_nome,
       s.cliente_telefone AS sale_cliente_telefone,
+      s.cliente_cpf_cnpj AS sale_cliente_cpf_cnpj,
       s.ordem_servico_id,
+      os.cliente_id AS os_cliente_id,
       os.numero AS os_numero,
       os.cliente_nome AS os_cliente_nome,
       os.cliente_telefone AS os_cliente_telefone,
       os.modelo_nome,
       os.marca_nome,
       os.descricao_problema,
-      os.valor_total
+      os.valor_total,
+      c.id AS cliente_id,
+      c.email AS cliente_email,
+      c.cidade AS cliente_cidade,
+      c.estado AS cliente_estado,
+      c.cep AS cliente_cep,
+      c.cpf_cnpj AS cliente_cpf_cnpj,
+      c.data_nascimento AS cliente_data_nascimento
     FROM public.sales s
     LEFT JOIN public.ordens_servico os ON os.id = s.ordem_servico_id
+    LEFT JOIN public.clientes c ON c.id = COALESCE(os.cliente_id, s.cliente_id)
     WHERE s.id = $1
     LIMIT 1
   `, [saleId]);
@@ -329,9 +340,21 @@ async function buildMetaOsPurchaseEvent(saleId) {
   const phoneHash = hashSha256(phone);
   const firstNameHash = hashSha256(firstName);
   const lastNameHash = hashSha256(lastNameParts.join(' '));
+  const emailHash = hashSha256(sale.cliente_email);
+  const cityHash = hashSha256(sale.cliente_cidade);
+  const stateHash = hashSha256(sale.cliente_estado);
+  const zipHash = hashSha256(String(sale.cliente_cep || '').replace(/\D/g, ''));
+  const birthDateHash = hashSha256(sale.cliente_data_nascimento ? new Date(sale.cliente_data_nascimento).toISOString().slice(0, 10).replace(/-/g, '') : '');
+  const externalIdHash = hashSha256(sale.cliente_id || sale.os_cliente_id || sale.sale_cliente_id || sale.cliente_cpf_cnpj || sale.sale_cliente_cpf_cnpj);
   if (phoneHash) userData.ph = [phoneHash];
   if (firstNameHash) userData.fn = [firstNameHash];
   if (lastNameHash) userData.ln = [lastNameHash];
+  if (emailHash) userData.em = [emailHash];
+  if (cityHash) userData.ct = [cityHash];
+  if (stateHash) userData.st = [stateHash];
+  if (zipHash) userData.zp = [zipHash];
+  if (birthDateHash) userData.db = [birthDateHash];
+  if (externalIdHash) userData.external_id = [externalIdHash];
 
   return {
     companyId: sale.company_id,
