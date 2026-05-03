@@ -19,7 +19,7 @@ import { useTelegramConfig } from '@/hooks/useTelegramConfig';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ApiManager } from '@/components/ApiManager';
 
-const TAB_VALUES = ['api', 'crm', 'telegram', 'ia', 'meta'] as const;
+const TAB_VALUES = ['api', 'crm', 'telegram', 'ia', 'meta', 'google'] as const;
 type TabValue = (typeof TAB_VALUES)[number];
 
 const integrationTabClassName = [
@@ -482,7 +482,7 @@ export default function Integration() {
 
   const loadAtivaCrmEvents = useCallback(async () => {
     try {
-      const result = await apiClient.get('/ativa-crm/webhook-events?limit=8');
+      const result = await apiClient.get('/ativa-crm/webhook-events?limit=25');
       if (result.error) throw result.error;
       const payload = result.data as { data?: AtivaCrmWebhookEvent[]; warning?: string };
       setAtivaCrmEvents(Array.isArray(payload?.data) ? payload.data : []);
@@ -545,6 +545,8 @@ export default function Integration() {
       void loadMetaReport();
       void loadMetaLogs();
       void loadAtivaCrmEvents();
+    }
+    if (currentTab === 'google') {
       void loadGoogleReport();
       void loadGoogleLogs();
     }
@@ -819,6 +821,13 @@ export default function Integration() {
             >
               <Megaphone className="h-4 w-4" />
               Meta Ads
+            </TabsTrigger>
+            <TabsTrigger
+              value="google"
+              className={integrationTabClassName}
+            >
+              <Megaphone className="h-4 w-4" />
+              Google Ads
             </TabsTrigger>
           </TabsList>
 
@@ -1264,172 +1273,6 @@ export default function Integration() {
 
                 <Card>
                   <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <Megaphone className="h-5 w-5 text-amber-600" />
-                        <div>
-                          <CardTitle>Google Ads / Offline Conversions</CardTitle>
-                          <CardDescription>
-                            Envie OS, PDV e leads do WhatsApp para conversões offline do Google.
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={settings.googleAds?.enabled ?? false}
-                        onCheckedChange={(enabled) => updateGoogleAds({ enabled })}
-                        aria-label="Ativar integração Google Ads"
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="googleCustomerId">Customer ID</Label>
-                        <Input
-                          id="googleCustomerId"
-                          placeholder="123-456-7890"
-                          value={settings.googleAds?.customerId ?? ''}
-                          onChange={(e) => updateGoogleAds({ customerId: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="googleLoginCustomerId">Login Customer ID (MCC opcional)</Label>
-                        <Input
-                          id="googleLoginCustomerId"
-                          placeholder="Opcional"
-                          value={settings.googleAds?.loginCustomerId ?? ''}
-                          onChange={(e) => updateGoogleAds({ loginCustomerId: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="googleDeveloperToken">Developer Token</Label>
-                        <Input
-                          id="googleDeveloperToken"
-                          type="password"
-                          placeholder="Token do Google Ads API Center"
-                          value={settings.googleAds?.developerToken ?? ''}
-                          onChange={(e) => updateGoogleAds({ developerToken: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="googleRefreshToken">Refresh Token OAuth</Label>
-                        <Input
-                          id="googleRefreshToken"
-                          type="password"
-                          placeholder="Refresh token da conta Google"
-                          value={settings.googleAds?.refreshToken ?? ''}
-                          onChange={(e) => updateGoogleAds({ refreshToken: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="googleClientId">OAuth Client ID</Label>
-                        <Input
-                          id="googleClientId"
-                          type="password"
-                          value={settings.googleAds?.clientId ?? ''}
-                          onChange={(e) => updateGoogleAds({ clientId: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="googleClientSecret">OAuth Client Secret</Label>
-                        <Input
-                          id="googleClientSecret"
-                          type="password"
-                          value={settings.googleAds?.clientSecret ?? ''}
-                          onChange={(e) => updateGoogleAds({ clientSecret: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="googleOsAction">Conversion Action OS</Label>
-                        <Input
-                          id="googleOsAction"
-                          placeholder="ID ou customers/.../conversionActions/..."
-                          value={settings.googleAds?.osPurchaseConversionAction ?? ''}
-                          onChange={(e) => updateGoogleAds({ osPurchaseConversionAction: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="googlePdvAction">Conversion Action PDV</Label>
-                        <Input
-                          id="googlePdvAction"
-                          placeholder="Opcional"
-                          value={settings.googleAds?.pdvPurchaseConversionAction ?? ''}
-                          onChange={(e) => updateGoogleAds({ pdvPurchaseConversionAction: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="googleLeadAction">Conversion Action Lead</Label>
-                        <Input
-                          id="googleLeadAction"
-                          placeholder="Lead WhatsApp"
-                          value={settings.googleAds?.clientLeadConversionAction ?? ''}
-                          onChange={(e) => updateGoogleAds({ clientLeadConversionAction: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="googleQualifiedAction">Qualificado / Desqualificado</Label>
-                        <div className="grid gap-2">
-                          <Input
-                            id="googleQualifiedAction"
-                            placeholder="Action lead qualificado"
-                            value={settings.googleAds?.qualifiedLeadConversionAction ?? ''}
-                            onChange={(e) => updateGoogleAds({ qualifiedLeadConversionAction: e.target.value })}
-                          />
-                          <Input
-                            placeholder="Action lead desqualificado"
-                            value={settings.googleAds?.disqualifiedLeadConversionAction ?? ''}
-                            onChange={(e) => updateGoogleAds({ disqualifiedLeadConversionAction: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
-                      {[
-                        ['sendOsPurchase', 'OS faturada', 'Envia conversão quando a OS fica paga.'],
-                        ['sendPdvPurchase', 'PDV pago', 'Envia conversão de venda balcão paga.'],
-                        ['sendClientLead', 'Lead WhatsApp', 'Envia lead recebido pelo webhook Ativa CRM.'],
-                        ['sendQualifiedLead', 'Lead qualificado', 'Usa status/tag do payload para enviar qualificado.'],
-                        ['sendDisqualifiedLead', 'Lead desqualificado', 'Envia evento separado para desqualificados.'],
-                        ['validateOnly', 'Modo validação', 'Valida na API sem registrar conversão real.'],
-                      ].map(([key, title, description]) => (
-                        <div key={key} className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium">{title}</p>
-                            <p className="text-xs text-muted-foreground">{description}</p>
-                          </div>
-                          <Switch
-                            checked={Boolean(settings.googleAds?.[key as keyof NonNullable<IntegrationSettings['googleAds']>])}
-                            onCheckedChange={(checked) => updateGoogleAds({ [key]: checked } as Partial<NonNullable<IntegrationSettings['googleAds']>>)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button onClick={saveSettings} disabled={loading}>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Salvar Google Ads
-                      </Button>
-                      <Button type="button" variant="outline" onClick={testGoogleAdsIntegration} disabled={loading}>
-                        <Send className="h-4 w-4 mr-2" />
-                        Enviar teste Google
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Activity className="h-4 w-4 text-blue-600" />
                       Eventos planejados
@@ -1633,63 +1476,6 @@ export default function Integration() {
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <BarChart3 className="h-4 w-4 text-amber-600" />
-                          Relatório Google Ads
-                        </CardTitle>
-                        <CardDescription>
-                          Usa o mesmo período escolhido no relatório da Meta.
-                        </CardDescription>
-                      </div>
-                      <Button type="button" variant="outline" size="sm" onClick={() => {
-                        void loadGoogleReport();
-                        void loadGoogleLogs();
-                      }}>
-                        Atualizar
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
-                      Período exibido: {googleReport?.period?.startDate || metaReportStartDate} até {googleReport?.period?.endDate || metaReportEndDate}
-                    </p>
-                    {googleReportWarning === 'GOOGLE_ADS_EVENT_LOGS_MISSING' ? (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                        Rode a migration `db/migrations/manual/GOOGLE_ADS_EVENT_LOGS.sql` na VPS para gerar relatórios.
-                      </div>
-                    ) : (
-                      <>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-lg border bg-background p-3">
-                            <p className="text-xs text-muted-foreground">Eventos enviados</p>
-                            <p className="mt-1 text-2xl font-semibold text-emerald-700">{formatReportNumber(googleReport?.summary?.enviado)}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{formatReportNumber(googleReport?.summary?.erro)} com erro</p>
-                          </div>
-                          <div className="rounded-lg border bg-background p-3">
-                            <p className="text-xs text-muted-foreground">Valor enviado</p>
-                            <p className="mt-1 text-2xl font-semibold text-blue-700">{formatReportCurrency(googleReport?.summary?.valor_enviado)}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">OS + PDV enviados</p>
-                          </div>
-                          <div className="rounded-lg border bg-background p-3">
-                            <p className="text-xs text-muted-foreground">Leads / Qualificados</p>
-                            <p className="mt-1 text-2xl font-semibold">{formatReportNumber(googleReport?.summary?.leads)}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{formatReportNumber(googleReport?.summary?.qualificados)} qualificados</p>
-                          </div>
-                          <div className="rounded-lg border bg-background p-3">
-                            <p className="text-xs text-muted-foreground">Desqualificados</p>
-                            <p className="mt-1 text-2xl font-semibold">{formatReportNumber(googleReport?.summary?.desqualificados)}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{formatReportNumber(googleReport?.summary?.purchases)} purchases</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
                         <CardTitle className="text-base">Leads recebidos do Ativa CRM</CardTitle>
                         <CardDescription>
                           Payload bruto fica salvo em `ativa_crm_webhook_events` para mapear CTWA/campanha depois.
@@ -1821,18 +1607,289 @@ export default function Integration() {
                   </CardContent>
                 </Card>
 
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Tab Google Ads */}
+          <TabsContent value="google" className="space-y-6">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <Megaphone className="h-5 w-5 text-amber-600" />
+                        <div>
+                          <CardTitle>Google Ads / Offline Conversions</CardTitle>
+                          <CardDescription>
+                            Envie OS, PDV e leads do WhatsApp para conversões offline do Google.
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={settings.googleAds?.enabled ?? false}
+                        onCheckedChange={(enabled) => updateGoogleAds({ enabled })}
+                        aria-label="Ativar integração Google Ads"
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="googleCustomerId">Customer ID</Label>
+                        <Input
+                          id="googleCustomerId"
+                          placeholder="123-456-7890"
+                          value={settings.googleAds?.customerId ?? ''}
+                          onChange={(e) => updateGoogleAds({ customerId: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="googleDeveloperToken">Developer Token</Label>
+                        <Input
+                          id="googleDeveloperToken"
+                          type="password"
+                          placeholder="Token do Google Ads API Center"
+                          value={settings.googleAds?.developerToken ?? ''}
+                          onChange={(e) => updateGoogleAds({ developerToken: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="googleClientId">Client ID</Label>
+                        <Input
+                          id="googleClientId"
+                          type="password"
+                          value={settings.googleAds?.clientId ?? ''}
+                          onChange={(e) => updateGoogleAds({ clientId: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="googleClientSecret">Client Secret</Label>
+                        <Input
+                          id="googleClientSecret"
+                          type="password"
+                          value={settings.googleAds?.clientSecret ?? ''}
+                          onChange={(e) => updateGoogleAds({ clientSecret: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="googleRefreshToken">Refresh Token</Label>
+                        <Input
+                          id="googleRefreshToken"
+                          type="password"
+                          value={settings.googleAds?.refreshToken ?? ''}
+                          onChange={(e) => updateGoogleAds({ refreshToken: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="googleLoginCustomerId">Login Customer ID (opcional para MCC)</Label>
+                      <Input
+                        id="googleLoginCustomerId"
+                        placeholder="Preencha só se usar conta MCC"
+                        value={settings.googleAds?.loginCustomerId ?? ''}
+                        onChange={(e) => updateGoogleAds({ loginCustomerId: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={saveSettings} disabled={loading}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Salvar Google Ads
+                      </Button>
+                      <Button type="button" variant="outline" onClick={testGoogleAdsIntegration} disabled={loading}>
+                        <Send className="h-4 w-4 mr-2" />
+                        Enviar teste
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Conversões que serão enviadas</CardTitle>
+                    <CardDescription>
+                      Informe o ID da Conversion Action de cada evento que quiser ativar.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[
+                      {
+                        key: 'sendOsPurchase',
+                        actionKey: 'osPurchaseConversionAction',
+                        label: 'OS faturada',
+                        description: 'Compra offline com valor real da ordem de serviço.',
+                        placeholder: 'Conversion Action OS',
+                      },
+                      {
+                        key: 'sendPdvPurchase',
+                        actionKey: 'pdvPurchaseConversionAction',
+                        label: 'PDV pago',
+                        description: 'Compra de balcão paga.',
+                        placeholder: 'Conversion Action PDV',
+                      },
+                      {
+                        key: 'sendClientLead',
+                        actionKey: 'clientLeadConversionAction',
+                        label: 'Lead WhatsApp',
+                        description: 'Lead recebido pelo webhook do Ativa CRM.',
+                        placeholder: 'Conversion Action Lead',
+                      },
+                      {
+                        key: 'sendQualifiedLead',
+                        actionKey: 'qualifiedLeadConversionAction',
+                        label: 'Lead qualificado',
+                        description: 'Detectado por status/tag no payload do CRM.',
+                        placeholder: 'Conversion Action Qualificado',
+                      },
+                      {
+                        key: 'sendDisqualifiedLead',
+                        actionKey: 'disqualifiedLeadConversionAction',
+                        label: 'Lead desqualificado',
+                        description: 'Evento separado para não otimizar como conversão principal.',
+                        placeholder: 'Conversion Action Desqualificado',
+                      },
+                    ].map((item) => (
+                      <div key={item.key} className="rounded-lg border bg-background p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium">{item.label}</p>
+                            <p className="text-xs text-muted-foreground">{item.description}</p>
+                          </div>
+                          <Switch
+                            checked={Boolean(settings.googleAds?.[item.key as keyof NonNullable<IntegrationSettings['googleAds']>])}
+                            onCheckedChange={(checked) => updateGoogleAds({ [item.key]: checked } as Partial<NonNullable<IntegrationSettings['googleAds']>>)}
+                          />
+                        </div>
+                        <Input
+                          className="mt-3"
+                          placeholder={item.placeholder}
+                          value={String(settings.googleAds?.[item.actionKey as keyof NonNullable<IntegrationSettings['googleAds']>] ?? '')}
+                          onChange={(e) => updateGoogleAds({ [item.actionKey]: e.target.value } as Partial<NonNullable<IntegrationSettings['googleAds']>>)}
+                        />
+                      </div>
+                    ))}
+
+                    <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 p-3">
+                      <div>
+                        <p className="text-sm font-medium">Modo validação</p>
+                        <p className="text-xs text-muted-foreground">Valida na API sem registrar conversão real.</p>
+                      </div>
+                      <Switch
+                        checked={settings.googleAds?.validateOnly ?? false}
+                        onCheckedChange={(validateOnly) => updateGoogleAds({ validateOnly })}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <CardTitle className="text-base">Últimos envios Google Ads</CardTitle>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <BarChart3 className="h-4 w-4 text-amber-600" />
+                          Relatório Google Ads
+                        </CardTitle>
                         <CardDescription>
-                          Histórico salvo em `google_ads_event_logs`.
+                          Purchases, leads, qualificados e desqualificados.
                         </CardDescription>
                       </div>
-                      <Button type="button" variant="outline" size="sm" onClick={loadGoogleLogs}>
-                        Atualizar
-                      </Button>
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button type="button" variant="outline" size="sm" className="gap-2">
+                              <CalendarDays className="h-4 w-4" />
+                              Período
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-80 space-y-3">
+                            <div>
+                              <p className="text-sm font-medium">Filtrar período</p>
+                              <p className="text-xs text-muted-foreground">Escolha as datas do relatório.</p>
+                            </div>
+                            <div className="grid gap-3">
+                              <div className="space-y-1.5">
+                                <Label htmlFor="googleReportStartDate" className="text-xs">Data inicial</Label>
+                                <Input
+                                  id="googleReportStartDate"
+                                  type="date"
+                                  value={metaReportStartDate}
+                                  onChange={(event) => setMetaReportStartDate(event.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label htmlFor="googleReportEndDate" className="text-xs">Data final</Label>
+                                <Input
+                                  id="googleReportEndDate"
+                                  type="date"
+                                  value={metaReportEndDate}
+                                  onChange={(event) => setMetaReportEndDate(event.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <Button type="button" size="sm" onClick={loadGoogleReport}>Aplicar</Button>
+                          </PopoverContent>
+                        </Popover>
+                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                          void loadGoogleReport();
+                          void loadGoogleLogs();
+                        }}>
+                          Atualizar
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Período exibido: {googleReport?.period?.startDate || metaReportStartDate} até {googleReport?.period?.endDate || metaReportEndDate}
+                    </p>
+                    {googleReportWarning === 'GOOGLE_ADS_EVENT_LOGS_MISSING' ? (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                        Rode a migration `db/migrations/manual/GOOGLE_ADS_EVENT_LOGS.sql` na VPS para gerar relatórios.
+                      </div>
+                    ) : (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-lg border bg-background p-3">
+                          <p className="text-xs text-muted-foreground">Eventos enviados</p>
+                          <p className="mt-1 text-2xl font-semibold text-emerald-700">{formatReportNumber(googleReport?.summary?.enviado)}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{formatReportNumber(googleReport?.summary?.erro)} com erro</p>
+                        </div>
+                        <div className="rounded-lg border bg-background p-3">
+                          <p className="text-xs text-muted-foreground">Valor enviado</p>
+                          <p className="mt-1 text-2xl font-semibold text-blue-700">{formatReportCurrency(googleReport?.summary?.valor_enviado)}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">OS + PDV</p>
+                        </div>
+                        <div className="rounded-lg border bg-background p-3">
+                          <p className="text-xs text-muted-foreground">Leads</p>
+                          <p className="mt-1 text-2xl font-semibold">{formatReportNumber(googleReport?.summary?.leads)}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{formatReportNumber(googleReport?.summary?.qualificados)} qualificados</p>
+                        </div>
+                        <div className="rounded-lg border bg-background p-3">
+                          <p className="text-xs text-muted-foreground">Desqualificados</p>
+                          <p className="mt-1 text-2xl font-semibold">{formatReportNumber(googleReport?.summary?.desqualificados)}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{formatReportNumber(googleReport?.summary?.purchases)} purchases</p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-base">Últimos envios</CardTitle>
+                        <CardDescription>Histórico salvo em `google_ads_event_logs`.</CardDescription>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={loadGoogleLogs}>Atualizar</Button>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1845,7 +1902,7 @@ export default function Integration() {
                         Nenhum evento Google Ads enviado ainda.
                       </div>
                     ) : (
-                      <ScrollArea className="h-[240px] pr-3">
+                      <ScrollArea className="h-[360px] pr-3">
                         <div className="space-y-2">
                           {googleLogs.map((log) => {
                             const statusClass = log.status === 'enviado'
@@ -1882,7 +1939,6 @@ export default function Integration() {
                     )}
                   </CardContent>
                 </Card>
-
               </div>
             </div>
           </TabsContent>

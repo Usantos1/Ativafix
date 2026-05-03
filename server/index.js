@@ -5223,42 +5223,120 @@ app.get('/api/ativa-crm/webhook-events', authenticateToken, async (req, res) => 
       return res.status(403).json({ success: false, error: 'Usuário sem empresa vinculada.', codigo: 'COMPANY_ID_REQUIRED' });
     }
 
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 8, 1), 50);
-    const result = await pool.query(`
-      SELECT
-        id,
-        event_id,
-        conversation_id,
-        ticket_id,
-        message_id,
-        contact_name,
-        contact_phone,
-        message_text,
-        direction,
-        ctwa_clid,
-        source_url,
-        campaign_id,
-        campaign_name,
-        adset_id,
-        ad_id,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        meta_event_id,
-        meta_status,
-        meta_error_message,
-        created_at
-      FROM public.ativa_crm_webhook_events
-      WHERE company_id = $1
-      ORDER BY created_at DESC
-      LIMIT $2
-    `, [req.companyId, limit]);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 25, 1), 50);
+    const events = [];
+    let warning = null;
 
-    res.json({ success: true, data: result.rows });
-  } catch (error) {
-    if (isMissingAtivaCrmWebhookTable(error)) {
-      return res.json({ success: true, data: [], warning: 'ATIVA_CRM_WEBHOOK_EVENTS_MISSING' });
+    try {
+      const result = await pool.query(`
+        SELECT
+          id,
+          event_id,
+          conversation_id,
+          ticket_id,
+          message_id,
+          contact_name,
+          contact_phone,
+          message_text,
+          direction,
+          ctwa_clid,
+          source_url,
+          campaign_id,
+          campaign_name,
+          adset_id,
+          ad_id,
+          utm_source,
+          utm_medium,
+          utm_campaign,
+          meta_event_id,
+          meta_status,
+          meta_error_message,
+          created_at
+        FROM public.ativa_crm_webhook_events
+        WHERE company_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2
+      `, [req.companyId, limit]);
+      events.push(...result.rows);
+    } catch (error) {
+      if (isMissingAtivaCrmWebhookTable(error)) {
+        warning = 'ATIVA_CRM_WEBHOOK_EVENTS_MISSING';
+      } else {
+        throw error;
+      }
     }
+
+    try {
+      const legacyResult = await pool.query(`
+        SELECT
+          l.id,
+          l.nome,
+          l.telefone,
+          l.whatsapp,
+          l.observacoes,
+          l.utm_campaign,
+          l.utm_source,
+          l.utm_medium,
+          l.raw_payload,
+          l.created_at
+        FROM public.leads l
+        WHERE l.webhook_id IS NOT NULL
+           OR l.raw_payload IS NOT NULL
+           OR l.utm_source = 'ativacrm_whatsapp'
+        ORDER BY l.created_at DESC
+        LIMIT $1
+      `, [limit]);
+
+      const mappedLegacy = legacyResult.rows.map((lead) => {
+        const rawPayload = typeof lead.raw_payload === 'string' ? parseWebhookJsonObject(lead.raw_payload) : lead.raw_payload;
+        const extracted = rawPayload ? extractAtivaCrmWebhookData(rawPayload) : {};
+        const message = lead.observacoes
+          ? String(lead.observacoes).replace(/^Mensagem:\s*/i, '').trim()
+          : extracted.messageText;
+        return {
+          id: `lead_${lead.id}`,
+          event_id: `legacy_lead_${lead.id}`,
+          conversation_id: extracted.conversationId || null,
+          ticket_id: extracted.ticketId || null,
+          message_id: extracted.messageId || null,
+          contact_name: lead.nome || extracted.contactName || 'Lead WhatsApp',
+          contact_phone: normalizePhoneForMeta(lead.whatsapp || lead.telefone || extracted.contactPhone || ''),
+          message_text: message || null,
+          direction: extracted.direction || 'inbound',
+          ctwa_clid: extracted.ctwaClid || null,
+          source_url: extracted.sourceUrl || null,
+          campaign_id: extracted.campaignId || null,
+          campaign_name: lead.utm_campaign || extracted.campaignName || null,
+          adset_id: extracted.adsetId || null,
+          ad_id: extracted.adId || null,
+          utm_source: lead.utm_source || extracted.utmSource || null,
+          utm_medium: lead.utm_medium || extracted.utmMedium || null,
+          utm_campaign: lead.utm_campaign || extracted.utmCampaign || null,
+          meta_event_id: null,
+          meta_status: null,
+          meta_error_message: null,
+          created_at: lead.created_at,
+          source: 'legacy_leads',
+        };
+      });
+
+      const existingKeys = new Set(events.map((event) => event.contact_phone || event.event_id));
+      mappedLegacy.forEach((event) => {
+        const key = event.contact_phone || event.event_id;
+        if (!existingKeys.has(key)) {
+          existingKeys.add(key);
+          events.push(event);
+        }
+      });
+    } catch (legacyError) {
+      if (legacyError?.code !== '42P01') {
+        console.warn('[AtivaCRM Webhook] Não foi possível carregar leads do webhook antigo:', legacyError.message);
+      }
+    }
+
+    events.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    res.json({ success: true, data: events.slice(0, limit), warning });
+  } catch (error) {
     console.error('[AtivaCRM Webhook] Erro ao listar eventos:', error);
     res.status(500).json({ success: false, error: error.message });
   }
