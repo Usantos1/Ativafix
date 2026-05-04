@@ -14,10 +14,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { from } from '@/integrations/db/client';
 import { apiClient } from '@/integrations/api/client';
 import { getApiUrl } from '@/utils/apiUrl';
-import { Activity, BadgeDollarSign, BarChart3, CalendarDays, CheckCircle2, Copy, Megaphone, MessageSquare, MousePointerClick, Send, Settings, ShieldCheck, Paperclip, Key, Plug } from 'lucide-react';
+import { Activity, BadgeDollarSign, BarChart3, CalendarDays, CheckCircle2, Copy, Eye, EyeOff, Megaphone, MessageSquare, MousePointerClick, Send, Settings, ShieldCheck, Paperclip, Key, Plug } from 'lucide-react';
 import { useTelegramConfig } from '@/hooks/useTelegramConfig';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ApiManager } from '@/components/ApiManager';
+import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 
 const TAB_VALUES = ['api', 'crm', 'telegram', 'ia', 'meta', 'google'] as const;
 type TabValue = (typeof TAB_VALUES)[number];
@@ -79,6 +80,8 @@ const META_PAYLOAD_EXAMPLE = `{
     "order_id": "OS-1234"
   }
 }`;
+
+const MASKED_CURRENCY_VALUE = 'R$ •••';
 
 interface IntegrationSettings {
   ativaCrmToken: string;
@@ -299,6 +302,7 @@ export default function Integration() {
   const { tab: tabParam } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
   const { isAdmin, user, session } = useAuth();
+  const [valuesVisible, setValuesVisible] = useValuesVisibility();
   const integrationKey = user?.company_id ? `integration_settings_${user.company_id}` : 'integration_settings';
 
   const currentTab: TabValue = TAB_VALUES.includes(tabParam as TabValue) ? (tabParam as TabValue) : 'api';
@@ -1466,8 +1470,24 @@ export default function Integration() {
                           </p>
                         </div>
                         <div className="rounded-lg border bg-background p-3">
-                          <p className="text-xs text-muted-foreground">Valor enviado</p>
-                          <p className="mt-1 text-2xl font-semibold text-blue-700">{formatReportCurrency(metaReport?.purchases?.valor_enviado)}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs text-muted-foreground">Valor enviado</p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setValuesVisible(!valuesVisible)}
+                              title={valuesVisible ? 'Ocultar valor enviado' : 'Exibir valor enviado'}
+                              aria-label={valuesVisible ? 'Ocultar valor enviado para Meta' : 'Exibir valor enviado para Meta'}
+                              aria-pressed={!valuesVisible}
+                            >
+                              {valuesVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          <p className="mt-1 text-2xl font-semibold text-blue-700">
+                            {valuesVisible ? formatReportCurrency(metaReport?.purchases?.valor_enviado) : MASKED_CURRENCY_VALUE}
+                          </p>
                           <p className="mt-1 text-xs text-muted-foreground">Somente purchases enviados</p>
                         </div>
                       </div>
