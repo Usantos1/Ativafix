@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { from } from '@/integrations/db/client';
 import { apiClient } from '@/integrations/api/client';
 import { getApiUrl } from '@/utils/apiUrl';
-import { Activity, BadgeDollarSign, BarChart3, CalendarDays, CheckCircle2, Copy, Eye, EyeOff, Megaphone, MessageSquare, MousePointerClick, Send, Settings, ShieldCheck, Paperclip, Key, Plug } from 'lucide-react';
+import { Activity, BadgeDollarSign, BarChart3, CalendarDays, CheckCircle2, Copy, Eye, EyeOff, Megaphone, MessageSquare, MousePointerClick, RefreshCw, Send, Settings, ShieldCheck, Paperclip, Key, Plug } from 'lucide-react';
 import { useTelegramConfig } from '@/hooks/useTelegramConfig';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ApiManager } from '@/components/ApiManager';
@@ -783,6 +783,33 @@ export default function Integration() {
     }
   };
 
+  const reprocessMetaOsPurchases = async () => {
+    if (!settings.metaAds?.pixelId || !settings.metaAds?.accessToken) {
+      toast.error('Informe Pixel ID e Access Token antes de reprocessar.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await apiClient.post('/meta-ads/reprocess-os-purchases', {
+        startDate: metaReportStartDate,
+        endDate: metaReportEndDate,
+      });
+
+      if (result.error) throw result.error;
+      const payload = result.data as { found?: number; sent?: number; skipped?: number; errors?: number };
+      toast.success(
+        `Reprocessamento concluído: ${payload?.sent ?? 0} enviados, ${payload?.skipped ?? 0} ignorados, ${payload?.errors ?? 0} erros.`
+      );
+      void loadMetaLogs();
+      void loadMetaReport();
+    } catch (error) {
+      toast.error(`Erro ao reprocessar OS faturadas: ${getErrorMessage(error, 'Erro desconhecido')}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const testGoogleAdsIntegration = async () => {
     if (!settings.googleAds?.customerId || !settings.googleAds?.developerToken || !settings.googleAds?.refreshToken) {
       toast.error('Informe Customer ID, Developer Token e Refresh Token antes de testar.');
@@ -1433,6 +1460,10 @@ export default function Integration() {
                       </Popover>
                       <Button type="button" variant="outline" size="sm" onClick={loadMetaReport}>
                         Atualizar
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={reprocessMetaOsPurchases} disabled={loading}>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Reprocessar OS
                       </Button>
                     </div>
                   </div>

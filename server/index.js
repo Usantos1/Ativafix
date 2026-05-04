@@ -609,17 +609,54 @@ async function buildMetaOsPurchaseEvent(saleId) {
 async function sendMetaOsPurchaseForSale(saleId) {
   try {
     const payload = await buildMetaOsPurchaseEvent(saleId);
-    if (!payload) return;
-    if (!await isMetaOsPurchaseEnabled(payload.companyId)) return;
-    await sendMetaEvent(payload.companyId, payload.event, {
+    if (!payload) return { sent: false, reason: 'sale_without_os' };
+    if (!await isMetaOsPurchaseEnabled(payload.companyId)) return { sent: false, reason: 'meta_os_purchase_disabled' };
+    const result = await sendMetaEvent(payload.companyId, payload.event, {
       eventType: 'os_purchase',
       source: 'os_billing',
       saleId: payload.saleId,
       ordemServicoId: payload.ordemServicoId,
     });
+    if (result?.skipped) return { sent: false, reason: result.reason };
+    return { sent: true, result };
   } catch (error) {
     console.error('[Meta Ads] Falha ao enviar conversão de OS:', error.message);
+    return { sent: false, reason: 'send_error', error: error.message };
   }
+}
+
+async function sendMetaOsPurchaseForOrder(ordemServicoId, companyId = null) {
+  if (!ordemServicoId) return { processed: 0, sent: 0, skipped: 0, errors: 0, results: [] };
+
+  const params = [ordemServicoId];
+  let companyFilter = '';
+  if (companyId) {
+    params.push(companyId);
+    companyFilter = `AND company_id = $${params.length}`;
+  }
+
+  const salesResult = await pool.query(`
+    SELECT id
+    FROM public.sales
+    WHERE ordem_servico_id = $1
+      ${companyFilter}
+      AND sale_origin = 'OS'
+      AND status = 'paid'
+      AND COALESCE(is_draft, false) = false
+    ORDER BY finalized_at DESC NULLS LAST, created_at DESC
+  `, params);
+
+  const summary = { processed: 0, sent: 0, skipped: 0, errors: 0, results: [] };
+  for (const row of salesResult.rows) {
+    summary.processed += 1;
+    const result = await sendMetaOsPurchaseForSale(row.id);
+    summary.results.push({ sale_id: row.id, ...result });
+    if (result?.sent) summary.sent += 1;
+    else if (result?.reason === 'send_error') summary.errors += 1;
+    else summary.skipped += 1;
+  }
+
+  return summary;
 }
 
 function buildGooglePurchaseConversionFromMetaPayload(payload, conversionAction, eventType) {
@@ -4137,6 +4174,15 @@ app.post('/api/update/:table', async (req, res) => {
         });
     }
 
+    if (tableNameOnly.toLowerCase() === 'ordens_servico') {
+      const statusValue = String(data?.status || '').toLowerCase();
+      if (statusValue === 'entregue_faturada' || statusValue.includes('faturad')) {
+        result.rows.forEach((row) => {
+          void sendMetaOsPurchaseForOrder(row.id, row.company_id);
+        });
+      }
+    }
+
     res.json({ data: result.rows, rows: result.rows, count: result.rowCount });
   } catch (error) {
     console.error('❌ Erro ao atualizar:', error);
@@ -4851,6 +4897,61 @@ app.post('/api/meta-ads/test-event', authenticateToken, async (req, res) => {
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('[Meta Ads] Erro no evento de teste:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/meta-ads/reprocess-os-purchases', authenticateToken, async (req, res) => {
+  try {
+    if (!req.companyId) {
+      return res.status(403).json({ success: false, error: 'Usuário sem empresa vinculada.', codigo: 'COMPANY_ID_REQUIRED' });
+    }
+
+    const startDate = req.body?.startDate || new Date().toISOString().slice(0, 10);
+    const endDate = req.body?.endDate || startDate;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      return res.status(400).json({ success: false, error: 'Informe startDate/endDate no formato YYYY-MM-DD.' });
+    }
+
+    const salesResult = await pool.query(`
+      SELECT id, ordem_servico_id
+      FROM public.sales
+      WHERE company_id = $1
+        AND sale_origin = 'OS'
+        AND ordem_servico_id IS NOT NULL
+        AND status = 'paid'
+        AND COALESCE(is_draft, false) = false
+        AND COALESCE(finalized_at, created_at) >= $2::date
+        AND COALESCE(finalized_at, created_at) < ($3::date + INTERVAL '1 day')
+      ORDER BY COALESCE(finalized_at, created_at) ASC
+    `, [req.companyId, startDate, endDate]);
+
+    const summary = {
+      period: { startDate, endDate },
+      found: salesResult.rows.length,
+      processed: 0,
+      sent: 0,
+      skipped: 0,
+      errors: 0,
+      results: [],
+    };
+
+    for (const sale of salesResult.rows) {
+      summary.processed += 1;
+      const result = await sendMetaOsPurchaseForSale(sale.id);
+      summary.results.push({
+        sale_id: sale.id,
+        ordem_servico_id: sale.ordem_servico_id,
+        ...result,
+      });
+      if (result?.sent) summary.sent += 1;
+      else if (result?.reason === 'send_error') summary.errors += 1;
+      else summary.skipped += 1;
+    }
+
+    res.json({ success: true, ...summary });
+  } catch (error) {
+    console.error('[Meta Ads] Erro ao reprocessar purchases de OS:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
