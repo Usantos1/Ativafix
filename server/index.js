@@ -528,7 +528,7 @@ async function buildMetaOsPurchaseEvent(saleId) {
       os.cliente_id AS os_cliente_id,
       os.numero AS os_numero,
       os.cliente_nome AS os_cliente_nome,
-      os.cliente_telefone AS os_cliente_telefone,
+      os.telefone_contato AS os_cliente_telefone,
       os.modelo_nome,
       os.marca_nome,
       os.descricao_problema,
