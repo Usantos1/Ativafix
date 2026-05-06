@@ -594,10 +594,12 @@ export default function JobApplicationSteps() {
         if (Number.isNaN(n) || n < 16 || n > 100) newErrors.age = "Idade inválida (16 a 100)";
       }
 
-      // CEP opcional: só valida o formato se a pessoa preencher.
-      if (formData.cep?.trim() && !isValidCEP(formData.cep)) {
+      if (!formData.cep.trim()) {
+        newErrors.cep = "CEP é obrigatório";
+      } else if (!isValidCEP(formData.cep)) {
         newErrors.cep = "CEP inválido (ex.: 13050-120)";
       }
+      if (!formData.address.trim()) newErrors.address = "Endereço é obrigatório";
     } else {
       const questionIndex = stepIndex - 1;
       const question = survey?.questions[questionIndex];
@@ -623,7 +625,7 @@ export default function JobApplicationSteps() {
 
   /* ---------- navegação ---------- */
   // Ordem dos campos no Step 0 — usada pra rolar até o primeiro campo com erro
-  const PERSONAL_FIELD_ORDER = ['name', 'email', 'phone', 'age', 'cep'] as const;
+  const PERSONAL_FIELD_ORDER = ['name', 'email', 'phone', 'age', 'cep', 'address'] as const;
 
   const focusFirstError = (currentErrors: Record<string, string>) => {
     if (typeof window === 'undefined') return;
@@ -699,8 +701,8 @@ export default function JobApplicationSteps() {
       idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     }
 
-    if (!formData.name.trim() || !formData.email.trim()) {
-      toast({ title: "Erro", description: "Nome e e-mail são obrigatórios.", variant: "destructive" });
+    if (!formData.name.trim() || !formData.email.trim() || !formData.cep.trim() || !formData.address.trim()) {
+      toast({ title: "Erro", description: "Nome, e-mail, CEP e endereço são obrigatórios.", variant: "destructive" });
       return;
     }
 
@@ -1466,7 +1468,7 @@ export default function JobApplicationSteps() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="cep" className="text-sm sm:text-base font-medium" style={{ color: 'hsl(var(--job-text))' }}>CEP</Label>
+                        <Label htmlFor="cep" className="text-sm sm:text-base font-medium" style={{ color: 'hsl(var(--job-text))' }}>CEP *</Label>
                         <Input
                           id="cep"
                           inputMode="numeric"
@@ -1482,17 +1484,18 @@ export default function JobApplicationSteps() {
                       <div className="space-y-2 sm:col-span-2">
                         <Label htmlFor="address" className="text-sm sm:text-base font-medium flex items-center gap-2" style={{ color: 'hsl(var(--job-text))' }}>
                           <Home className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
-                          Endereço completo
+                          Endereço completo *
                         </Label>
                         <Input
                           id="address"
                           value={formData.address}
                           onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                           autoComplete="street-address"
-                          className="h-11 sm:h-12 text-base border focus-visible:ring-2 focus-visible:ring-[hsl(var(--job-primary))]"
+                          className={`h-11 sm:h-12 text-base border focus-visible:ring-2 focus-visible:ring-[hsl(var(--job-primary))] ${errors.address ? 'border-red-500' : ''}`}
                           style={fieldStyle}
                           placeholder="Rua, número, bairro, cidade/UF"
                         />
+                        {errors.address && <p className="text-red-600 text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" />{errors.address}</p>}
                       </div>
 
                       <div className="space-y-2">
@@ -1587,40 +1590,9 @@ export default function JobApplicationSteps() {
                 />
               </div>
               
-              <div className="p-4 sm:p-5">
-                {/* Indicadores de etapa */}
-                <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4 overflow-x-auto pb-1">
-                  {steps.map((_, idx) => (
-                    <button
-                      key={idx}
-                      aria-label={`Ir para etapa ${idx + 1}`}
-                      onClick={() => idx <= safeCurrentStep && setCurrentStep(idx)}
-                      disabled={idx > safeCurrentStep}
-                      className={`step-indicator w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                        idx === safeCurrentStep 
-                          ? 'active text-white shadow-md' 
-                          : idx < safeCurrentStep 
-                            ? 'text-white opacity-80 cursor-pointer' 
-                            : 'opacity-40 cursor-not-allowed'
-                      }`}
-                      style={{ 
-                        backgroundColor: idx <= safeCurrentStep 
-                          ? 'hsl(var(--job-primary))' 
-                          : 'hsl(var(--job-card-border))',
-                        color: idx <= safeCurrentStep ? 'white' : 'hsl(var(--job-text-muted))'
-                      }}
-                    >
-                      {idx < safeCurrentStep ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        idx + 1
-                      )}
-                    </button>
-                  ))}
-                </div>
-
+              <div className="p-3 sm:p-4">
                 {/* Info da etapa */}
-                <div className="flex justify-between items-center text-xs sm:text-sm mb-4 flex-wrap gap-2" style={{ color: 'hsl(var(--job-text-muted))' }}>
+                <div className="flex justify-between items-center text-xs sm:text-sm mb-3 flex-wrap gap-2" style={{ color: 'hsl(var(--job-text-muted))' }}>
                   <span className="font-medium">Etapa {safeCurrentStep + 1} de {totalSteps}</span>
                   <div className="flex items-center gap-3">
                     {saving && (

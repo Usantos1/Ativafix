@@ -2176,9 +2176,19 @@ app.post('/api/functions/job-application-save-draft', async (req, res) => {
 app.post('/api/functions/job-application-submit', async (req, res) => {
   try {
     const { survey_id, name, email, phone, age, cep, address, whatsapp, instagram, linkedin, responses } = req.body;
+    const normalizedCep = typeof cep === 'string' ? cep.trim() : '';
+    const normalizedAddress = typeof address === 'string' ? address.trim() : '';
     
     if (!survey_id || !name || !email) {
       return res.status(400).json({ error: 'survey_id, name e email são obrigatórios' });
+    }
+
+    if (!normalizedCep || !normalizedAddress) {
+      return res.status(400).json({ error: 'CEP e endereço são obrigatórios' });
+    }
+
+    if (!/^\d{5}-?\d{3}$/.test(normalizedCep)) {
+      return res.status(400).json({ error: 'CEP inválido (formato: 00000-000)' });
     }
     
     // Buscar a vaga completa (questions, company_name, etc.) para notificação RH e validações
@@ -2235,7 +2245,7 @@ app.post('/api/functions/job-application-submit', async (req, res) => {
         responses, company_id
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
-    `, [survey_id, name.trim(), emailLower, phone, age, cep, address, whatsapp, instagram, linkedin,
+    `, [survey_id, name.trim(), emailLower, phone, age, normalizedCep, normalizedAddress, whatsapp, instagram, linkedin,
         JSON.stringify(responses || {}), companyId]);
     
     const response = insertResult.rows[0];
