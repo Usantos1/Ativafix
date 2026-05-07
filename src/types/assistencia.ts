@@ -301,6 +301,7 @@ export interface Produto {
   estoque_minimo?: number;
   localizacao?: string;
   unidade?: string; // Unidade, Caixa, Kit, Pcs, etc.
+  motivo_ajuste_estoque?: string; // usado apenas para registrar movimentação manual
   /** Grade: por cor (tampas) ou com/sem aro (telas). itens = variante -> quantidade */
   estoque_grade?: { tipo: 'cor' | 'aro'; itens: Record<string, number> };
 
@@ -349,6 +350,7 @@ export interface ProdutoFormData {
   estoque_minimo?: number;
   localizacao?: string;
   unidade?: string;
+  motivo_ajuste_estoque?: string;
   estoque_grade?: { tipo: 'cor' | 'aro'; itens: Record<string, number> };
 
   // Configurações

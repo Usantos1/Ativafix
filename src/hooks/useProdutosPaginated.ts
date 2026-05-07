@@ -647,13 +647,14 @@ export function useProdutosPaginated(options: UseProdutosPaginatedOptions = {}) 
             : beforeCusto;
 
       const userNome = profile?.display_name || user?.email || 'Usuário';
+      const motivoAjusteEstoque = String((data as any).motivo_ajuste_estoque || '').trim() || 'Edição manual do produto';
       const movements: any[] = [];
 
       if (afterQtd !== beforeQtd) {
         movements.push({
           produto_id: id,
           tipo: 'ajuste_estoque',
-          motivo: 'Edição manual do produto',
+          motivo: motivoAjusteEstoque,
           quantidade_antes: beforeQtd,
           quantidade_depois: afterQtd,
           quantidade_delta: afterQtd - beforeQtd,

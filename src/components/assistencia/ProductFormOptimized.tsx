@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -48,6 +49,7 @@ interface FormData {
   estoque_minimo?: number;
   localizacao?: string;
   unidade?: string;
+  motivo_ajuste_estoque?: string;
   garantia_dias?: number | '';
   tipo?: TipoProduto;
   /** Grade: por cor (tampas) ou com/sem aro (telas). Quando preenchido, quantidade = soma dos itens */
@@ -292,9 +294,18 @@ function formatarDescricaoEstoque(
     return null;
   }
 
-  const prefixo = quantidadeDelta < 0 ? 'Saída' : quantidadeDelta > 0 ? 'Entrada' : 'Ajuste';
-  const deltaFormatado = `${quantidadeDelta >= 0 ? '+' : ''}${quantidadeDelta}`;
-  return `${prefixo}: Estoque: ${antes} (${deltaFormatado}) = ${depois}`;
+  const acao = quantidadeDelta < 0 ? 'Saída' : quantidadeDelta > 0 ? 'Entrada' : 'Ajuste';
+  const quantidadeMovimentada = Math.abs(quantidadeDelta);
+  const unidade = quantidadeMovimentada === 1 ? 'unidade' : 'unidades';
+  return `${acao} de ${quantidadeMovimentada} ${unidade}: estoque ${antes} → ${depois}`;
+}
+
+function formatarResumoAjusteEstoque(antes: number, depois: number): string {
+  const delta = depois - antes;
+  const acao = delta < 0 ? 'saída' : delta > 0 ? 'entrada' : 'ajuste';
+  const quantidadeMovimentada = Math.abs(delta);
+  const unidade = quantidadeMovimentada === 1 ? 'unidade' : 'unidades';
+  return `Será registrada uma ${acao} de ${quantidadeMovimentada} ${unidade}. Estoque: ${antes} → ${depois}.`;
 }
 
 function diferencaEmMinutos(dataA: string, dataB: string): number {
@@ -479,6 +490,9 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
         const descricaoEstoque = formatarDescricaoEstoque(m.quantidade_antes, m.quantidade_depois, qtdDelta);
         if (descricaoEstoque) {
           parts.push(descricaoEstoque);
+        }
+        if (m.motivo) {
+          parts.push(`Motivo: ${m.motivo}`);
         }
         if (m.valor_venda_antes !== null && m.valor_venda_depois !== null) {
           parts.push(`Venda: ${formatBRL(Number(m.valor_venda_antes || 0))} → ${formatBRL(Number(m.valor_venda_depois || 0))}`);
@@ -671,7 +685,7 @@ export function ProductFormOptimized({
   const isEditing = Boolean(produto?.id);
   const isCloning = Boolean(produto && !produto.id); // Produto sem ID = clonagem
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, watch, setValue, setError, clearErrors, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       nome: '',
       codigo: undefined,
@@ -689,6 +703,7 @@ export function ProductFormOptimized({
       estoque_minimo: 0,
       localizacao: '',
       unidade: 'UN',
+      motivo_ajuste_estoque: '',
       garantia_dias: undefined as number | undefined,
       tipo: 'PECA' as TipoProduto,
       estoque_grade: undefined,
@@ -700,6 +715,15 @@ export function ProductFormOptimized({
   const precoCusto = watch('preco_custo');
   const valorVenda = watch('valor_venda');
   const valorParcelado = watch('valor_parcelado_6x');
+  const quantidadeAtualForm = watch('quantidade');
+  const estoqueGradeAtual = watch('estoque_grade');
+  const motivoAjusteEstoque = watch('motivo_ajuste_estoque');
+  const estoqueOriginal = Number(produto?.quantidade ?? produto?.estoque_atual ?? 0);
+  const estoqueAtualCalculado = estoqueGradeAtual?.itens
+    ? Object.values(estoqueGradeAtual.itens).reduce((total, qtd) => total + (Number(qtd) || 0), 0)
+    : Number(quantidadeAtualForm || 0);
+  const estoqueAlterado = isEditing && Number.isFinite(estoqueAtualCalculado) && estoqueAtualCalculado !== estoqueOriginal;
+  const estoqueDelta = estoqueAtualCalculado - estoqueOriginal;
   
   // Estados para controlar valores brutos durante digitação (sem formatação)
   const [precoCustoRaw, setPrecoCustoRaw] = useState<string>('');
@@ -739,6 +763,7 @@ export function ProductFormOptimized({
           estoque_minimo: produto.estoque_minimo || 0,
           localizacao: produto.localizacao || '',
           unidade: produto.unidade || 'UN',
+          motivo_ajuste_estoque: '',
           garantia_dias: produto.garantia_dias ?? undefined,
           tipo: (produto.tipo || 'PECA') as TipoProduto,
           estoque_grade: produto.estoque_grade,
@@ -775,6 +800,7 @@ export function ProductFormOptimized({
             estoque_minimo: produto.estoque_minimo || 0,
             localizacao: produto.localizacao || '',
             unidade: produto.unidade || 'UN',
+            motivo_ajuste_estoque: '',
             garantia_dias: produto.garantia_dias ?? undefined,
             tipo: (produto.tipo || 'PECA') as TipoProduto,
             estoque_grade: produto.estoque_grade ? { ...produto.estoque_grade, itens: { ...produto.estoque_grade.itens } } : undefined,
@@ -806,6 +832,7 @@ export function ProductFormOptimized({
             estoque_minimo: 0,
             localizacao: '',
             unidade: 'UN',
+            motivo_ajuste_estoque: '',
             garantia_dias: undefined,
             tipo: 'PECA' as TipoProduto,
           });
@@ -963,6 +990,19 @@ export function ProductFormOptimized({
       } else if (data.quantidade !== undefined && data.quantidade !== null) {
         payload.quantidade = data.quantidade;
         if (isEditing) payload.estoque_grade = null as any; // limpar grade se voltar a estoque simples
+      }
+
+      const quantidadeAnterior = Number(produto?.quantidade ?? produto?.estoque_atual ?? 0);
+      const quantidadeNova = payload.quantidade !== undefined ? Number(payload.quantidade) : quantidadeAnterior;
+      const estoqueFoiAlterado = isEditing && Number.isFinite(quantidadeNova) && quantidadeNova !== quantidadeAnterior;
+      const motivoAjuste = data.motivo_ajuste_estoque?.trim() || '';
+      if (estoqueFoiAlterado) {
+        if (!motivoAjuste) {
+          setActiveTab('estoque');
+          setError('motivo_ajuste_estoque', { type: 'required', message: 'Informe o motivo do ajuste de estoque' });
+          return;
+        }
+        (payload as any).motivo_ajuste_estoque = motivoAjuste;
       }
       // Estoque mínimo: sempre enviar, mesmo se for 0 (para permitir zerar)
       if (data.estoque_minimo !== undefined && data.estoque_minimo !== null) {
@@ -1589,6 +1629,31 @@ export function ProductFormOptimized({
                       />
                     </div>
                   </>
+                )}
+
+                {estoqueAlterado && (
+                  <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+                    <Label htmlFor="motivo_ajuste_estoque" className="text-sm">
+                      Motivo do ajuste de estoque <span className="text-destructive">*</span>
+                      {errors.motivo_ajuste_estoque && (
+                        <span className="text-destructive ml-2">({errors.motivo_ajuste_estoque.message})</span>
+                      )}
+                    </Label>
+                    <Textarea
+                      id="motivo_ajuste_estoque"
+                      {...register('motivo_ajuste_estoque')}
+                      value={motivoAjusteEstoque || ''}
+                      onChange={(event) => {
+                        setValue('motivo_ajuste_estoque', event.target.value);
+                        if (event.target.value.trim()) clearErrors('motivo_ajuste_estoque');
+                      }}
+                      placeholder={estoqueDelta > 0 ? 'Ex: Entrada de peças compradas, correção de contagem...' : 'Ex: Perda, troca, correção de contagem...'}
+                      className="mt-1 min-h-[84px] text-base md:text-sm rounded-lg touch-manipulation"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatarResumoAjusteEstoque(estoqueOriginal, estoqueAtualCalculado)} O motivo ficará no histórico de movimentações.
+                    </p>
+                  </div>
                 )}
 
                 <div className="min-w-0">
