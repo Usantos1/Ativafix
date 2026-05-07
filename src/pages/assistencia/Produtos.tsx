@@ -12,7 +12,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportarProdutos } from '@/components/ImportarProdutos';
 import { ProductFormOptimized } from '@/components/assistencia/ProductFormOptimized';
-import { InventarioDialog } from '@/components/assistencia/InventarioDialog';
 import { useProdutosPaginated } from '@/hooks/useProdutosPaginated';
 import { useMarcasModelosSupabase } from '@/hooks/useMarcasModelosSupabase';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +40,6 @@ import {
   X,
   XCircle,
   Zap,
-  ClipboardList,
   ExternalLink,
   Ban,
   Settings,
@@ -296,7 +294,6 @@ export default function Produtos() {
   const [quantidadeEtiquetas, setQuantidadeEtiquetas] = useState(1);
   const [showEstoqueModal, setShowEstoqueModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [showInventario, setShowInventario] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showInativarDialog, setShowInativarDialog] = useState(false);
   const [produtoToDelete, setProdutoToDelete] = useState<Produto | null>(null);
@@ -841,10 +838,6 @@ export default function Produtos() {
                   <DropdownMenuItem onClick={handleInativar} disabled={!selectedProduto}>
                     <X className="h-4 w-4 mr-2" />
                     Inativar Produto
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowInventario(true)}>
-                    <ClipboardList className="h-4 w-4 mr-2" />
-                    Inventário
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1448,13 +1441,6 @@ export default function Produtos() {
             <ImportarProdutos />
           </DialogContent>
         </Dialog>
-
-        {/* Inventário (página atual) */}
-        <InventarioDialog
-          open={showInventario}
-          onOpenChange={setShowInventario}
-          filtrosAtuais={{ searchTerm, grupo, localizacao }}
-        />
 
         {/* Dialog de Confirmação - Inativar */}
         <AlertDialog open={showInativarDialog} onOpenChange={setShowInativarDialog}>

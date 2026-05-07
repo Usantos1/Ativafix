@@ -3,7 +3,6 @@ import {
   Activity,
   ArrowLeftRight,
   BarChart3,
-  Boxes,
   Clock,
   DollarSign,
   FileText,
@@ -119,7 +118,6 @@ export const operacaoItemsBase: NavigationItem[] = [
 export const estoqueItemsBase: NavigationItem[] = [
   { label: 'Produtos', description: 'Catálogo, preços e cadastro de produtos', path: '/produtos', icon: Package, exact: true, permission: 'produtos.view', section: 'estoque', groupLabel: 'Estoque', contexts: ['pdv'] },
   { label: 'Pedidos', description: 'Pedidos de compra e reposição de itens', path: '/pedidos', icon: List, exact: true, permission: 'produtos.view', section: 'estoque', groupLabel: 'Estoque', contexts: ['pdv'] },
-  { label: 'Inventário', description: 'Conferência e ajustes do estoque físico', path: '/inventario', icon: Boxes, exact: true, permission: 'produtos.view', section: 'estoque', groupLabel: 'Estoque', contexts: ['pdv'] },
 ];
 
 export const relatoriosItemsBase: NavigationItem[] = [
@@ -140,9 +138,9 @@ export const adminItemsBase: NavigationItem[] = [
 
 export function toNavigationItem(m: SegmentMenuEntry, useRoleMenu: boolean): NavigationItem {
   return {
-    label: m.path === '/inventario' ? 'Inventário' : m.label_menu,
+    label: m.label_menu,
     path: m.path || '/',
-    description: `Acessar ${m.path === '/inventario' ? 'Inventário' : m.label_menu}`,
+    description: `Acessar ${m.label_menu}`,
     icon: iconMap[m.icone || ''] || Home,
     exact: true,
     permission: useRoleMenu ? undefined : undefined,

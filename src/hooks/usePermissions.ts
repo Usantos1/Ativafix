@@ -69,12 +69,12 @@ export const SYSTEM_MODULES: PermissionModule[] = [
     ],
   },
   {
-    key: 'produtos', label: 'Produtos / Estoque', description: 'Catálogo, estoque e inventário',
+    key: 'produtos', label: 'Produtos / Estoque', description: 'Catálogo e controle de estoque',
     permissions: [
       { key: 'produtos.view', label: 'Visualizar produtos' },
       { key: 'produtos.create', label: 'Cadastrar produtos' },
       { key: 'produtos.edit', label: 'Editar produtos' },
-      { key: 'produtos.manage', label: 'Gerenciar estoque (marcas, modelos, inventário)' },
+      { key: 'produtos.manage', label: 'Gerenciar estoque, marcas e modelos' },
     ],
   },
   {

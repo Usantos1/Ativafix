@@ -212,7 +212,7 @@ function GradeCorFields({
 interface EstoqueMovimentacao {
   id: string;
   data: string;
-  ref_tipo: 'OS' | 'Venda' | 'Cancelamento' | 'Devolução' | 'Ajuste' | 'Inventário' | 'Troca' | 'Perda' | 'Devolução OS';
+  ref_tipo: 'OS' | 'Venda' | 'Cancelamento' | 'Devolução' | 'Ajuste' | 'Troca' | 'Perda' | 'Devolução OS';
   ref_id?: string;
   ref_numero: number;
   quantidade_delta: number; // negativo = saída, positivo = entrada
@@ -462,9 +462,9 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
       }
     }
 
-    // 3. Movimentações internas (ajustes manuais / inventário / devoluções OS)
+    // 3. Movimentações internas (ajustes manuais / devoluções OS)
     const { data: internalMovs } = await from('produto_movimentacoes')
-      .select('id, tipo, motivo, quantidade_antes, quantidade_depois, quantidade_delta, valor_venda_antes, valor_venda_depois, valor_custo_antes, valor_custo_depois, inventario_id, user_nome, created_at')
+      .select('id, tipo, motivo, quantidade_antes, quantidade_depois, quantidade_delta, valor_venda_antes, valor_venda_depois, valor_custo_antes, valor_custo_depois, user_nome, created_at')
       .eq('produto_id', produtoId)
       .order('created_at', { ascending: false })
       .limit(200)
@@ -473,7 +473,6 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
     if (internalMovs && internalMovs.length > 0) {
       (internalMovs as any[]).forEach((m) => {
         const tipoMov = String(m.tipo || '').toLowerCase();
-        const isInventario = tipoMov.includes('inventario');
         const isDevolucaoOS = tipoMov.includes('devolucao_os') || tipoMov.includes('devolução_os');
         const qtdDeltaSalvo = Number(m.quantidade_delta || 0);
         const qtdDeltaCalculado =
@@ -503,9 +502,7 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
 
         // Determinar tipo de referência
         let refTipo: EstoqueMovimentacao['ref_tipo'] = 'Ajuste';
-        if (isInventario) {
-          refTipo = 'Inventário';
-        } else if (isDevolucaoOS) {
+        if (isDevolucaoOS) {
           refTipo = 'Devolução OS';
         } else if (tipoMov.includes('cancelamento_venda') || tipoMov.includes('cancelamento')) {
           refTipo = 'Cancelamento';
@@ -534,7 +531,6 @@ async function buscarMovimentacoesEstoque(produtoId: string): Promise<EstoqueMov
           id: `internal-${m.id}`,
           data: m.created_at,
           ref_tipo: refTipo,
-          ref_id: m.inventario_id || undefined,
           ref_numero: refTipo === 'OS' || refTipo === 'Devolução OS' ? numeroOS : 0,
           quantidade_delta: Number.isFinite(qtdDelta) ? qtdDelta : 0,
           descricao: parts.length > 0 ? parts.join(' • ') : (m.motivo || 'Ajuste manual'),
@@ -1747,7 +1743,6 @@ export function ProductFormOptimized({
                             'Troca': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
                             'Perda': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
                             'Ajuste': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-                            'Inventário': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
                           };
                           const badgeColor = tipoBadgeColors[mov.ref_tipo] || 'bg-muted';
                           

@@ -50,7 +50,7 @@ Tabelas que **têm filtro por `company_id`** (lista `tablesWithCompanyId` no `se
 - **profiles, positions, user_position_departments, departments, roles, permissions, role_permissions, user_permissions, permission_changes_history:** em geral ligadas a `user_id`; o usuário já está restrito por empresa via `users.company_id`. Queries que listam “todos os perfis” sem filtro de usuário devem ser evitadas ou feitas via rotas que limitem por empresa.  
 - **disc_responses, disc_tests:** podem ser por vaga/empresa; se houver listagens globais, considerar `company_id` ou vínculo com job_survey.  
 - **kv_store_2c4defad:** chaves por empresa: `cupom_config_<company_id>` (cupom), `integration_settings_<company_id>` (API Externa, WhatsApp, OpenAI; frontend Integration.tsx e backend /api/whatsapp/send, /api/functions/analyze-candidate, /api/functions/generate-interview-questions).  
-- **inventarios, inventario_itens, treasury_movements:** se usados em telas por empresa, a tabela deve ter `company_id` e estar em `tablesWithCompanyId` (e migração correspondente).
+- **treasury_movements:** se usada em telas por empresa, a tabela deve ter `company_id` e estar em `tablesWithCompanyId` (e migração correspondente).
 
 ### 6. Revenda — apenas para admin da empresa principal (empresa 1)
 

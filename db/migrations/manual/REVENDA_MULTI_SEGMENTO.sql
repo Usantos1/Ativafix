@@ -107,7 +107,7 @@ INSERT INTO public.modulos (id, nome, slug, descricao, categoria, icone, path, l
     ('a1000001-0000-4000-8000-000000000003', 'Clientes', 'clientes', 'Cadastro de clientes', 'operacao', 'users', '/clientes', 'Clientes', true),
     ('a1000001-0000-4000-8000-000000000004', 'Veículos', 'veiculos', 'Cadastro de veículos', 'operacao', 'car', '/veiculos', 'Veículos', true),
     ('a1000001-0000-4000-8000-000000000005', 'Orçamentos', 'orcamentos', 'Orçamentos', 'operacao', 'file-text', '/orcamentos', 'Orçamentos', true),
-    ('a1000001-0000-4000-8000-000000000006', 'Estoque', 'estoque', 'Controle de estoque', 'estoque', 'package', '/inventario', 'Estoque', true),
+    ('a1000001-0000-4000-8000-000000000006', 'Estoque', 'estoque', 'Controle de estoque', 'estoque', 'package', '/produtos', 'Estoque', true),
     ('a1000001-0000-4000-8000-000000000007', 'Produtos e Peças', 'produtos_pecas', 'Produtos e peças', 'estoque', 'box', '/produtos', 'Produtos e Peças', true),
     ('a1000001-0000-4000-8000-000000000008', 'PDV', 'pdv', 'Ponto de venda', 'operacao', 'shopping-cart', '/pdv', 'PDV', true),
     ('a1000001-0000-4000-8000-000000000009', 'Vendas', 'vendas', 'Histórico de vendas', 'operacao', 'receipt', '/pdv/vendas', 'Vendas', true),
@@ -136,7 +136,7 @@ INSERT INTO public.modulos (nome, slug, descricao, categoria, icone, path, label
 SELECT 'Orçamentos', 'orcamentos', 'Orçamentos', 'operacao', 'file-text', '/orcamentos', 'Orçamentos', true
 WHERE NOT EXISTS (SELECT 1 FROM public.modulos WHERE slug = 'orcamentos');
 INSERT INTO public.modulos (nome, slug, descricao, categoria, icone, path, label_menu, ativo)
-SELECT 'Estoque', 'estoque', 'Controle de estoque', 'estoque', 'package', '/inventario', 'Estoque', true
+SELECT 'Estoque', 'estoque', 'Controle de estoque', 'estoque', 'package', '/produtos', 'Estoque', true
 WHERE NOT EXISTS (SELECT 1 FROM public.modulos WHERE slug = 'estoque');
 INSERT INTO public.modulos (nome, slug, descricao, categoria, icone, path, label_menu, ativo)
 SELECT 'Produtos e Peças', 'produtos_pecas', 'Produtos e peças', 'estoque', 'box', '/produtos', 'Produtos e Peças', true
@@ -263,8 +263,6 @@ INSERT INTO public.recursos (modulo_id, nome, slug, descricao, permission_key, a
 SELECT m.id, 'Entrada e saída', 'entrada_saida', 'Movimentação', 'produtos.edit', true FROM public.modulos m WHERE m.slug = 'estoque' AND NOT EXISTS (SELECT 1 FROM public.recursos r WHERE r.modulo_id = m.id AND r.slug = 'entrada_saida');
 INSERT INTO public.recursos (modulo_id, nome, slug, descricao, permission_key, ativo)
 SELECT m.id, 'Ajuste manual', 'ajuste_manual', 'Ajuste de estoque', 'produtos.edit', true FROM public.modulos m WHERE m.slug = 'estoque' AND NOT EXISTS (SELECT 1 FROM public.recursos r WHERE r.modulo_id = m.id AND r.slug = 'ajuste_manual');
-INSERT INTO public.recursos (modulo_id, nome, slug, descricao, permission_key, ativo)
-SELECT m.id, 'Inventário', 'inventario', 'Inventário', 'produtos.view', true FROM public.modulos m WHERE m.slug = 'estoque' AND NOT EXISTS (SELECT 1 FROM public.recursos r WHERE r.modulo_id = m.id AND r.slug = 'inventario');
 INSERT INTO public.recursos (modulo_id, nome, slug, descricao, permission_key, ativo)
 SELECT m.id, 'Estoque mínimo', 'estoque_minimo', 'Alertas estoque mínimo', 'produtos.view', true FROM public.modulos m WHERE m.slug = 'estoque' AND NOT EXISTS (SELECT 1 FROM public.recursos r WHERE r.modulo_id = m.id AND r.slug = 'estoque_minimo');
 

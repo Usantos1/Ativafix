@@ -65,7 +65,6 @@ import NovaVenda from "./pages/pdv/NovaVenda";
 import Caixa from "./pages/pdv/Caixa";
 import Relatorios from "./pages/Relatorios";
 import Pedidos from "./pages/Pedidos";
-import Inventario from "./pages/Inventario";
 import Orcamentos from "./pages/Orcamentos";
 import Veiculos from "./pages/Veiculos";
 import ConfiguracaoCupom from "./pages/pdv/ConfiguracaoCupom";
@@ -224,7 +223,6 @@ const App = () => {
             <Route path="/teste-disc" element={<PermissionRoute permission="admin.disc"><DiscTest /></PermissionRoute>} />
               <Route path="/produtos" element={<PermissionRoute permission="produtos.view"><AssistenciaProdutos /></PermissionRoute>} />
               <Route path="/pedidos" element={<PermissionRoute permission="produtos.view"><Pedidos /></PermissionRoute>} />
-              <Route path="/inventario" element={<PermissionRoute permission="produtos.view"><Inventario /></PermissionRoute>} />
               
               {/* PDV - Frente de Caixa */}
               <Route path="/pdv" element={<PermissionRoute permission="vendas.create"><NovaVenda /></PermissionRoute>} />

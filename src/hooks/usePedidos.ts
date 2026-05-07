@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { from } from '@/integrations/db/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import type { PaymentMethod } from '@/types/financial';
 
 export type PedidoItem = {
   produto_id: string;
@@ -293,7 +294,7 @@ export function usePedidos() {
   );
 
   const darEntrada = useCallback(
-    async (pedido: Pedido) => {
+    async (pedido: Pedido, params: { payment_method: PaymentMethod }) => {
       setDarEntradaId(pedido.id);
       try {
         let totalDespesa = 0;
@@ -351,8 +352,11 @@ export function usePedidos() {
               expense_type: 'variavel',
               recurring: false,
               reminder_sent: false,
-              status: 'pendente',
+              status: 'pago',
+              payment_date: dueDate,
+              payment_method: params.payment_method,
               created_by: user?.id,
+              paid_by: user?.id,
             })
             .select()
             .execute();
@@ -380,14 +384,16 @@ export function usePedidos() {
         await loadFromDb();
         toast({
           title: 'Entrada concluída',
-          description: `Estoque atualizado.${totalDespesa > 0 ? ' Despesa gerada em Contas a Pagar.' : ''}`,
+          description: `Estoque atualizado.${totalDespesa > 0 ? ' Despesa registrada como paga.' : ''}`,
         });
+        return true;
       } catch (e: any) {
         toast({
           title: 'Erro',
           description: e?.message || 'Não foi possível concluir a entrada.',
           variant: 'destructive',
         });
+        return false;
       } finally {
         setDarEntradaId(null);
       }

@@ -1580,7 +1580,7 @@ export default function AdminReseller() {
                                   loadSegmentos();
                                 }}
                               />
-                              <span className="flex-1 font-medium min-w-0 truncate">{m.path === '/inventario' ? 'Inventário' : (m.label_menu || m.nome)}</span>
+                              <span className="flex-1 font-medium min-w-0 truncate">{m.label_menu || m.nome}</span>
                               <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">{m.path || m.slug}</span>
                               <div className="flex flex-col shrink-0">
                                 <Button
@@ -1678,7 +1678,7 @@ export default function AdminReseller() {
                     <>
                       <ul className="space-y-1 list-disc list-inside">
                         {menuPreview.map((m) => (
-                          <li key={m.id}><strong>{m.path === '/inventario' ? 'Inventário' : (m.label_menu || m.nome)}</strong> — {m.path || m.slug}</li>
+                          <li key={m.id}><strong>{m.label_menu || m.nome}</strong> — {m.path || m.slug}</li>
                         ))}
                       </ul>
                       {menuPreview.length === 0 && selectedSegmento && <p className="text-muted-foreground mt-2">Nenhum módulo ativo no segmento. Ative módulos na aba Módulos.</p>}

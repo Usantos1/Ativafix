@@ -5,11 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClipboardList, Loader2, Plus, Search } from 'lucide-react';
-import { usePedidos, type Pedido } from '@/hooks/usePedidos';
+import { usePedidos, totalCustoPedido, type Pedido } from '@/hooks/usePedidos';
 import { PedidoCard } from '@/components/pedidos/PedidoCard';
 import { PedidoForm } from '@/components/pedidos/PedidoForm';
 import { PedidosResumoCards } from '@/components/pedidos/PedidosResumoCards';
+import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/types/financial';
+import { currencyFormatters } from '@/utils/formatters';
 
 type StatusFilter = 'todos' | 'pendentes' | 'recebidos';
 
@@ -29,6 +34,8 @@ export default function Pedidos() {
   const [editing, setEditing] = useState<Pedido | null>(null);
   const [busca, setBusca] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [pedidoEntrada, setPedidoEntrada] = useState<Pedido | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
 
   const pedidosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -60,6 +67,19 @@ export default function Pedidos() {
     setShowForm(open);
     if (!open) setEditing(null);
   };
+
+  const abrirPagamentoEntrada = (p: Pedido) => {
+    setPedidoEntrada(p);
+    setPaymentMethod('pix');
+  };
+
+  const confirmarEntrada = async () => {
+    if (!pedidoEntrada) return;
+    const ok = await darEntrada(pedidoEntrada, { payment_method: paymentMethod });
+    if (ok) setPedidoEntrada(null);
+  };
+
+  const entradaTotal = pedidoEntrada ? totalCustoPedido(pedidoEntrada.itens) : 0;
 
   return (
     <ModernLayout title="Pedidos" subtitle="Crie pedidos e dê entrada no estoque">
@@ -188,7 +208,7 @@ export default function Pedidos() {
                 key={p.id}
                 pedido={p}
                 onEdit={abrirEdicao}
-                onDarEntrada={darEntrada}
+                onDarEntrada={abrirPagamentoEntrada}
                 onExcluir={excluirPedido}
                 darEntradaLoadingId={darEntradaId}
               />
@@ -203,6 +223,61 @@ export default function Pedidos() {
         editando={editing}
         onSubmit={salvarPedido}
       />
+
+      <Dialog open={!!pedidoEntrada} onOpenChange={(open) => !open && setPedidoEntrada(null)}>
+        <DialogContent className="max-w-md rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Dar entrada no pedido</DialogTitle>
+            <DialogDescription>
+              Selecione a forma de pagamento usada neste pedido. A despesa será registrada como paga no financeiro.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="font-medium text-foreground">{pedidoEntrada?.nome}</p>
+              <p className="text-muted-foreground">
+                Total do pedido: <span className="font-semibold text-foreground">{currencyFormatters.brl(entradaTotal)}</span>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pedido-payment-method">Forma de pagamento</Label>
+              <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
+                <SelectTrigger id="pedido-payment-method" className="min-h-[44px] rounded-full">
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPedidoEntrada(null)}
+              disabled={!!darEntradaId}
+              className="w-full sm:w-auto min-h-[44px] rounded-full"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmarEntrada}
+              disabled={!pedidoEntrada || !!darEntradaId}
+              className="w-full sm:w-auto min-h-[44px] rounded-full"
+            >
+              {darEntradaId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Confirmar entrada
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ModernLayout>
   );
 }
