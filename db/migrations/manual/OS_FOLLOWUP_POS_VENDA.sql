@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.os_pos_venda_followup_settings (
   timezone              VARCHAR(64) NOT NULL DEFAULT 'America/Sao_Paulo',
   template_key          VARCHAR(64) NOT NULL DEFAULT 'default',
   template_mensagem     TEXT NOT NULL DEFAULT '',
+  ativa_crm_tag_id      INTEGER NULL,
   solicitar_avaliacao_google BOOLEAN NOT NULL DEFAULT true,
   texto_avaliacao_google TEXT NOT NULL DEFAULT 'Se puder, sua avaliação no Google ajuda muito nossa empresa.',
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -20,6 +21,9 @@ CREATE TABLE IF NOT EXISTS public.os_pos_venda_followup_settings (
 
 CREATE INDEX IF NOT EXISTS idx_os_pos_venda_followup_settings_company
   ON public.os_pos_venda_followup_settings (company_id);
+
+ALTER TABLE public.os_pos_venda_followup_settings
+  ADD COLUMN IF NOT EXISTS ativa_crm_tag_id INTEGER NULL;
 
 -- Fila / histórico de envios
 CREATE TABLE IF NOT EXISTS public.os_pos_venda_followup_jobs (

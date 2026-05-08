@@ -82,60 +82,60 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-w-[95vw] p-0 overflow-hidden">
-        <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3 border-b-2 border-gray-200">
-          <DialogTitle className="flex items-center gap-2 text-base md:text-lg">
-            <Settings className="h-5 w-5 text-blue-600" />
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl overflow-hidden rounded-2xl p-0">
+        <DialogHeader className="border-b px-5 py-4">
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+            <Settings className="h-4 w-4 text-blue-600" />
             Configurar Dashboard
           </DialogTitle>
-          <DialogDescription className="text-xs md:text-sm">
+          <DialogDescription className="text-xs">
             Personalize widgets, modo apresentação e atualização automática
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="widgets" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mx-4 md:mx-6 mt-4 border-2 border-gray-300 bg-gray-50 h-auto">
+          <TabsList className="mx-5 mt-4 grid h-10 grid-cols-3 rounded-xl bg-muted p-1">
             <TabsTrigger 
               value="widgets" 
-              className="flex items-center justify-center gap-2 text-xs md:text-sm py-2.5 md:py-3 px-2 md:px-4 border-r-2 border-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white"
+              className="flex items-center justify-center gap-1.5 rounded-lg text-xs data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               <LayoutGrid className="h-4 w-4" />
               Widgets
             </TabsTrigger>
             <TabsTrigger 
               value="presentation" 
-              className="flex items-center justify-center gap-2 text-xs md:text-sm py-2.5 md:py-3 px-2 md:px-4 border-r-2 border-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+              className="flex items-center justify-center gap-1.5 rounded-lg text-xs data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               <Monitor className="h-4 w-4" />
               Modo TV
             </TabsTrigger>
             <TabsTrigger 
               value="refresh" 
-              className="flex items-center justify-center gap-2 text-xs md:text-sm py-2.5 md:py-3 px-2 md:px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white"
+              className="flex items-center justify-center gap-1.5 rounded-lg text-xs data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               <RefreshCw className="h-4 w-4" />
               Atualização
             </TabsTrigger>
           </TabsList>
 
-          <div className="px-4 md:px-6 py-4 md:py-6 max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[65dvh] overflow-y-auto px-5 py-4">
             {/* Tab: Widgets */}
-            <TabsContent value="widgets" className="mt-4 space-y-4">
+            <TabsContent value="widgets" className="mt-0 space-y-4">
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Widgets do Dashboard</Label>
                 <p className="text-xs text-muted-foreground">
                   Ative ou desative widgets e organize a ordem de exibição
                 </p>
-                <div className="space-y-2 border-2 border-gray-300 rounded-2xl p-3 bg-gray-50/50">
+                <div className="space-y-2 rounded-xl border bg-muted/30 p-2">
                   {localConfig.widgets
                     .sort((a, b) => a.order - b.order)
                     .map((widget, index) => (
                       <div
                         key={widget.id}
-                        className="flex items-center justify-between p-3 bg-white border-2 border-gray-200 rounded-2xl hover:border-blue-300 transition-colors"
+                        className="flex items-center justify-between rounded-lg border bg-background p-3 transition-colors hover:border-blue-300"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <GripVertical className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                          <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <Label htmlFor={`widget-${widget.id}`} className="text-sm font-medium cursor-pointer truncate">
                             {WIDGET_LABELS[widget.id] || widget.id}
                           </Label>
@@ -176,13 +176,13 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
             </TabsContent>
 
             {/* Tab: Modo Apresentação */}
-            <TabsContent value="presentation" className="mt-4 space-y-4">
+            <TabsContent value="presentation" className="mt-0 space-y-4">
               <div className="space-y-4">
-                <div className="p-4 border-2 border-gray-300 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50">
+                <div className="rounded-xl border bg-purple-50/60 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex-1">
                       <Label htmlFor="presentation-mode" className="text-sm font-semibold flex items-center gap-2">
-                        <Monitor className="h-5 w-5 text-purple-600" />
+                        <Monitor className="h-4 w-4 text-purple-600" />
                         Modo Apresentação (TV)
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -198,7 +198,7 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
                     />
                   </div>
                   {localConfig.presentationMode && (
-                    <div className="mt-3 p-3 bg-white/80 rounded-2xl border border-purple-200">
+                    <div className="mt-3 rounded-lg border border-purple-200 bg-background/80 p-3">
                       <p className="text-xs text-purple-700">
                         <strong>Dica:</strong> Use a tecla ESC ou o botão no canto superior direito para sair do modo apresentação.
                       </p>
@@ -209,14 +209,14 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
             </TabsContent>
 
             {/* Tab: Atualização Automática */}
-            <TabsContent value="refresh" className="mt-4 space-y-4">
+            <TabsContent value="refresh" className="mt-0 space-y-4">
               <div className="space-y-4">
-                <div className="p-4 border-2 border-gray-300 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50">
+                <div className="rounded-xl border bg-emerald-50/60 p-4">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <Label htmlFor="auto-refresh" className="text-sm font-semibold flex items-center gap-2">
-                          <RefreshCw className="h-5 w-5 text-green-600" />
+                          <RefreshCw className="h-4 w-4 text-green-600" />
                           Atualização Automática
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -234,7 +234,7 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
                     </div>
 
                     {localConfig.autoRefreshEnabled && localConfig.presentationMode && (
-                      <div className="mt-4 space-y-3 p-3 bg-white/80 rounded-2xl border border-green-200">
+                      <div className="mt-4 space-y-3 rounded-lg border border-green-200 bg-background/80 p-3">
                         <Label htmlFor="refresh-interval" className="text-sm font-medium">
                           Intervalo de Atualização
                         </Label>
@@ -244,10 +244,10 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
                               key={interval.value}
                               variant={localConfig.autoRefreshInterval === interval.value ? 'default' : 'outline'}
                               size="sm"
-                              className={`h-9 text-xs border-2 ${
+                              className={`h-9 text-xs ${
                                 localConfig.autoRefreshInterval === interval.value
-                                  ? 'bg-green-600 hover:bg-green-700 text-white border-green-700'
-                                  : 'border-gray-300'
+                                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                                  : ''
                               }`}
                               onClick={() => 
                                 setLocalConfig(prev => ({ ...prev, autoRefreshInterval: interval.value }))
@@ -274,7 +274,7 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
                                 autoRefreshInterval: Math.max(10, Math.min(3600, value))
                               }));
                             }}
-                            className="mt-1 h-9 text-base md:text-sm border-2 border-gray-300"
+                            className="mt-1 h-9 text-base md:text-sm"
                             placeholder="60"
                           />
                         </div>
@@ -282,7 +282,7 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
                     )}
 
                     {localConfig.autoRefreshEnabled && !localConfig.presentationMode && (
-                      <div className="mt-3 p-3 bg-yellow-50 rounded-2xl border border-yellow-200">
+                      <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
                         <p className="text-xs text-yellow-700">
                           <strong>Atenção:</strong> A atualização automática só funciona no Modo Apresentação (TV). 
                           Ative o Modo Apresentação primeiro.
@@ -296,17 +296,17 @@ export function DashboardConfigModal({ open, onOpenChange }: DashboardConfigModa
           </div>
         </Tabs>
 
-        <div className="flex gap-2 px-4 md:px-6 pb-4 md:pb-6 border-t-2 border-gray-200">
+        <div className="flex flex-col-reverse gap-2 border-t px-5 py-4 sm:flex-row sm:justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="flex-1 h-9 border-2 border-gray-300"
+            className="h-9 sm:w-28"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
-            className="flex-1 h-9 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0"
+            className="h-9 sm:w-44"
           >
             Salvar Configurações
           </Button>

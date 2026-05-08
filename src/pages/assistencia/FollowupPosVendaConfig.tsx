@@ -51,6 +51,7 @@ type Settings = {
   timezone: string;
   template_key: string;
   template_mensagem: string;
+  ativa_crm_tag_id: number | null;
 };
 
 type JobRow = {
@@ -89,6 +90,7 @@ export default function FollowupPosVendaConfig() {
     timezone: 'America/Sao_Paulo',
     template_key: 'default',
     template_mensagem: DEFAULT_TEMPLATE,
+    ativa_crm_tag_id: null,
   });
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [jobTotal, setJobTotal] = useState(0);
@@ -138,6 +140,7 @@ export default function FollowupPosVendaConfig() {
           timezone: data.timezone || 'America/Sao_Paulo',
           template_key: data.template_key || 'default',
           template_mensagem: data.template_mensagem || DEFAULT_TEMPLATE,
+          ativa_crm_tag_id: data.ativa_crm_tag_id != null ? Number(data.ativa_crm_tag_id) : null,
         });
       }
       if (jRes.ok) {
@@ -325,6 +328,27 @@ export default function FollowupPosVendaConfig() {
                           <SelectItem value="AFTER_24H">24 horas após o faturamento</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="ativa-crm-tag-id">ID da etiqueta no Ativa CRM</Label>
+                      <Input
+                        id="ativa-crm-tag-id"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        value={settings.ativa_crm_tag_id ?? ''}
+                        onChange={(e) =>
+                          setSettings((s) => ({
+                            ...s,
+                            ativa_crm_tag_id: e.target.value ? Number(e.target.value) : null,
+                          }))
+                        }
+                        placeholder="Ex: 194"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Quando o pós-venda automático for enviado pelo Ativa CRM, esta etiqueta será aplicada ao contato/ticket. Ex.: 194 para PÓS-VENDA.
+                      </p>
                     </div>
 
                     <div className="space-y-2">

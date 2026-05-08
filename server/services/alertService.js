@@ -488,6 +488,118 @@ function normalizeAtivaCrmContactName(name, phone = '') {
   return value;
 }
 
+function extractAtivaCrmTicketId(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const candidates = [
+    payload.ticketId,
+    payload.ticket_id,
+    payload.ticket?.id,
+    payload.data?.ticketId,
+    payload.data?.ticket_id,
+    payload.data?.ticket?.id,
+    payload.message?.ticketId,
+    payload.message?.ticket_id,
+    payload.message?.ticket?.id,
+    payload.data?.id,
+    payload.id,
+  ];
+
+  const ticketId = candidates.find((value) => value !== undefined && value !== null && value !== '');
+  return ticketId ? String(ticketId) : null;
+}
+
+function extractAtivaCrmContactId(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const candidates = [
+    payload.contactId,
+    payload.contact_id,
+    payload.contact?.id,
+    payload.data?.contactId,
+    payload.data?.contact_id,
+    payload.data?.contact?.id,
+    payload.message?.contactId,
+    payload.message?.contact_id,
+    payload.message?.contact?.id,
+    payload.ticket?.contactId,
+    payload.ticket?.contact_id,
+    payload.ticket?.contact?.id,
+    payload.data?.ticket?.contactId,
+    payload.data?.ticket?.contact_id,
+    payload.data?.ticket?.contact?.id,
+  ];
+
+  const contactId = candidates.find((value) => value !== undefined && value !== null && value !== '');
+  return contactId ? String(contactId) : null;
+}
+
+async function postAtivaCrmApi({ token, path, payload, label }) {
+  const response = await fetch(`https://api.ativacrm.com/api/${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.warn(`[AtivaCRM] Falha em ${label}:`, response.status, result);
+    return { success: false, status: response.status, data: result, path };
+  }
+
+  return { success: true, status: response.status, data: result, path };
+}
+
+async function updateAtivaCrmContactTag({ token, phone, tagId, contactId, ticketId }) {
+  const cleanPhone = String(phone || '').replace(/\D/g, '');
+  const numericTagId = tagId ? Number(tagId) : null;
+  if (!numericTagId || !Number.isFinite(numericTagId)) return null;
+
+  const attempts = [];
+  const payloads = [
+    cleanPhone ? { number: cleanPhone, tags: [numericTagId] } : null,
+    contactId ? { contactId, tags: [numericTagId] } : null,
+    ticketId ? { ticketId, tags: [numericTagId] } : null,
+  ].filter(Boolean);
+
+  for (const payload of payloads) {
+    const result = await postAtivaCrmApi({
+      token,
+      path: 'updatetag',
+      payload,
+      label: 'aplicar tag ao contato/ticket',
+    });
+    attempts.push(result);
+    if (result.success) return { success: true, attempts };
+  }
+
+  return { success: false, attempts };
+}
+
+async function addAtivaCrmTicketTag({ token, ticketId, tagId }) {
+  if (!ticketId || !tagId) return null;
+
+  const response = await fetch(`https://api.ativacrm.com/api/tickets/${ticketId}/tags`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ tagId: Number(tagId) }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.warn('[AtivaCRM] Falha ao adicionar tag ao ticket:', response.status, result);
+    return { success: false, status: response.status, data: result };
+  }
+
+  return { success: true, status: response.status, data: result };
+}
+
 /**
  * Cria uma função de envio via WhatsApp (Ativa CRM) para uma empresa.
  * Use para chamar dispatch() a partir de outras rotas (ex.: ao criar OS, fechar caixa).
@@ -513,9 +625,11 @@ export function createWhatsAppSender(poolOrClient, companyId, options = {}) {
     const formattedNumber = String(number).replace(/\D/g, '');
     if (!formattedNumber) return { ok: false, error: 'Número inválido' };
     const contactName = normalizeAtivaCrmContactName(contact.name || contact.contactName, formattedNumber);
+    const tagId = contact.tagId ? Number(contact.tagId) : null;
     const payload = {
       number: formattedNumber,
       body,
+      ...(tagId && Number.isFinite(tagId) ? { tagId, tags: [tagId] } : {}),
       ...(contactName ? {
         name: contactName,
         contactName,
@@ -539,6 +653,24 @@ export function createWhatsAppSender(poolOrClient, companyId, options = {}) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return { ok: false, error: data.message || data.error || 'Erro ao enviar' };
+      if (tagId && Number.isFinite(tagId)) {
+        const ticketId = contact.ticketId || extractAtivaCrmTicketId(data);
+        const contactId = contact.contactId || extractAtivaCrmContactId(data);
+        const contactTagResult = await updateAtivaCrmContactTag({
+          token,
+          phone: formattedNumber,
+          tagId,
+          contactId,
+          ticketId,
+        });
+        const ticketTagResult = ticketId
+          ? await addAtivaCrmTicketTag({ token, ticketId, tagId })
+          : null;
+
+        if (contactTagResult && contactTagResult.success === false && !ticketTagResult?.success) {
+          console.warn('[AtivaCRM] Mensagem enviada, mas não foi possível aplicar a tag:', tagId);
+        }
+      }
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e?.message || String(e) };

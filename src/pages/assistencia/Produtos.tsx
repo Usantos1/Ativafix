@@ -74,6 +74,7 @@ const ProdutoTableRow = memo(({
   onDelete,
   onInativar,
   onClone,
+  onShowEstoque,
   index = 0
 }: { 
   produto: Produto; 
@@ -83,6 +84,7 @@ const ProdutoTableRow = memo(({
   onDelete: () => void;
   onInativar: () => void;
   onClone: () => void;
+  onShowEstoque: () => void;
   index?: number;
 }) => {
   const valorVenda = useMemo(() => 
@@ -162,7 +164,14 @@ const ProdutoTableRow = memo(({
         {produto.localizacao || '-'}
       </td>
       {/* Estoque - BADGE DESTACADO */}
-      <td className="text-sm py-3.5 px-3 text-right border-r border-gray-200 dark:border-gray-700 w-[100px]">
+      <td
+        className="text-sm py-3.5 px-3 text-right border-r border-gray-200 dark:border-gray-700 w-[100px] cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30"
+        onClick={(e) => {
+          e.stopPropagation();
+          onShowEstoque();
+        }}
+        title="Clique para ver informações de estoque"
+      >
         <div className="flex items-center justify-end gap-2">
           <span className="font-mono font-bold text-gray-800 dark:text-gray-200">{produto.quantidade || 0}</span>
           <Badge className={`${estoqueStatus.className} text-[10px] px-2 py-0.5 font-semibold`}>
@@ -947,6 +956,10 @@ export default function Produtos() {
                                 onDelete={() => handleDeleteClick(produto)}
                                 onInativar={() => handleInativarClick(produto)}
                                 onClone={() => handleClone(produto)}
+                                onShowEstoque={() => {
+                                  setSelectedProduto(produto);
+                                  setShowEstoqueModal(true);
+                                }}
                                 index={index}
                               />
                             ))
@@ -1037,7 +1050,15 @@ export default function Produtos() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <p className="font-semibold text-foreground text-sm leading-tight truncate uppercase">{descricaoCompleta}</p>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+                                <div
+                                  className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-muted-foreground cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedProduto(produto);
+                                    setShowEstoqueModal(true);
+                                  }}
+                                  title="Toque para ver informações de estoque"
+                                >
                                   <span className="font-mono font-semibold tabular-nums">{quantidade}</span>
                                   <Badge className={`${estoqueStatus.className} text-[10px] px-1.5 py-0`}>{estoqueStatus.label}</Badge>
                                   {produto.referencia && <span>· Ref: {produto.referencia}</span>}

@@ -85,6 +85,20 @@ const INITIAL_FORM: ClienteFormData = {
   estado: '',
 };
 
+const formatClienteEndereco = (cliente: Partial<Cliente>) => {
+  const ruaNumero = [cliente.logradouro, cliente.numero].filter(Boolean).join(', ');
+  const cidadeUf = [cliente.cidade, cliente.estado || cliente.uf].filter(Boolean).join('/');
+  const partes = [
+    ruaNumero,
+    cliente.complemento,
+    cliente.bairro,
+    cidadeUf,
+    cliente.cep ? `CEP ${cliente.cep}` : null,
+  ].filter(Boolean);
+
+  return partes.length > 0 ? partes.join(' - ') : '';
+};
+
 // Tipos de campo de busca
 type SearchFieldType = 'all' | 'nome' | 'cpf_cnpj' | 'rg' | 'telefone' | 'email';
 
@@ -362,9 +376,11 @@ export default function Clientes() {
       const q = searchTerm.toLowerCase();
       return clientes.filter(c => {
         if (searchField === 'all') {
+          const endereco = formatClienteEndereco(c).toLowerCase();
           return (c.nome || '').toLowerCase().includes(q) ||
             c.cpf_cnpj?.includes(searchTerm) ||
-            c.telefone?.includes(searchTerm);
+            c.telefone?.includes(searchTerm) ||
+            endereco.includes(q);
         }
         const value = c[searchField as keyof Cliente];
         return value && String(value).toLowerCase().includes(q);
@@ -983,7 +999,7 @@ export default function Clientes() {
                         >
                           Email {searchField === 'email' && <Search className="inline h-3 w-3 ml-1" />}
                         </th>
-                        <th className="h-12 px-4 text-left align-middle font-semibold bg-muted/60 border-r border-gray-200">Cidade</th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold bg-muted/60 border-r border-gray-200">Endereço</th>
                         <th className="h-12 px-4 text-right align-middle font-semibold bg-muted/60">Ações</th>
                       </tr>
                     </thead>
@@ -1002,7 +1018,21 @@ export default function Clientes() {
                             {cliente.whatsapp || cliente.telefone || '-'}
                           </td>
                           <td className="py-3.5 px-3 align-middle border-r border-gray-200">{cliente.email || '-'}</td>
-                          <td className="py-3.5 px-3 align-middle border-r border-gray-200">{cliente.cidade || '-'}</td>
+                          <td className="py-3.5 px-3 align-middle border-r border-gray-200 max-w-[280px]">
+                            {(() => {
+                              const endereco = formatClienteEndereco(cliente);
+                              return endereco ? (
+                                <div className="min-w-0">
+                                  <p className="text-sm text-foreground line-clamp-2" title={endereco}>{endereco}</p>
+                                  {cliente.cidade && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {[cliente.cidade, cliente.estado || cliente.uf].filter(Boolean).join('/')}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : '-';
+                            })()}
+                          </td>
                           <td className="py-3.5 px-3 align-middle">
                             <div className="flex justify-end gap-1">
                               <Button 
@@ -1049,13 +1079,19 @@ export default function Clientes() {
                               {(cliente.whatsapp || cliente.telefone) && (
                                 <span>{cliente.whatsapp || cliente.telefone}</span>
                               )}
-                              {cliente.cidade && (
-                                <span>{(cliente.whatsapp || cliente.telefone) ? '·' : ''} {cliente.cidade}</span>
-                              )}
                             </div>
                             {cliente.email && (
                               <p className="text-[10px] text-muted-foreground truncate mt-0.5">{cliente.email}</p>
                             )}
+                            {(() => {
+                              const endereco = formatClienteEndereco(cliente);
+                              return endereco ? (
+                                <p className="mt-1 flex items-start gap-1 text-[10px] text-muted-foreground">
+                                  <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+                                  <span className="line-clamp-2">{endereco}</span>
+                                </p>
+                              ) : null;
+                            })()}
                           </div>
                           <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg touch-manipulation" onClick={() => handleEdit(cliente)} aria-label="Editar">

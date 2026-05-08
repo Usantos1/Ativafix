@@ -105,6 +105,7 @@ export function mergeSettingsResponse(row) {
       timezone: 'America/Sao_Paulo',
       template_key: 'default',
       template_mensagem: DEFAULT_TEMPLATE,
+      ativa_crm_tag_id: null,
     };
   }
   return {
@@ -113,28 +114,31 @@ export function mergeSettingsResponse(row) {
     timezone: row.timezone,
     template_key: row.template_key,
     template_mensagem: row.template_mensagem || DEFAULT_TEMPLATE,
+    ativa_crm_tag_id: row.ativa_crm_tag_id != null ? Number(row.ativa_crm_tag_id) : null,
   };
 }
 
 export async function upsertSettings(client, companyId, body) {
-  const { ativo, tipo_regra_envio, timezone, template_key, template_mensagem } = body || {};
+  const { ativo, tipo_regra_envio, timezone, template_key, template_mensagem, ativa_crm_tag_id } = body || {};
 
   const rule =
     tipo_regra_envio === FOLLOWUP_RULES.AFTER_24H
       ? FOLLOWUP_RULES.AFTER_24H
       : FOLLOWUP_RULES.NEXT_DAY_10AM;
+  const tagId = ativa_crm_tag_id ? Number(ativa_crm_tag_id) : null;
 
   await client.query(
     `INSERT INTO os_pos_venda_followup_settings (
        company_id, ativo, tipo_regra_envio, timezone, template_key,
-       template_mensagem, solicitar_avaliacao_google, texto_avaliacao_google
-     ) VALUES ($1,$2,$3,$4,$5,$6, false, '')
+       template_mensagem, ativa_crm_tag_id, solicitar_avaliacao_google, texto_avaliacao_google
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7, false, '')
      ON CONFLICT (company_id) DO UPDATE SET
        ativo = EXCLUDED.ativo,
        tipo_regra_envio = EXCLUDED.tipo_regra_envio,
        timezone = EXCLUDED.timezone,
        template_key = EXCLUDED.template_key,
        template_mensagem = EXCLUDED.template_mensagem,
+       ativa_crm_tag_id = EXCLUDED.ativa_crm_tag_id,
        solicitar_avaliacao_google = false,
        texto_avaliacao_google = '',
        updated_at = now()`,
@@ -145,6 +149,7 @@ export async function upsertSettings(client, companyId, body) {
       timezone || 'America/Sao_Paulo',
       template_key || 'default',
       template_mensagem ?? DEFAULT_TEMPLATE,
+      tagId && Number.isFinite(tagId) ? tagId : null,
     ]
   );
 }
@@ -293,10 +298,12 @@ export async function processDueFollowups(pool, batchSize = 25) {
     for (let i = 0; i < batchSize; i++) {
       await client.query('BEGIN');
       const pick = await client.query(
-        `SELECT * FROM os_pos_venda_followup_jobs
-         WHERE status IN ('pendente', 'agendado') AND scheduled_at <= now()
-         ORDER BY scheduled_at ASC
-         FOR UPDATE SKIP LOCKED
+        `SELECT j.*, s.ativa_crm_tag_id
+         FROM os_pos_venda_followup_jobs j
+         LEFT JOIN os_pos_venda_followup_settings s ON s.company_id = j.company_id
+         WHERE j.status IN ('pendente', 'agendado') AND j.scheduled_at <= now()
+         ORDER BY j.scheduled_at ASC
+         FOR UPDATE OF j SKIP LOCKED
          LIMIT 1`
       );
       if (pick.rows.length === 0) {
@@ -333,6 +340,7 @@ export async function processDueFollowups(pool, batchSize = 25) {
       try {
         sendRes = await send(job.telefone, job.mensagem_renderizada, {
           name: osRow.cliente_nome,
+          tagId: job.ativa_crm_tag_id ?? undefined,
         });
       } catch (sendErr) {
         sendRes = { ok: false, error: sendErr?.message || String(sendErr) };
