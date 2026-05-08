@@ -886,7 +886,7 @@ export default function Clientes() {
             </Button>
           </div>
           <Button
-            onClick={handleOpenAniversarioConfig}
+            onClick={() => navigate('/aniversariantes')}
             variant="outline"
             className="h-11 min-h-[44px] w-full justify-between rounded-xl border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 touch-manipulation"
           >
@@ -938,7 +938,7 @@ export default function Clientes() {
             <Button onClick={() => setShowImportDialog(true)} variant="outline" size="sm" className="gap-2 h-9">
               <Upload className="h-4 w-4" /><span>Importar</span>
             </Button>
-            <Button onClick={handleOpenAniversarioConfig} variant="outline" size="sm" className="gap-2 h-9 border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100">
+            <Button onClick={() => navigate('/aniversariantes')} variant="outline" size="sm" className="gap-2 h-9 border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100">
               <Cake className="h-4 w-4" /><span>Painel Aniversários</span>
             </Button>
           </div>
@@ -1522,8 +1522,8 @@ export default function Clientes() {
 
         {/* Modal de Configuração de Aniversário */}
         <Dialog open={showAniversarioConfig} onOpenChange={setShowAniversarioConfig}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-3 md:p-6">
-            <DialogHeader className="pb-2 md:pb-4">
+          <DialogContent className="flex h-[92dvh] w-[min(1180px,95vw)] max-w-none flex-col overflow-hidden p-0">
+            <DialogHeader className="border-b px-4 py-4 md:px-6">
               <DialogTitle className="text-base md:text-lg flex items-center gap-2">
                 <Cake className="h-5 w-5" />
                 Configuração de Mensagem de Aniversário
@@ -1533,84 +1533,104 @@ export default function Clientes() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2 md:py-4">
-              <div className="space-y-2">
-                <Label className="text-xs md:text-sm">Horário de Envio</Label>
-                <Input
-                  type="time"
-                  value={aniversarioConfig.horario}
-                  onChange={(e) => setAniversarioConfig(prev => ({ ...prev, horario: e.target.value }))}
-                  className="h-9 md:h-10 text-base md:text-sm border-2 border-gray-300"
-                />
-                <p className="text-[10px] md:text-xs text-muted-foreground">
-                  As mensagens serão enviadas automaticamente neste horário para clientes que fazem aniversário no dia.
-                </p>
-              </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+              <div className="space-y-5">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+                  <Card className="border shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Mensagem automática</CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Defina o horário e o texto padrão enviado aos aniversariantes.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs md:text-sm">Horário de envio</Label>
+                        <Input
+                          type="time"
+                          value={aniversarioConfig.horario}
+                          onChange={(e) => setAniversarioConfig(prev => ({ ...prev, horario: e.target.value }))}
+                          className="h-10 text-base md:text-sm"
+                        />
+                        <p className="text-[10px] md:text-xs text-muted-foreground">
+                          As mensagens serão enviadas automaticamente neste horário para clientes que fazem aniversário no dia.
+                        </p>
+                      </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs md:text-sm">Mensagem de Aniversário</Label>
-                <Textarea
-                  value={aniversarioConfig.mensagem}
-                  onChange={(e) => setAniversarioConfig(prev => ({ ...prev, mensagem: e.target.value }))}
-                  rows={8}
-                  className="text-sm border-2 border-gray-300 font-mono"
-                  placeholder="Digite a mensagem que será enviada..."
-                />
-                <p className="text-[10px] md:text-xs text-muted-foreground">
-                  Use {'{nome}'} para incluir o nome do cliente na mensagem. A mensagem será enviada via WhatsApp.
-                </p>
-              </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs md:text-sm">Mensagem de aniversário</Label>
+                        <Textarea
+                          value={aniversarioConfig.mensagem}
+                          onChange={(e) => setAniversarioConfig(prev => ({ ...prev, mensagem: e.target.value }))}
+                          rows={10}
+                          className="min-h-[260px] text-sm font-mono"
+                          placeholder="Digite a mensagem que será enviada..."
+                        />
+                        <p className="text-[10px] md:text-xs text-muted-foreground">
+                          Use {'{nome}'} para incluir o nome do cliente na mensagem. A mensagem será enviada via WhatsApp.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <div className="flex items-center justify-between p-3 border-2 border-gray-300 rounded-lg">
-                <div>
-                  <Label className="text-xs md:text-sm">Ativar envio automático</Label>
-                  <p className="text-[10px] md:text-xs text-muted-foreground">
-                    Quando ativado, as mensagens serão enviadas automaticamente
-                  </p>
+                  <div className="space-y-4">
+                    <Card className="border shadow-sm">
+                      <CardContent className="space-y-4 p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <Label className="text-xs md:text-sm">Ativar envio automático</Label>
+                            <p className="text-[10px] md:text-xs text-muted-foreground">
+                              Quando ativado, as mensagens serão enviadas automaticamente.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={aniversarioConfig.ativo}
+                            onCheckedChange={(checked) => setAniversarioConfig(prev => ({ ...prev, ativo: checked }))}
+                            className="shrink-0"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                      <Card className="border border-emerald-200">
+                        <CardContent className="p-3">
+                          <p className="text-xs text-muted-foreground">Agendadas</p>
+                          <p className="text-2xl font-semibold">{birthdaySummary.pending_jobs}</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="border border-blue-200">
+                        <CardContent className="p-3">
+                          <p className="text-xs text-muted-foreground">Enviadas hoje</p>
+                          <p className="text-2xl font-semibold">{birthdaySummary.sent_jobs}</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="border border-amber-200">
+                        <CardContent className="p-3">
+                          <p className="text-xs text-muted-foreground">Com erro</p>
+                          <p className="text-2xl font-semibold">{birthdaySummary.error_jobs}</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="border border-rose-200">
+                        <CardContent className="p-3">
+                          <p className="text-xs text-muted-foreground">Canceladas</p>
+                          <p className="text-2xl font-semibold">{birthdaySummary.cancelled_jobs}</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                 </div>
-                <Switch
-                  checked={aniversarioConfig.ativo}
-                  onCheckedChange={(checked) => setAniversarioConfig(prev => ({ ...prev, ativo: checked }))}
-                />
-              </div>
 
-              <div className="grid gap-3 md:grid-cols-4">
-                <Card className="border border-emerald-200">
-                  <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground">Agendadas</p>
-                    <p className="text-2xl font-semibold">{birthdaySummary.pending_jobs}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-blue-200">
-                  <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground">Enviadas hoje</p>
-                    <p className="text-2xl font-semibold">{birthdaySummary.sent_jobs}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-amber-200">
-                  <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground">Com erro</p>
-                    <p className="text-2xl font-semibold">{birthdaySummary.error_jobs}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-rose-200">
-                  <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground">Canceladas</p>
-                    <p className="text-2xl font-semibold">{birthdaySummary.cancelled_jobs}</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-3 rounded-xl border bg-background p-4 shadow-sm md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-sm font-medium">Fila de aniversários</p>
                   <p className="text-xs text-muted-foreground">
                     A fila automática é criada para aniversariantes do dia. A lista do mês abaixo é apenas para conferência antecipada.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                   <Select value={birthdayJobFilter} onValueChange={(value) => setBirthdayJobFilter(value as typeof birthdayJobFilter)}>
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-full sm:w-[160px]">
                       <SelectValue placeholder="Filtrar status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1621,18 +1641,19 @@ export default function Clientes() {
                       <SelectItem value="cancelado">Cancelados</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" onClick={handleSyncBirthdayJobs} disabled={birthdaySyncing}>
+                  <Button variant="outline" onClick={handleSyncBirthdayJobs} disabled={birthdaySyncing} className="justify-center">
                     <RefreshCcw className="mr-2 h-4 w-4" />
                     {birthdaySyncing ? 'Sincronizando...' : 'Sincronizar'}
                   </Button>
-                  <Button variant="outline" onClick={handleProcessBirthdayJobs} disabled={birthdayProcessing}>
+                  <Button variant="outline" onClick={handleProcessBirthdayJobs} disabled={birthdayProcessing} className="justify-center">
                     <Send className="mr-2 h-4 w-4" />
                     {birthdayProcessing ? 'Processando...' : 'Processar fila'}
                   </Button>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200">
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-background shadow-sm">
+                <div className="max-h-[360px] overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1727,10 +1748,11 @@ export default function Clientes() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </div>
 
               {/* Aniversariantes do mês — independe do agendamento de hoje */}
-              <div className="rounded-lg border border-gray-200">
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-background shadow-sm">
                 <div className="flex flex-col gap-2 border-b border-gray-200 p-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-sm font-medium">Aniversariantes do mês</p>
@@ -1748,7 +1770,7 @@ export default function Clientes() {
                     </Button>
                   </div>
                 </div>
-                <div className="max-h-[280px] overflow-y-auto">
+                <div className="max-h-[300px] overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1852,19 +1874,20 @@ export default function Clientes() {
                 </div>
               </div>
             </div>
+            </div>
 
-            <DialogFooter className="flex-col sm:flex-row gap-2 pt-3 md:pt-4">
+            <DialogFooter className="flex-col gap-2 border-t bg-background px-4 py-3 sm:flex-row sm:justify-end md:px-6">
               <Button 
                 variant="outline" 
                 onClick={() => setShowAniversarioConfig(false)}
-                className="w-full sm:w-auto h-9 md:h-10 border-2 border-gray-300"
+                className="w-full sm:w-auto h-9 md:h-10"
               >
                 Cancelar
               </Button>
               <Button 
                 onClick={handleSaveAniversarioConfig}
                 disabled={birthdaySaving}
-                className="w-full sm:w-auto h-9 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+                className="w-full sm:w-auto h-9 md:h-10"
               >
                 {birthdaySaving ? 'Salvando...' : 'Salvar Configuração'}
               </Button>

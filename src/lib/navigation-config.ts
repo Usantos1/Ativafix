@@ -3,6 +3,7 @@ import {
   Activity,
   ArrowLeftRight,
   BarChart3,
+  Cake,
   Clock,
   DollarSign,
   FileText,
@@ -63,6 +64,7 @@ export const iconMap: Record<string, LucideIcon> = {
   wallet: Wallet,
   'bar-chart-3': BarChart3,
   activity: Activity,
+  cake: Cake,
 };
 
 const PDV_NAV_ITEMS: NavigationItem[] = [
@@ -87,6 +89,7 @@ const FINANCEIRO_NAV_ITEMS: NavigationItem[] = [
 export const QUICK_NAV_CONFIG: Record<string, NavigationItem[]> = {
   '/financeiro': FINANCEIRO_NAV_ITEMS,
   '/pos-venda': FINANCEIRO_NAV_ITEMS,
+  '/aniversariantes': FINANCEIRO_NAV_ITEMS,
   '/pdv': PDV_NAV_ITEMS,
   '/vendas': PDV_NAV_ITEMS,
   '/pdv/vendas': PDV_NAV_ITEMS,
@@ -124,6 +127,7 @@ export const relatoriosItemsBase: NavigationItem[] = [
   { label: 'Relatórios', description: 'Indicadores e análises operacionais do negócio', path: '/relatorios', icon: Receipt, permission: 'relatorios.view', exact: false, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
   { label: 'Financeiro', description: 'Visão financeira com DRE, contas e fluxo', path: '/financeiro', icon: BarChart3, permission: 'financeiro.view', exact: false, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
   { label: 'Pós-venda', description: 'Automação e histórico de acompanhamento ao cliente', path: '/pos-venda', icon: MessageCircle, permission: 'pos_venda.view', exact: true, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
+  { label: 'Aniversariantes', description: 'Mensagens automáticas de aniversário no WhatsApp', path: '/aniversariantes', icon: Cake, permission: 'pos_venda.view', exact: true, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
   { label: 'Painel de Alertas', description: 'Configurar e acompanhar alertas automáticos', path: '/painel-alertas', icon: Activity, permission: 'alertas.view', exact: false, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
 ];
 

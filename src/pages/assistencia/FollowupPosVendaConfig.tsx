@@ -45,6 +45,18 @@ Está tudo certo com o funcionamento?`;
 
 const VARS = ['{cliente}', '{numero_os}', '{empresa}', '{marca}', '{modelo}', '{data_faturamento}'];
 
+const renderWhatsAppFormattedText = (text: string) =>
+  text.split(/(\*[^*\n]+\*)/g).map((part, index) => {
+    if (/^\*[^*\n]+\*$/.test(part)) {
+      return (
+        <strong key={`${part}-${index}`} className="font-semibold">
+          {part.slice(1, -1)}
+        </strong>
+      );
+    }
+    return part;
+  });
+
 type Settings = {
   ativo: boolean;
   tipo_regra_envio: 'NEXT_DAY_10AM' | 'AFTER_24H';
@@ -376,16 +388,47 @@ export default function FollowupPosVendaConfig() {
             </Card>
           </div>
 
-          <div className="xl:col-span-4 min-w-0 space-y-6 xl:sticky xl:top-4 xl:self-start">
-            <Card className="border shadow-sm bg-muted/20 w-full min-w-0">
+          <div className="xl:col-span-4 min-w-0 space-y-6 xl:sticky xl:top-4 xl:self-stretch">
+            <Card className="flex h-full min-h-[520px] w-full min-w-0 flex-col border bg-muted/20 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Prévia</CardTitle>
-                <CardDescription>Exemplo com dados fictícios</CardDescription>
+                <CardDescription>Como a mensagem vai aparecer no WhatsApp</CardDescription>
               </CardHeader>
-              <CardContent className="min-w-0">
-                <pre className="text-sm whitespace-pre-wrap break-words font-sans leading-relaxed text-foreground border rounded-md p-4 bg-background max-h-[min(60vh,560px)] overflow-y-auto">
-                  {preview}
-                </pre>
+              <CardContent className="flex min-h-0 flex-1 items-center justify-center px-3 pb-4 sm:px-6 sm:pb-6">
+                <div className="aspect-[9/16] h-full max-h-[640px] min-h-[420px] w-auto max-w-full rounded-[1.75rem] border-[6px] border-slate-900 bg-slate-900 shadow-xl sm:rounded-[2rem] sm:border-8">
+                  <div className="flex h-full flex-col overflow-hidden rounded-[1.15rem] bg-[#efeae2] sm:rounded-[1.35rem]">
+                    <div className="flex items-center gap-2.5 bg-[#075e54] px-3 py-2.5 text-white sm:gap-3 sm:px-4 sm:py-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-semibold sm:h-9 sm:w-9 sm:text-sm">
+                        MS
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">Maria Silva</p>
+                        <p className="text-[11px] text-white/75">online</p>
+                      </div>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.35)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.35)_50%,rgba(255,255,255,0.35)_75%,transparent_75%,transparent)] bg-[length:180px_180px,24px_24px] px-2.5 py-3 sm:bg-[length:220px_220px,28px_28px] sm:px-3 sm:py-4">
+                      <div className="mb-3 text-center">
+                        <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] text-slate-500 shadow-sm">
+                          Hoje
+                        </span>
+                      </div>
+                      <div className="ml-auto max-w-[92%] rounded-2xl rounded-tr-sm bg-[#dcf8c6] px-2.5 py-2 text-[12px] leading-relaxed text-slate-900 shadow-sm sm:max-w-[88%] sm:px-3 sm:text-sm">
+                        <p className="whitespace-pre-wrap break-words">
+                          {renderWhatsAppFormattedText(preview || 'Digite a mensagem para ver a prévia.')}
+                        </p>
+                        <div className="mt-1 flex justify-end gap-1 text-[10px] text-slate-500">
+                          <span>10:00</span>
+                          <span className="text-[#34b7f1]">✓✓</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-[#f0f2f5] px-2.5 py-2 sm:px-3">
+                      <div className="truncate rounded-full bg-white px-3 py-2 text-[11px] text-muted-foreground sm:px-4 sm:text-xs">
+                        Mensagem automática de pós-venda
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
