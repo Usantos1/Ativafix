@@ -151,12 +151,14 @@ export default function Devolucoes() {
 
       console.log('[Devolução] Itens da venda raw:', items);
       
-      const saleItems: SaleItem[] = (items || []).map((item: any) => {
+      const saleTotal = Number(sale.total) || 0;
+      const saleItemsBase: SaleItem[] = (items || []).map((item: any) => {
         console.log('[Devolução] Item raw:', item);
         
         // Tentar todas as formas possíveis de obter o preço
         const quantidade = Number(item.quantidade) || Number(item.quantity) || 1;
-        const subtotalItem = Number(item.subtotal) || Number(item.total) || 0;
+        const descontoItem = Number(item.desconto) || Number(item.discount) || 0;
+        const valorTotalItem = Number(item.valor_total) || Number(item.subtotal) || Number(item.total) || 0;
         
         // Preço unitário: tentar campo direto ou calcular do subtotal
         let precoUnit = Number(item.preco_unitario) || 
@@ -164,23 +166,43 @@ export default function Devolucoes() {
                         Number(item.price) || 
                         Number(item.unit_price) || 0;
         
-        // Se não tem preço unitário, calcular do subtotal
-        if (precoUnit === 0 && subtotalItem > 0 && quantidade > 0) {
-          precoUnit = subtotalItem / quantidade;
+        const subtotalBruto = precoUnit * quantidade;
+        let subtotalLiquido = valorTotalItem;
+        
+        // Se não tem total líquido salvo, descontar desconto do item ou calcular pelo preço bruto
+        if (subtotalLiquido === 0) {
+          subtotalLiquido = Math.max(0, subtotalBruto - descontoItem);
         }
         
-        console.log('[Devolução] Item processado:', item.produto_nome, 'qty:', quantidade, 'price:', precoUnit, 'subtotal:', subtotalItem);
+        // Se não tem preço unitário, calcular pelo total líquido
+        if (precoUnit === 0 && subtotalLiquido > 0 && quantidade > 0) {
+          precoUnit = subtotalLiquido / quantidade;
+        }
+        
+        console.log('[Devolução] Item processado:', item.produto_nome, 'qty:', quantidade, 'price:', precoUnit, 'subtotal:', subtotalLiquido);
         
         return {
           id: item.id,
           produto_id: item.produto_id,
           produto_nome: item.produto_nome || item.nome || item.product_name || 'Produto',
           quantidade: quantidade,
-          preco_unitario: precoUnit,
-          subtotal: subtotalItem || (precoUnit * quantidade),
+          preco_unitario: quantidade > 0 ? subtotalLiquido / quantidade : precoUnit,
+          subtotal: subtotalLiquido,
           selected: true,
           refund_qty: quantidade,
           destination: 'stock' as ProductDestination
+        };
+      });
+      const totalItensLiquido = saleItemsBase.reduce((sum, item) => sum + item.subtotal, 0);
+      const fatorDescontoVenda = saleTotal > 0 && totalItensLiquido > saleTotal && totalItensLiquido > 0
+        ? saleTotal / totalItensLiquido
+        : 1;
+      const saleItems = saleItemsBase.map(item => {
+        const subtotalFinal = Number((item.subtotal * fatorDescontoVenda).toFixed(2));
+        return {
+          ...item,
+          subtotal: subtotalFinal,
+          preco_unitario: item.quantidade > 0 ? subtotalFinal / item.quantidade : item.preco_unitario,
         };
       });
 
@@ -248,10 +270,20 @@ export default function Devolucoes() {
 
     setProcessingRefund(true);
     try {
+      const rawRefundTotal = itemsToRefund.reduce((sum, item) => {
+        const qty = Number(item.refund_qty) || Number(item.quantidade) || 1;
+        const price = Number(item.preco_unitario) || Number(item.subtotal / item.quantidade) || 0;
+        return sum + qty * price;
+      }, 0);
+      const maxRefundTotal = Number(saleData.total) || rawRefundTotal;
+      const refundValueFactor = rawRefundTotal > maxRefundTotal && rawRefundTotal > 0
+        ? maxRefundTotal / rawRefundTotal
+        : 1;
       const refundItems = itemsToRefund.map(item => {
         // Garantir que temos valores numéricos válidos
         const qty = Number(item.refund_qty) || Number(item.quantidade) || 1;
-        const price = Number(item.preco_unitario) || Number(item.subtotal / item.quantidade) || 0;
+        const basePrice = Number(item.preco_unitario) || Number(item.subtotal / item.quantidade) || 0;
+        const price = basePrice * refundValueFactor;
         
         console.log('[Devolução] Item:', item.produto_nome, 'Qty:', qty, 'Price:', price);
         
@@ -342,9 +374,10 @@ export default function Devolucoes() {
 
   // Calcular total da devolução
   const calculateRefundTotal = () => {
-    return selectedItems
+    const total = selectedItems
       .filter(i => i.selected)
       .reduce((sum, item) => sum + (item.refund_qty || 0) * item.preco_unitario, 0);
+    return saleData?.total ? Math.min(total, Number(saleData.total)) : total;
   };
 
   const formatCurrency = (value: number) => {

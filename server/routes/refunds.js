@@ -169,6 +169,21 @@ router.post('/', async (req, res) => {
         error: `Esta venda já possui devolução registrada (#${existingRefund.rows[0].refund_number}). Não é possível devolver novamente.`
       });
     }
+
+    const saleResult = await client.query(
+      'SELECT total FROM sales WHERE id = $1 AND company_id = $2',
+      [sale_id, companyId]
+    );
+
+    if (saleResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        error: 'Venda não encontrada'
+      });
+    }
+
+    const saleTotal = Number(saleResult.rows[0].total) || 0;
     
     // Buscar próximo número de devolução (sequência deve existir - rodar CRIAR_SEQUENCIAS_REFUNDS.sql se necessário)
     let seqResult;
@@ -190,6 +205,7 @@ router.post('/', async (req, res) => {
     console.log('[Refund] Items array length:', items?.length);
     
     let totalRefundValue = 0;
+    let refundItemsToInsert = [];
     
     if (!items || items.length === 0) {
       console.log('[Refund] ERRO: Nenhum item recebido!');
@@ -205,7 +221,29 @@ router.post('/', async (req, res) => {
         console.log(`[Refund] Item: ${item.product_name}, qty=${qty}, price=${price}, total=${itemTotal}`);
         
         totalRefundValue += itemTotal;
+        refundItemsToInsert.push({
+          ...item,
+          quantity: qty,
+          unit_price: price,
+          total_price: itemTotal
+        });
       }
+    }
+
+    if (saleTotal > 0 && totalRefundValue > saleTotal) {
+      const refundFactor = saleTotal / totalRefundValue;
+      console.log(`[Refund] Total da devolução (${totalRefundValue}) maior que venda (${saleTotal}). Ajustando fator=${refundFactor}`);
+      totalRefundValue = 0;
+      refundItemsToInsert = refundItemsToInsert.map(item => {
+        const adjustedPrice = item.unit_price * refundFactor;
+        const adjustedTotal = item.quantity * adjustedPrice;
+        totalRefundValue += adjustedTotal;
+        return {
+          ...item,
+          unit_price: adjustedPrice,
+          total_price: adjustedTotal
+        };
+      });
     }
     
     console.log(`[Refund] TOTAL FINAL CALCULADO: R$ ${totalRefundValue}`);
@@ -226,10 +264,10 @@ router.post('/', async (req, res) => {
     const refund = refundResult.rows[0];
     
     // Inserir itens da devolução
-    for (const item of items) {
+    for (const item of refundItemsToInsert) {
       const itemQty = Number(item.quantity) || 1;
       const itemPrice = Number(item.unit_price) || 0;
-      const itemTotal = itemQty * itemPrice;
+      const itemTotal = Number(item.total_price) || itemQty * itemPrice;
       
       await client.query(`
         INSERT INTO refund_items (
