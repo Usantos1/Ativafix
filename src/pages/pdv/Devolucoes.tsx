@@ -17,7 +17,7 @@ import {
   XCircle, Clock, RefreshCw, Eye, Ban, ArrowLeft, Package,
   User, AlertTriangle, ShoppingBag
 } from 'lucide-react';
-import { useRefunds, Refund, Voucher } from '@/hooks/useRefunds';
+import { useRefunds, Refund, Voucher, VoucherUsageHistory } from '@/hooks/useRefunds';
 import { from } from '@/integrations/db/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,6 +64,9 @@ export default function Devolucoes() {
     createRefund,
     approveRefund,
     completeRefund,
+    cancelRefund,
+    cancelVoucher,
+    fetchVoucherHistory,
     fetchRefund
   } = useRefunds();
   const { toast } = useToast();
@@ -77,6 +80,8 @@ export default function Devolucoes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [voucherDialogOpen, setVoucherDialogOpen] = useState(false);
+  const [voucherHistory, setVoucherHistory] = useState<VoucherUsageHistory[]>([]);
+  const [loadingVoucherHistory, setLoadingVoucherHistory] = useState(false);
   const [validationCode, setValidationCode] = useState('');
   
   // Estado do formulário de devolução
@@ -536,17 +541,46 @@ export default function Devolucoes() {
         created_at: result.data.created_at,
         is_transferable: result.data.is_transferable || false
       };
-      setSelectedVoucher(voucher);
-      setVoucherDialogOpen(true);
+      loadVoucherDetails(voucher);
     }
   };
 
-  const handleCancelVoucher = async (id: string) => {
-    toast({
-      title: 'Funcionalidade em desenvolvimento',
-      description: 'O cancelamento de vouchers será implementado em breve',
-      variant: 'default'
-    });
+  const loadVoucherDetails = async (voucher: Voucher) => {
+    setSelectedVoucher(voucher);
+    setVoucherDialogOpen(true);
+    setLoadingVoucherHistory(true);
+    try {
+      const history = await fetchVoucherHistory(voucher.id);
+      setVoucherHistory(history || []);
+    } catch (error) {
+      console.error('Erro ao buscar histórico do voucher:', error);
+      setVoucherHistory([]);
+    } finally {
+      setLoadingVoucherHistory(false);
+    }
+  };
+
+  const handleCancelVoucher = async (voucher: Voucher) => {
+    const reason = window.prompt(
+      `Informe o motivo para cancelar o voucher ${voucher.code}:`,
+      'Cancelamento administrativo'
+    );
+
+    if (!reason?.trim()) return;
+
+    const confirmed = window.confirm(
+      'Confirmar cancelamento do voucher? Se ele estiver vinculado a uma devolução, a devolução também será cancelada.'
+    );
+
+    if (!confirmed) return;
+
+    const result = await cancelVoucher(voucher.id, reason.trim());
+    if (result) {
+      fetchRefunds();
+      fetchVouchers();
+      setVoucherDialogOpen(false);
+      setSelectedVoucher(null);
+    }
   };
 
   // Buscar clientes
@@ -569,6 +603,29 @@ export default function Devolucoes() {
       console.error('Erro ao buscar clientes:', error);
     } finally {
       setSearchingCustomers(false);
+    }
+  };
+
+  const handleCancelRefund = async (refund: Refund) => {
+    const reason = window.prompt(
+      `Informe o motivo para cancelar a devolução #${refund.refund_number}:`,
+      'Cancelamento administrativo'
+    );
+
+    if (!reason?.trim()) return;
+
+    const confirmed = window.confirm(
+      'Confirmar cancelamento da devolução? Se houver voucher vinculado, ele também será cancelado.'
+    );
+
+    if (!confirmed) return;
+
+    const result = await cancelRefund(refund.id, reason.trim());
+    if (result) {
+      fetchRefunds();
+      fetchVouchers();
+      setRefundDetailsOpen(false);
+      setSelectedRefund(null);
     }
   };
 
@@ -862,14 +919,14 @@ export default function Devolucoes() {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-1">
-                                <Button variant="ghost" size="sm" onClick={() => { setSelectedVoucher(voucher); setVoucherDialogOpen(true); }}>
+                                <Button variant="ghost" size="sm" onClick={() => loadVoucherDetails(voucher)}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={() => handlePrintVoucher(voucher)}>
                                   <Printer className="h-4 w-4" />
                                 </Button>
-                                {voucher.status === 'active' && (
-                                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleCancelVoucher(voucher.id)}>
+                                {voucher.status !== 'cancelled' && (
+                                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleCancelVoucher(voucher)}>
                                     <Ban className="h-4 w-4" />
                                   </Button>
                                 )}
@@ -905,14 +962,14 @@ export default function Devolucoes() {
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-md" onClick={() => handleCopyCode(voucher.code)} aria-label="Copiar">
                                 <Copy className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-md" onClick={() => { setSelectedVoucher(voucher); setVoucherDialogOpen(true); }} aria-label="Ver">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-md" onClick={() => loadVoucherDetails(voucher)} aria-label="Ver">
                                 <Eye className="h-3.5 w-3.5" />
                               </Button>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-md" onClick={() => handlePrintVoucher(voucher)} aria-label="Imprimir">
                                 <Printer className="h-3.5 w-3.5" />
                               </Button>
-                              {voucher.status === 'active' && (
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-md text-red-600" onClick={() => handleCancelVoucher(voucher.id)} aria-label="Cancelar">
+                              {voucher.status !== 'cancelled' && (
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-md text-red-600" onClick={() => handleCancelVoucher(voucher)} aria-label="Cancelar">
                                   <Ban className="h-3.5 w-3.5" />
                                 </Button>
                               )}
@@ -1007,6 +1064,11 @@ export default function Devolucoes() {
                                     <Package className="h-4 w-4" />
                                   </Button>
                                 )}
+                                {refund.status !== 'cancelled' && (
+                                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleCancelRefund(refund)} title="Cancelar devolução">
+                                    <Ban className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -1046,6 +1108,11 @@ export default function Devolucoes() {
                                   <Package className="h-3.5 w-3.5" />
                                 </Button>
                               )}
+                              {refund.status !== 'cancelled' && (
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-md text-red-600" onClick={() => handleCancelRefund(refund)} aria-label="Cancelar">
+                                  <Ban className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -1063,7 +1130,7 @@ export default function Devolucoes() {
 
       {/* Dialog de Detalhes do Voucher */}
       <Dialog open={voucherDialogOpen} onOpenChange={setVoucherDialogOpen}>
-        <DialogContent className="max-w-md [&_button]:rounded-full [&_input]:rounded-full [&_[role=combobox]]:rounded-full">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto [&_button]:rounded-full [&_input]:rounded-full [&_[role=combobox]]:rounded-full">
           <DialogHeader>
             <DialogTitle>Detalhes do Voucher</DialogTitle>
           </DialogHeader>
@@ -1099,6 +1166,53 @@ export default function Devolucoes() {
                   <div className="text-sm text-muted-foreground">Emitido em</div>
                   <div className="font-semibold">{formatDate(selectedVoucher.created_at)}</div>
                 </div>
+              </div>
+              
+              <div className="border rounded-lg p-3 space-y-2">
+                <div className="font-semibold text-sm">Uso do voucher</div>
+                {loadingVoucherHistory ? (
+                  <div className="text-sm text-muted-foreground">Carregando histórico...</div>
+                ) : voucherHistory.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Este voucher ainda não foi usado.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {voucherHistory.map((usage) => (
+                      <div key={usage.id} className="rounded-md bg-muted/50 p-3 text-sm space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <div className="text-xs text-muted-foreground">Venda</div>
+                            <div className="font-semibold">#{usage.sale_number || usage.sale_id?.slice(0, 8) || '-'}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Data/Hora de uso</div>
+                            <div className="font-semibold">{formatDate(usage.used_at)}</div>
+                          </div>
+                          <div className="col-span-2">
+                            <div className="text-xs text-muted-foreground">Valor usado</div>
+                            <div className="font-semibold text-green-600">{formatCurrency(usage.amount_used)}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Produto(s)</div>
+                          {usage.items && usage.items.length > 0 ? (
+                            <div className="space-y-1">
+                              {usage.items.map((item, index) => (
+                                <div key={`${usage.id}-${index}`} className="flex justify-between gap-2">
+                                  <span className="min-w-0 truncate">{item.produto_nome || 'Produto'}</span>
+                                  <span className="shrink-0 text-muted-foreground">
+                                    {Number(item.quantidade || 0)}x {formatCurrency(Number(item.valor_total || 0))}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground">Produtos não encontrados para esta venda.</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1289,6 +1403,15 @@ export default function Devolucoes() {
               >
                 <Package className="h-4 w-4 mr-2" />
                 Completar
+              </Button>
+            )}
+            {selectedRefund?.status !== 'cancelled' && selectedRefund && (
+              <Button 
+                variant="destructive"
+                onClick={() => handleCancelRefund(selectedRefund)}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                Cancelar Devolução
               </Button>
             )}
           </DialogFooter>

@@ -510,14 +510,37 @@ router.put('/:id/cancel', async (req, res) => {
     
     const refund = refundResult.rows[0];
     
-    if (refund.status === 'completed') {
-      throw new Error('Não é possível cancelar uma devolução já completada');
+    const wasCompleted = refund.status === 'completed';
+
+    if (refund.status === 'cancelled') {
+      throw new Error('Esta devolução já está cancelada');
+    }
+
+    if (wasCompleted) {
+      const itemsResult = await client.query(
+        'SELECT * FROM refund_items WHERE refund_id = $1',
+        [id]
+      );
+
+      for (const item of itemsResult.rows) {
+        if (item.return_to_stock && item.product_id) {
+          const qty = Math.max(0, Math.round(Number(item.quantity) || 0));
+          if (qty > 0) {
+            await client.query(`
+              UPDATE produtos
+              SET quantidade = GREATEST(COALESCE(quantidade, 0) - $1, 0), updated_at = NOW()
+              WHERE id = $2
+            `, [qty, item.product_id]);
+          }
+        }
+      }
     }
     
-    // Se tiver vale compra, cancelar também
+    // Se tiver vale compra, cancelar também, mesmo se já tiver sido usado.
+    // Mantemos voucher_usage como histórico/auditoria do uso anterior.
     if (refund.voucher_id) {
       await client.query(
-        "UPDATE vouchers SET status = 'cancelled', updated_at = NOW() WHERE id = $1",
+        "UPDATE vouchers SET status = 'cancelled', current_value = 0, updated_at = NOW() WHERE id = $1",
         [refund.voucher_id]
       );
     }
@@ -582,6 +605,89 @@ router.get('/vouchers/list', async (req, res) => {
   } catch (error) {
     console.error('[Vouchers] Erro ao listar vales:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Cancelar vale compra e, se existir, a devolução vinculada
+router.put('/vouchers/:id/cancel', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { id } = req.params;
+    const { reason } = req.body;
+    const companyId = req.companyId;
+    const userId = req.user?.id || null;
+
+    const voucherResult = await client.query(
+      'SELECT * FROM vouchers WHERE id = $1 AND company_id = $2 FOR UPDATE',
+      [id, companyId]
+    );
+
+    if (voucherResult.rows.length === 0) {
+      throw new Error('Vale não encontrado');
+    }
+
+    const voucher = voucherResult.rows[0];
+
+    if (voucher.status === 'cancelled') {
+      throw new Error('Este vale já está cancelado');
+    }
+
+    if (voucher.refund_id) {
+      const refundResult = await client.query(
+        'SELECT * FROM refunds WHERE id = $1 AND company_id = $2 FOR UPDATE',
+        [voucher.refund_id, companyId]
+      );
+
+      if (refundResult.rows.length > 0) {
+        const refund = refundResult.rows[0];
+
+        if (refund.status !== 'cancelled') {
+          if (refund.status === 'completed') {
+            const itemsResult = await client.query(
+              'SELECT * FROM refund_items WHERE refund_id = $1',
+              [refund.id]
+            );
+
+            for (const item of itemsResult.rows) {
+              if (item.return_to_stock && item.product_id) {
+                const qty = Math.max(0, Math.round(Number(item.quantity) || 0));
+                if (qty > 0) {
+                  await client.query(`
+                    UPDATE produtos
+                    SET quantidade = GREATEST(COALESCE(quantidade, 0) - $1, 0), updated_at = NOW()
+                    WHERE id = $2
+                  `, [qty, item.product_id]);
+                }
+              }
+            }
+          }
+
+          await client.query(`
+            UPDATE refunds
+            SET status = 'cancelled', cancelled_by = $1, cancelled_at = NOW(),
+                cancel_reason = $2, updated_at = NOW()
+            WHERE id = $3
+          `, [userId, reason || 'Cancelamento do voucher vinculado', refund.id]);
+        }
+      }
+    }
+
+    await client.query(
+      "UPDATE vouchers SET status = 'cancelled', current_value = 0, updated_at = NOW() WHERE id = $1",
+      [id]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({ success: true, message: 'Vale cancelado com sucesso' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[Vouchers] Erro ao cancelar vale:', error);
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -725,6 +831,7 @@ router.get('/vouchers/:id/history', async (req, res) => {
     const result = await pool.query(`
       SELECT vu.*, 
              s.numero as sale_number,
+             s.created_at as sale_created_at,
              u.email as used_by_email
       FROM voucher_usage vu
       LEFT JOIN sales s ON vu.sale_id = s.id
@@ -732,8 +839,27 @@ router.get('/vouchers/:id/history', async (req, res) => {
       WHERE vu.voucher_id = $1
       ORDER BY vu.used_at DESC
     `, [id]);
+
+    const rowsWithItems = [];
+    for (const row of result.rows) {
+      let items = [];
+      if (row.sale_id) {
+        const itemsResult = await pool.query(`
+          SELECT produto_nome, quantidade, valor_unitario, valor_total
+          FROM sale_items
+          WHERE sale_id = $1
+          ORDER BY created_at ASC
+        `, [row.sale_id]);
+        items = itemsResult.rows;
+      }
+
+      rowsWithItems.push({
+        ...row,
+        items
+      });
+    }
     
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: rowsWithItems });
   } catch (error) {
     console.error('[Vouchers] Erro ao buscar histórico:', error);
     res.status(500).json({ success: false, error: error.message });

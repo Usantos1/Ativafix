@@ -46,10 +46,31 @@ export interface Voucher {
   customer_phone?: string;
   original_value: number;
   current_value: number;
+  value?: number;
+  remaining_value?: number;
   expires_at?: string;
   status: 'active' | 'used' | 'expired' | 'cancelled';
   is_transferable: boolean;
   created_at: string;
+}
+
+export interface VoucherUsageHistory {
+  id: string;
+  voucher_id: string;
+  sale_id?: string;
+  sale_number?: number;
+  sale_created_at?: string;
+  amount_used: number;
+  balance_before: number;
+  balance_after: number;
+  used_by_email?: string;
+  used_at: string;
+  items?: Array<{
+    produto_nome?: string;
+    quantidade?: number;
+    valor_unitario?: number;
+    valor_total?: number;
+  }>;
 }
 
 export interface CreateRefundData {
@@ -285,6 +306,32 @@ export function useRefunds() {
     }
   }, [toast, queryClient]);
 
+  const cancelVoucher = useCallback(async (id: string, reason: string) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.put(`/refunds/vouchers/${id}/cancel`, { reason });
+      if (response.data?.success) {
+        queryClient.invalidateQueries({ queryKey: REFUNDS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: VOUCHERS_QUERY_KEY });
+        toast({
+          title: 'Sucesso',
+          description: 'Voucher cancelado'
+        });
+        return true;
+      }
+      throw new Error(response.data?.error || response.error);
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao cancelar voucher',
+        variant: 'destructive'
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [toast, queryClient]);
+
   const checkVoucher = useCallback(async (code: string) => {
     setLoading(true);
     try {
@@ -352,6 +399,7 @@ export function useRefunds() {
     approveRefund,
     completeRefund,
     cancelRefund,
+    cancelVoucher,
     fetchVouchers,
     checkVoucher,
     useVoucher,
