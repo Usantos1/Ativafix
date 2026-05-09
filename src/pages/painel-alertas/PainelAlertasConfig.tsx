@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useAlertsPanel, useAlertsTest, type PanelConfig } from '@/hooks/useAlerts';
-import { Send } from 'lucide-react';
 import { DIAS_SEMANA } from './constants';
 import { PainelAlertasNav } from './PainelAlertasNav';
 
@@ -90,7 +89,7 @@ export default function PainelAlertasConfig() {
           <p className="text-muted-foreground">Carregando...</p>
         ) : (
           <div className="space-y-6 pb-4 overflow-auto">
-            <Card>
+            <Card className="rounded-2xl border-border">
               <CardHeader>
                 <CardTitle>Configurações gerais</CardTitle>
                 <CardDescription>
@@ -101,7 +100,7 @@ export default function PainelAlertasConfig() {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <Label>Ativar Painel de Alertas</Label>
-                    <p className="text-xs text-muted-foreground">Quando desativado, nenhum alerta é enviado.</p>
+                    <p className="text-xs text-foreground/70 dark:text-foreground/80">Quando desativado, nenhum alerta é enviado.</p>
                   </div>
                   <Switch
                     checked={form.ativo ?? false}
@@ -116,6 +115,7 @@ export default function PainelAlertasConfig() {
                       value={form.nome_painel ?? ''}
                       onChange={(e) => setForm((f) => ({ ...f, nome_painel: e.target.value }))}
                       placeholder="Ex.: Painel de Alertas"
+                      className="border-border bg-background text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                   <div className="space-y-2">
@@ -125,6 +125,7 @@ export default function PainelAlertasConfig() {
                       value={form.numero_principal ?? ''}
                       onChange={(e) => setForm((f) => ({ ...f, numero_principal: e.target.value }))}
                       placeholder="Ex.: 5511999999999"
+                      className="border-border bg-background text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                 </div>
@@ -136,7 +137,7 @@ export default function PainelAlertasConfig() {
                     onChange={(e) => setNumerosAdicionaisText(e.target.value)}
                     placeholder="5511888888888, 5511777777777"
                     rows={2}
-                    className="resize-none"
+                    className="resize-none border-border bg-background text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -147,6 +148,7 @@ export default function PainelAlertasConfig() {
                       type="time"
                       value={form.horario_inicio_envio ?? '08:00'}
                       onChange={(e) => setForm((f) => ({ ...f, horario_inicio_envio: e.target.value }))}
+                      className="border-border bg-background text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
@@ -156,6 +158,7 @@ export default function PainelAlertasConfig() {
                       type="time"
                       value={form.horario_fim_envio ?? '22:00'}
                       onChange={(e) => setForm((f) => ({ ...f, horario_fim_envio: e.target.value }))}
+                      className="border-border bg-background text-foreground"
                     />
                   </div>
                 </div>
@@ -165,7 +168,7 @@ export default function PainelAlertasConfig() {
                     value={form.timezone ?? 'America/Sao_Paulo'}
                     onValueChange={(v) => setForm((f) => ({ ...f, timezone: v }))}
                   >
-                    <SelectTrigger id="timezone">
+                    <SelectTrigger id="timezone" className="border-border bg-background text-foreground">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -184,12 +187,12 @@ export default function PainelAlertasConfig() {
                     <Label>Ativar relatório diário automático</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label className="text-muted-foreground">Horário:</Label>
+                    <Label className="text-foreground/70 dark:text-foreground/80">Horário:</Label>
                     <Input
                       type="time"
                       value={form.horario_relatorio_diario ?? '19:00'}
                       onChange={(e) => setForm((f) => ({ ...f, horario_relatorio_diario: e.target.value }))}
-                      className="w-32"
+                      className="w-32 border-border bg-background text-foreground"
                     />
                   </div>
                 </div>
@@ -202,12 +205,12 @@ export default function PainelAlertasConfig() {
                     <Label>Ativar resumo semanal</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label className="text-muted-foreground">Dia:</Label>
+                    <Label className="text-foreground/70 dark:text-foreground/80">Dia:</Label>
                     <Select
                       value={String(form.dia_resumo_semanal ?? 0)}
                       onValueChange={(v) => setForm((f) => ({ ...f, dia_resumo_semanal: parseInt(v, 10) }))}
                     >
-                      <SelectTrigger className="w-36">
+                      <SelectTrigger className="w-36 border-border bg-background text-foreground">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -218,25 +221,30 @@ export default function PainelAlertasConfig() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Label className="text-muted-foreground">Horário:</Label>
+                    <Label className="text-foreground/70 dark:text-foreground/80">Horário:</Label>
                     <Input
                       type="time"
                       value={form.horario_resumo_semanal ?? '09:00'}
                       onChange={(e) => setForm((f) => ({ ...f, horario_resumo_semanal: e.target.value }))}
-                      className="w-32"
+                      className="w-32 border-border bg-background text-foreground"
                     />
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <Button onClick={handleSavePanel} disabled={savePanelLoading}>
+                  <Button
+                    className="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400"
+                    onClick={handleSavePanel}
+                    disabled={savePanelLoading}
+                  >
                     {savePanelLoading ? 'Salvando...' : 'Salvar configurações'}
                   </Button>
                   <Button
                     variant="outline"
+                    className="border-blue-200 bg-blue-50 text-blue-900 hover:bg-blue-100 hover:text-blue-950 disabled:bg-blue-50 disabled:text-blue-900 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-100 dark:hover:bg-blue-500/25 dark:hover:text-blue-50 dark:disabled:bg-blue-500/15 dark:disabled:text-blue-100"
                     onClick={handleTestSend}
                     disabled={testLoading || !form.numero_principal}
                   >
-                    <Send className="h-4 w-4 mr-2" />
+                    <img src="/whatsapp-logo.png" alt="" className="mr-2 h-4 w-4 object-contain" />
                     {testLoading ? 'Enviando...' : 'Testar envio'}
                   </Button>
                 </div>

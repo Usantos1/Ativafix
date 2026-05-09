@@ -354,7 +354,7 @@ export function DREComplete({
   }, [transactions, sales, billsPaid, saleItems, osItems, produtos]);
 
   return (
-    <Card className="rounded-2xl border-2 border-gray-300 dark:border-gray-600 overflow-hidden min-w-0">
+    <Card className="rounded-2xl border-2 border-border overflow-hidden min-w-0">
       <CardHeader className="pb-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between gap-4">
           <div className="min-w-0">
@@ -370,13 +370,13 @@ export function DREComplete({
               onCustomDateStartChange={onCustomDateStartChange}
               onCustomDateEndChange={onCustomDateEndChange}
               onDatesChange={onDatesChange}
-              className="border-2 border-gray-300 dark:border-gray-600 rounded-2xl md:rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto min-w-0"
+              className="border-2 border-border rounded-2xl md:rounded-full shadow-sm flex-shrink-0 w-full sm:w-auto min-w-0"
             />
           )}
         </div>
       </CardHeader>
       <CardContent className="min-w-0">
-        <div className="border-2 border-gray-200 dark:border-gray-600 rounded-2xl overflow-x-auto min-w-0">
+        <div className="border-2 border-border rounded-2xl overflow-x-auto min-w-0">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -386,23 +386,23 @@ export function DREComplete({
             </TableHeader>
             <TableBody>
               {/* RECEITA BRUTA DE VENDAS */}
-              <TableRow className="bg-green-50/50">
-                <TableCell className="font-bold text-green-700 flex items-center gap-2">
+              <TableRow className="bg-emerald-50/80 dark:bg-emerald-500/15">
+                <TableCell className="font-bold text-emerald-800 dark:text-emerald-100 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
                   RECEITA BRUTA DE VENDAS
                 </TableCell>
-                <TableCell className="text-right font-bold text-green-700">
+                <TableCell className="text-right font-bold text-emerald-800 dark:text-emerald-100">
                   {fmt(dreData.receitaBrutaVendas)}
                 </TableCell>
               </TableRow>
 
               {/* CMV - CUSTO DAS MERCADORIAS VENDIDAS */}
-              <TableRow className="bg-orange-50/50">
-                <TableCell className="font-bold text-orange-700 flex items-center gap-2">
+              <TableRow className="bg-orange-50/80 dark:bg-orange-500/15">
+                <TableCell className="font-bold text-orange-800 dark:text-orange-100 flex items-center gap-2">
                   <Package className="h-4 w-4" />
                   (-) CMV - Custo das Mercadorias/Peças
                 </TableCell>
-                <TableCell className="text-right font-bold text-orange-700">
+                <TableCell className="text-right font-bold text-orange-800 dark:text-orange-100">
                   ({fmt(dreData.cmv)})
                 </TableCell>
               </TableRow>
@@ -410,12 +410,12 @@ export function DREComplete({
               {/* LUCRO BRUTO */}
               <TableRow className={cn(
                 "border-t-2 border-b-2",
-                dreData.lucroBruto >= 0 ? 'bg-blue-50/50' : 'bg-red-100/50'
+                dreData.lucroBruto >= 0 ? 'bg-blue-50/80 dark:bg-blue-500/15' : 'bg-red-100/70 dark:bg-red-500/15'
               )}>
                 <TableCell className="font-bold text-lg">LUCRO BRUTO</TableCell>
                 <TableCell className={cn(
                   "text-right font-bold text-lg",
-                  dreData.lucroBruto >= 0 ? 'text-blue-700' : 'text-red-700'
+                  dreData.lucroBruto >= 0 ? 'text-blue-800 dark:text-blue-100' : 'text-red-800 dark:text-red-100'
                 )}>
                   {fmt(dreData.lucroBruto)}
                 </TableCell>
@@ -424,7 +424,7 @@ export function DREComplete({
                 <TableCell className="pl-8 text-sm text-muted-foreground">Margem Bruta</TableCell>
                 <TableCell className={cn(
                   "text-right font-semibold",
-                  dreData.margemBruta >= 0 ? 'text-blue-600' : 'text-red-600'
+                  dreData.margemBruta >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'
                 )}>
                   {dreData.margemBruta.toFixed(2)}%
                 </TableCell>
@@ -433,16 +433,16 @@ export function DREComplete({
               {/* OUTRAS RECEITAS */}
               {dreData.totalOutrasReceitas > 0 && (
                 <>
-                  <TableRow className="bg-green-50/30">
-                    <TableCell className="font-bold text-green-700">(+) OUTRAS RECEITAS</TableCell>
-                    <TableCell className="text-right font-bold text-green-700">
+                  <TableRow className="bg-emerald-50/70 dark:bg-emerald-500/10">
+                    <TableCell className="font-bold text-emerald-800 dark:text-emerald-100">(+) OUTRAS RECEITAS</TableCell>
+                    <TableCell className="text-right font-bold text-emerald-800 dark:text-emerald-100">
                       {fmt(dreData.totalOutrasReceitas)}
                     </TableCell>
                   </TableRow>
                   {Object.entries(dreData.outrasReceitas).map(([descricao, valor]) => (
                     <TableRow key={descricao}>
                       <TableCell className="pl-8">{descricao}</TableCell>
-                      <TableCell className="text-right text-green-600">{fmt(valor)}</TableCell>
+                      <TableCell className="text-right text-emerald-700 dark:text-emerald-300">{fmt(valor)}</TableCell>
                     </TableRow>
                   ))}
                 </>
@@ -451,19 +451,19 @@ export function DREComplete({
               {/* DESPESAS FIXAS */}
               {dreData.totalDespesasFixas > 0 && (
                 <>
-                  <TableRow className="bg-red-50/50">
-                    <TableCell className="font-bold text-red-700 flex items-center gap-2">
+                  <TableRow className="bg-red-50/80 dark:bg-red-500/15">
+                    <TableCell className="font-bold text-red-800 dark:text-red-100 flex items-center gap-2">
                       <TrendingDown className="h-4 w-4" />
                       (-) DESPESAS FIXAS
                     </TableCell>
-                    <TableCell className="text-right font-bold text-red-700">
+                    <TableCell className="text-right font-bold text-red-800 dark:text-red-100">
                       ({fmt(dreData.totalDespesasFixas)})
                     </TableCell>
                   </TableRow>
                   {Object.entries(dreData.despesasFixas).map(([descricao, valor]) => (
                     <TableRow key={`fixa-${descricao}`}>
                       <TableCell className="pl-8">{descricao}</TableCell>
-                      <TableCell className="text-right text-red-600">({fmt(valor)})</TableCell>
+                      <TableCell className="text-right text-red-700 dark:text-red-300">({fmt(valor)})</TableCell>
                     </TableRow>
                   ))}
                 </>
@@ -472,25 +472,25 @@ export function DREComplete({
               {/* DESPESAS VARIÁVEIS */}
               {dreData.totalDespesasVariaveis > 0 && (
                 <>
-                  <TableRow className="bg-red-50/30">
-                    <TableCell className="font-bold text-red-600">(-) DESPESAS VARIÁVEIS</TableCell>
-                    <TableCell className="text-right font-bold text-red-600">
+                  <TableRow className="bg-red-50/70 dark:bg-red-500/10">
+                    <TableCell className="font-bold text-red-700 dark:text-red-200">(-) DESPESAS VARIÁVEIS</TableCell>
+                    <TableCell className="text-right font-bold text-red-700 dark:text-red-200">
                       ({fmt(dreData.totalDespesasVariaveis)})
                     </TableCell>
                   </TableRow>
                   {Object.entries(dreData.despesasVariaveis).map(([descricao, valor]) => (
                     <TableRow key={`var-${descricao}`}>
                       <TableCell className="pl-8">{descricao}</TableCell>
-                      <TableCell className="text-right text-red-600">({fmt(valor)})</TableCell>
+                      <TableCell className="text-right text-red-700 dark:text-red-300">({fmt(valor)})</TableCell>
                     </TableRow>
                   ))}
                 </>
               )}
 
               {/* TOTAL DESPESAS OPERACIONAIS */}
-              <TableRow className="bg-red-100/50">
-                <TableCell className="font-bold text-red-700">TOTAL DESPESAS OPERACIONAIS</TableCell>
-                <TableCell className="text-right font-bold text-red-700">
+              <TableRow className="bg-red-100/70 dark:bg-red-500/15">
+                <TableCell className="font-bold text-red-800 dark:text-red-100">TOTAL DESPESAS OPERACIONAIS</TableCell>
+                <TableCell className="text-right font-bold text-red-800 dark:text-red-100">
                   ({fmt(dreData.totalDespesasOperacionais)})
                 </TableCell>
               </TableRow>
@@ -498,12 +498,12 @@ export function DREComplete({
               {/* RESULTADO OPERACIONAL (EBITDA) */}
               <TableRow className={cn(
                 "border-t-2 border-b-2",
-                dreData.resultadoOperacional >= 0 ? 'bg-blue-50/50' : 'bg-red-100/50'
+                dreData.resultadoOperacional >= 0 ? 'bg-blue-50/80 dark:bg-blue-500/15' : 'bg-red-100/70 dark:bg-red-500/15'
               )}>
                 <TableCell className="font-bold text-lg">RESULTADO OPERACIONAL (EBITDA)</TableCell>
                 <TableCell className={cn(
                   "text-right font-bold text-lg",
-                  dreData.resultadoOperacional >= 0 ? 'text-blue-700' : 'text-red-700'
+                  dreData.resultadoOperacional >= 0 ? 'text-blue-800 dark:text-blue-100' : 'text-red-800 dark:text-red-100'
                 )}>
                   {fmt(dreData.resultadoOperacional)}
                 </TableCell>
@@ -512,7 +512,7 @@ export function DREComplete({
                 <TableCell className="pl-8 text-sm text-muted-foreground">Margem Operacional</TableCell>
                 <TableCell className={cn(
                   "text-right font-semibold",
-                  dreData.margemOperacional >= 0 ? 'text-blue-600' : 'text-red-600'
+                  dreData.margemOperacional >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'
                 )}>
                   {dreData.margemOperacional.toFixed(2)}%
                 </TableCell>
@@ -522,14 +522,14 @@ export function DREComplete({
               {dreData.impostos > 0 && (
                 <TableRow>
                   <TableCell className="pl-8">(-) Impostos e Contribuições (Estimado 6%)</TableCell>
-                  <TableCell className="text-right text-red-600">({fmt(dreData.impostos)})</TableCell>
+                  <TableCell className="text-right text-red-700 dark:text-red-300">({fmt(dreData.impostos)})</TableCell>
                 </TableRow>
               )}
 
               {/* LUCRO LÍQUIDO */}
               <TableRow className={cn(
                 "border-t-2 border-b-2",
-                dreData.lucroLiquido >= 0 ? 'bg-green-50/80 border-green-600' : 'bg-red-50/80 border-destructive'
+                dreData.lucroLiquido >= 0 ? 'bg-emerald-50/90 border-emerald-600 dark:bg-emerald-500/20 dark:border-emerald-400' : 'bg-red-50/90 border-destructive dark:bg-red-500/20'
               )}>
                 <TableCell className="font-bold text-xl flex items-center gap-2">
                   <DollarSign className="h-5 w-5" />
@@ -537,7 +537,7 @@ export function DREComplete({
                 </TableCell>
                 <TableCell className={cn(
                   "text-right font-bold text-xl",
-                  dreData.lucroLiquido >= 0 ? 'text-green-700' : 'text-red-700'
+                  dreData.lucroLiquido >= 0 ? 'text-emerald-800 dark:text-emerald-100' : 'text-red-800 dark:text-red-100'
                 )}>
                   {fmt(dreData.lucroLiquido)}
                 </TableCell>
@@ -546,7 +546,7 @@ export function DREComplete({
                 <TableCell className="font-medium">Margem Líquida</TableCell>
                 <TableCell className={cn(
                   "text-right font-bold text-lg",
-                  dreData.margemLiquida >= 0 ? 'text-green-700' : 'text-red-700'
+                  dreData.margemLiquida >= 0 ? 'text-emerald-800 dark:text-emerald-300' : 'text-red-800 dark:text-red-300'
                 )}>
                   {dreData.margemLiquida.toFixed(2)}%
                 </TableCell>
@@ -557,32 +557,39 @@ export function DREComplete({
 
         {/* Indicadores */}
         <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
-          <div className="flex h-14 items-center justify-between gap-2 bg-green-50 rounded-2xl md:rounded-full border-2 border-green-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Receita Bruta</p>
-            <p className="text-lg font-bold text-green-600 tabular-nums shrink-0">{fmt(dreData.receitaBrutaVendas)}</p>
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-emerald-200 bg-emerald-50 px-4 text-emerald-950 min-w-0 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-50">
+            <p className="text-xs font-medium text-emerald-900/80 truncate dark:text-emerald-100/80">Receita Bruta</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">{fmt(dreData.receitaBrutaVendas)}</p>
           </div>
-          <div className="flex h-14 items-center justify-between gap-2 bg-orange-50 rounded-2xl md:rounded-full border-2 border-orange-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Custo (CMV)</p>
-            <p className="text-lg font-bold text-orange-600 tabular-nums shrink-0">{fmt(dreData.cmv)}</p>
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-orange-200 bg-orange-50 px-4 text-orange-950 min-w-0 dark:border-orange-500/40 dark:bg-orange-500/15 dark:text-orange-50">
+            <p className="text-xs font-medium text-orange-900/80 truncate dark:text-orange-100/80">Custo (CMV)</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">{fmt(dreData.cmv)}</p>
           </div>
-          <div className="flex h-14 items-center justify-between gap-2 bg-red-50 rounded-2xl md:rounded-full border-2 border-red-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Despesas</p>
-            <p className="text-lg font-bold text-red-600 tabular-nums shrink-0">{fmt(dreData.totalDespesasOperacionais)}</p>
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-red-200 bg-red-50 px-4 text-red-950 min-w-0 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-50">
+            <p className="text-xs font-medium text-red-900/80 truncate dark:text-red-100/80">Despesas</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">{fmt(dreData.totalDespesasOperacionais)}</p>
           </div>
-          <div className="flex h-14 items-center justify-between gap-2 bg-red-50 rounded-2xl md:rounded-full border-2 border-red-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Custo total</p>
-            <p className="text-lg font-bold text-red-600 tabular-nums shrink-0">
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-red-200 bg-red-50 px-4 text-red-950 min-w-0 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-50">
+            <p className="text-xs font-medium text-red-900/80 truncate dark:text-red-100/80">Custo total</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">
               {fmt(dreData.impostos + dreData.cmv + dreData.totalDespesasOperacionais)}
             </p>
           </div>
           <div className={cn(
             "flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 px-4 min-w-0 col-span-2 md:col-span-1",
-            dreData.lucroLiquido >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+            dreData.lucroLiquido >= 0
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-50'
+              : 'border-red-200 bg-red-50 text-red-950 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-50'
           )}>
-            <p className="text-xs text-muted-foreground truncate">Lucro Líquido</p>
+            <p className={cn(
+              "text-xs font-medium truncate",
+              dreData.lucroLiquido >= 0
+                ? 'text-emerald-900/80 dark:text-emerald-100/80'
+                : 'text-red-900/80 dark:text-red-100/80'
+            )}>Lucro Líquido</p>
             <p className={cn(
               "text-lg font-bold tabular-nums shrink-0",
-              dreData.lucroLiquido >= 0 ? 'text-green-700' : 'text-red-700'
+              dreData.lucroLiquido >= 0 ? 'text-emerald-800 dark:text-emerald-100' : 'text-red-800 dark:text-red-100'
             )}>
               {fmt(dreData.lucroLiquido)}
             </p>

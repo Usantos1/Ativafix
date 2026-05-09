@@ -124,48 +124,48 @@ const ProdutoTableRow = memo(({
   }, [produto.quantidade, produto.estoque_minimo]);
 
   // Zebra striping - MAIS VISÍVEL
-  const zebraClass = index % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-gray-50/80 dark:bg-gray-900/50';
+  const zebraClass = index % 2 === 0 ? 'bg-card' : 'bg-muted/35';
   
   return (
     <tr
-      className={`${isSelected ? 'bg-blue-100 dark:bg-blue-950/40 ring-1 ring-blue-400' : `${zebraClass} cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30`} border-b border-gray-200 dark:border-gray-700 transition-all duration-150`}
+      className={`${isSelected ? 'bg-blue-100 text-blue-950 ring-1 ring-blue-400 dark:bg-blue-500/20 dark:text-blue-50' : `${zebraClass} cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-500/10`} border-b border-border transition-all duration-150`}
       onClick={onSelect}
       onDoubleClick={(e) => { e.stopPropagation(); onEdit(); }}
       title="Duplo clique para editar"
     >
       {/* Código */}
-      <td className="font-mono text-sm py-3.5 px-3 text-right border-r border-gray-200 dark:border-gray-700 w-[90px] hidden md:table-cell text-gray-700 dark:text-gray-300">
+      <td className="font-mono text-sm py-3.5 px-3 text-right border-r border-border w-[90px] hidden md:table-cell text-foreground/80">
         {produto.codigo || '-'}
       </td>
       {/* Referência */}
-      <td className="font-mono text-sm py-3.5 px-3 text-left text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-[120px] hidden lg:table-cell">
+      <td className="font-mono text-sm py-3.5 px-3 text-left text-muted-foreground border-r border-border w-[120px] hidden lg:table-cell">
         {produto.referencia || '-'}
       </td>
       {/* Código de Barras */}
-      <td className="font-mono text-xs py-3.5 px-3 text-left text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-[160px] hidden lg:table-cell">
+      <td className="font-mono text-xs py-3.5 px-3 text-left text-muted-foreground border-r border-border w-[160px] hidden lg:table-cell">
         {produto.codigo_barras || '-'}
       </td>
       {/* Descrição - DESTAQUE PRINCIPAL */}
-      <td className="py-3.5 px-3 text-left border-r border-gray-200 dark:border-gray-700">
+      <td className="py-3.5 px-3 text-left border-r border-border">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="truncate uppercase font-medium text-gray-900 dark:text-gray-100">{descricaoCompleta}</div>
+              <div className="truncate uppercase font-medium text-foreground">{descricaoCompleta}</div>
             </TooltipTrigger>
             {descricaoCompleta.length > 30 && (
               <TooltipContent><p className="max-w-xs">{descricaoCompleta}</p></TooltipContent>
             )}
           </Tooltip>
         </TooltipProvider>
-        <div className="text-xs text-gray-500 md:hidden mt-1">{infoSecundaria || '-'}</div>
+        <div className="text-xs text-muted-foreground md:hidden mt-1">{infoSecundaria || '-'}</div>
       </td>
       {/* Localização */}
-      <td className="text-sm py-3.5 px-3 text-left text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-[140px] hidden lg:table-cell">
+      <td className="text-sm py-3.5 px-3 text-left text-muted-foreground border-r border-border w-[140px] hidden lg:table-cell">
         {produto.localizacao || '-'}
       </td>
       {/* Estoque - BADGE DESTACADO */}
       <td
-        className="text-sm py-3.5 px-3 text-right border-r border-gray-200 dark:border-gray-700 w-[100px] cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30"
+        className="text-sm py-3.5 px-3 text-right border-r border-border w-[100px] cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-500/10"
         onClick={(e) => {
           e.stopPropagation();
           onShowEstoque();
@@ -173,23 +173,23 @@ const ProdutoTableRow = memo(({
         title="Clique para ver informações de estoque"
       >
         <div className="flex items-center justify-end gap-2">
-          <span className="font-mono font-bold text-gray-800 dark:text-gray-200">{produto.quantidade || 0}</span>
+          <span className="font-mono font-bold text-foreground">{produto.quantidade || 0}</span>
           <Badge className={`${estoqueStatus.className} text-[10px] px-2 py-0.5 font-semibold`}>
             {estoqueStatus.label}
           </Badge>
         </div>
       </td>
       {/* Unidade */}
-      <td className="text-sm py-3.5 px-3 text-center text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-[70px] hidden md:table-cell">
+      <td className="text-sm py-3.5 px-3 text-center text-muted-foreground border-r border-border w-[70px] hidden md:table-cell">
         UN
       </td>
       {/* Valor parcelado 6x - padrão */}
-      <td className="text-sm py-3.5 px-3 text-right border-r border-gray-200 dark:border-gray-700 w-[95px]">
-        <span className="font-semibold text-emerald-700 dark:text-emerald-400">{valor6x}</span>
+      <td className="text-sm py-3.5 px-3 text-right border-r border-border w-[95px]">
+        <span className="font-semibold text-emerald-700 dark:text-emerald-300">{valor6x}</span>
       </td>
       {/* Valor à vista (Dinheiro/PIX) */}
-      <td className="text-sm py-3.5 px-3 text-right border-r border-gray-200 dark:border-gray-700 w-[95px]">
-        <span className="font-medium text-gray-700 dark:text-gray-300">{valorVenda}</span>
+      <td className="text-sm py-3.5 px-3 text-right border-r border-border w-[95px]">
+        <span className="font-medium text-foreground/80">{valorVenda}</span>
       </td>
       {/* Ações */}
       <td className="py-3.5 px-3 text-center w-[80px]">
@@ -703,7 +703,7 @@ export default function Produtos() {
         </div>
 
         {/* Desktop: Header completo */}
-        <div className="hidden md:block bg-background/95 backdrop-blur-sm shrink-0 shadow-sm rounded-xl mb-3 border border-gray-200/50">
+        <div className="hidden md:block bg-background/95 backdrop-blur-sm shrink-0 shadow-sm rounded-xl mb-3 border border-border">
           <div className="flex flex-wrap items-center gap-2 p-3">
             <div className="relative flex-1 min-w-[260px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -711,11 +711,11 @@ export default function Produtos() {
                 placeholder={searchField === 'all' ? "Buscar por código, descrição, referência ou código de barras..." : `Buscar por ${SEARCH_FIELD_LABELS[searchField]}...`} 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
-                className={`h-9 pl-10 text-sm border-gray-200 focus:border-blue-400 focus:ring-blue-400/20 ${searchField !== 'all' ? 'pr-24' : ''}`} 
+                className={`h-9 pl-10 text-sm border-border focus:border-blue-400 focus:ring-blue-400/20 ${searchField !== 'all' ? 'pr-24' : ''}`} 
               />
               {searchField !== 'all' && (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                  <Badge variant="outline" className="text-xs border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-400/40 dark:bg-blue-400/20 dark:text-blue-100">
                     {SEARCH_FIELD_LABELS[searchField]}
                   </Badge>
                   <Button 
@@ -730,14 +730,14 @@ export default function Produtos() {
               )}
             </div>
             <Select value={grupo && grupo.trim() !== '' ? grupo : 'all'} onValueChange={(value) => { setGrupo(value === 'all' ? '' : value); hookResult.setPage(1); }}>
-              <SelectTrigger className="h-9 w-[170px] shrink-0 border-gray-200 text-sm"><SelectValue placeholder="Grupo" /></SelectTrigger>
+              <SelectTrigger className="h-9 w-[170px] shrink-0 border-border text-sm"><SelectValue placeholder="Grupo" /></SelectTrigger>
               <SelectContent className="z-[110]">
                 <SelectItem value="all">Todos os grupos</SelectItem>
                 {grupos.map((g) => (<SelectItem key={g.id || g.nome} value={g.nome}>{g.nome}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={localizacao && localizacao.trim() !== '' ? localizacao : 'all'} onValueChange={(value) => { setLocalizacao(value === 'all' ? '' : value); hookResult.setPage(1); }}>
-              <SelectTrigger className="h-9 w-[170px] shrink-0 border-gray-200 text-sm"><SelectValue placeholder="Localização" /></SelectTrigger>
+              <SelectTrigger className="h-9 w-[170px] shrink-0 border-border text-sm"><SelectValue placeholder="Localização" /></SelectTrigger>
               <SelectContent className="z-[110]">
                 <SelectItem value="all">Todas localizações</SelectItem>
                 {localizacoes.map((loc: string) => (<SelectItem key={loc} value={loc}>{loc}</SelectItem>))}
@@ -752,7 +752,7 @@ export default function Produtos() {
                 hookResult.setPage(1);
               }}
             >
-              <SelectTrigger className="h-9 w-[200px] shrink-0 border-gray-200 text-sm">
+              <SelectTrigger className="h-9 w-[200px] shrink-0 border-border text-sm">
                 <SelectValue placeholder="Ordenar por" />
               </SelectTrigger>
               <SelectContent className="z-[110]">
@@ -796,7 +796,7 @@ export default function Produtos() {
                 size="sm" 
                 variant="outline" 
                 disabled={!selectedProduto} 
-                className="h-9 gap-1.5 border-gray-200"
+                className="h-9 gap-1.5 border-border"
               >
                 <Edit className="h-4 w-4" />
                 <span className="hidden sm:inline">Editar</span>
@@ -806,7 +806,7 @@ export default function Produtos() {
                 variant="outline" 
                 disabled={!selectedProduto} 
                 onClick={() => setShowEstoqueModal(true)} 
-                className="h-9 gap-1.5 border-gray-200"
+                className="h-9 gap-1.5 border-border"
               >
                 <Warehouse className="h-4 w-4" />
                 <span className="hidden sm:inline">Estoque</span>
@@ -816,7 +816,7 @@ export default function Produtos() {
                 variant="outline" 
                 disabled={!selectedProduto} 
                 onClick={() => setShowEtiquetaModal(true)} 
-                className="h-9 gap-1.5 border-gray-200"
+                className="h-9 gap-1.5 border-border"
               >
                 <Barcode className="h-4 w-4" />
                 <span className="hidden sm:inline">Etiqueta</span>
@@ -828,7 +828,7 @@ export default function Produtos() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="h-9 gap-1.5 border-gray-200"
+                    className="h-9 gap-1.5 border-border"
                   >
                     <Shield className="h-4 w-4" />
                     <span className="hidden sm:inline">Admin</span>
@@ -858,7 +858,7 @@ export default function Produtos() {
         {/* ÁREA DA TABELA — mobile: página rola; desktop: scroll interno */}
         {/* ═══════════════════════════════════════════════════════════════ */}
         <div className="flex flex-col min-h-0 md:flex-1 md:overflow-hidden">
-          <Card className="flex flex-col border-gray-200 dark:border-gray-700 shadow-sm rounded-xl md:rounded-lg overflow-hidden md:flex-1 md:overflow-hidden">
+          <Card className="flex flex-col border-border shadow-sm rounded-xl md:rounded-lg overflow-hidden md:flex-1 md:overflow-hidden">
             <CardContent className="p-0 flex flex-col md:flex-1 md:overflow-hidden md:min-h-0">
               {hookResult.error ? (
                 <div className="p-12 text-center">
@@ -892,54 +892,54 @@ export default function Produtos() {
                   <div className="hidden md:flex flex-1 flex-col overflow-hidden min-h-0">
                     <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
                       <table className="w-full caption-bottom text-sm border-collapse table-fixed">
-                        <thead className="sticky top-0 z-20 bg-gray-100 dark:bg-gray-800 shadow-sm">
-                          <tr className="border-b-2 border-gray-300 dark:border-gray-600">
+                        <thead className="sticky top-0 z-20 bg-muted shadow-sm">
+                          <tr className="border-b-2 border-border">
                             <th 
-                              className={`h-12 px-3 text-right align-middle font-semibold border-r border-gray-200 dark:border-gray-600 w-[90px] text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${searchField === 'codigo' ? 'bg-blue-200 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                              className={`h-12 px-3 text-right align-middle font-semibold border-r border-border w-[90px] text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors ${searchField === 'codigo' ? 'bg-blue-200 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100' : 'text-foreground/80'}`}
                               onClick={() => setSearchField(searchField === 'codigo' ? 'all' : 'codigo')}
                               title="Clique para filtrar por Código"
                             >
                               Código {searchField === 'codigo' && <Search className="inline h-3 w-3 ml-1" />}
                             </th>
                             <th 
-                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-gray-200 dark:border-gray-600 w-[120px] hidden lg:table-cell text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${searchField === 'referencia' ? 'bg-blue-200 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-border w-[120px] hidden lg:table-cell text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors ${searchField === 'referencia' ? 'bg-blue-200 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100' : 'text-foreground/80'}`}
                               onClick={() => setSearchField(searchField === 'referencia' ? 'all' : 'referencia')}
                               title="Clique para filtrar por Referência"
                             >
                               Referência {searchField === 'referencia' && <Search className="inline h-3 w-3 ml-1" />}
                             </th>
                             <th 
-                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-gray-200 dark:border-gray-600 w-[160px] hidden lg:table-cell text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${searchField === 'codigo_barras' ? 'bg-blue-200 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-border w-[160px] hidden lg:table-cell text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors ${searchField === 'codigo_barras' ? 'bg-blue-200 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100' : 'text-foreground/80'}`}
                               onClick={() => setSearchField(searchField === 'codigo_barras' ? 'all' : 'codigo_barras')}
                               title="Clique para filtrar por Código de Barras"
                             >
                               Cód. Barras {searchField === 'codigo_barras' && <Search className="inline h-3 w-3 ml-1" />}
                             </th>
                             <th 
-                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-gray-200 dark:border-gray-600 min-w-[200px] text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${searchField === 'descricao' ? 'bg-blue-200 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-border min-w-[200px] text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors ${searchField === 'descricao' ? 'bg-blue-200 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100' : 'text-foreground/80'}`}
                               onClick={() => setSearchField(searchField === 'descricao' ? 'all' : 'descricao')}
                               title="Clique para filtrar por Descrição"
                             >
                               Descrição {searchField === 'descricao' && <Search className="inline h-3 w-3 ml-1" />}
                             </th>
                             <th 
-                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-gray-200 dark:border-gray-600 w-[140px] hidden lg:table-cell text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${searchField === 'localizacao' ? 'bg-blue-200 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                              className={`h-12 px-3 text-left align-middle font-semibold border-r border-border w-[140px] hidden lg:table-cell text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors ${searchField === 'localizacao' ? 'bg-blue-200 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100' : 'text-foreground/80'}`}
                               onClick={() => setSearchField(searchField === 'localizacao' ? 'all' : 'localizacao')}
                               title="Clique para filtrar por Localização"
                             >
                               Localização {searchField === 'localizacao' && <Search className="inline h-3 w-3 ml-1" />}
                             </th>
-                            <th className="h-12 px-3 text-right align-middle font-semibold text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-600 w-[100px] text-xs uppercase tracking-wide">Estoque</th>
-                            <th className="h-12 px-3 text-center align-middle font-semibold text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-600 w-[70px] hidden md:table-cell text-xs uppercase tracking-wide">Unid.</th>
-                            <th className="h-12 px-3 text-right align-middle font-semibold text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-600 w-[95px] text-xs uppercase tracking-wide">Valor 6x</th>
-                            <th className="h-12 px-3 text-right align-middle font-semibold text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-600 w-[95px] text-xs uppercase tracking-wide">À vista</th>
-                            <th className="h-12 px-3 text-center align-middle font-semibold text-gray-700 dark:text-gray-200 w-[80px] text-xs uppercase tracking-wide">Ações</th>
+                            <th className="h-12 px-3 text-right align-middle font-semibold text-foreground/80 border-r border-border w-[100px] text-xs uppercase tracking-wide">Estoque</th>
+                            <th className="h-12 px-3 text-center align-middle font-semibold text-foreground/80 border-r border-border w-[70px] hidden md:table-cell text-xs uppercase tracking-wide">Unid.</th>
+                            <th className="h-12 px-3 text-right align-middle font-semibold text-foreground/80 border-r border-border w-[95px] text-xs uppercase tracking-wide">Valor 6x</th>
+                            <th className="h-12 px-3 text-right align-middle font-semibold text-foreground/80 border-r border-border w-[95px] text-xs uppercase tracking-wide">À vista</th>
+                            <th className="h-12 px-3 text-center align-middle font-semibold text-foreground/80 w-[80px] text-xs uppercase tracking-wide">Ações</th>
                           </tr>
                         </thead>
                         <tbody>
                           {isFetching && !isLoading && produtos.length > 0 ? (
                             produtos.map((produto, index) => (
-                              <tr key={`skeleton-${produto.id}`} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}`}>
+                              <tr key={`skeleton-${produto.id}`} className={`border-b border-border ${index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}`}>
                                 <td colSpan={10} className="py-3.5 px-3">
                                   <div className="h-9 bg-muted rounded animate-pulse" />
                                 </td>
@@ -969,7 +969,7 @@ export default function Produtos() {
                     </div>
 
                     {/* Paginação Desktop */}
-                    <div className="shrink-0 border-t border-gray-200 bg-gray-50/50 px-4 py-3 flex items-center justify-between">
+                    <div className="shrink-0 border-t border-border bg-muted/30 px-4 py-3 flex items-center justify-between">
                       <div className="text-sm text-muted-foreground">
                         {isLoading ? (
                           <span>Carregando...</span>
@@ -994,7 +994,7 @@ export default function Produtos() {
                           size="sm"
                           onClick={goToPreviousPage}
                           disabled={page === 1 || isFetching}
-                          className="h-8 border-gray-200"
+                          className="h-8 border-border"
                         >
                           <ChevronLeft className="h-4 w-4 mr-1" />
                           Anterior
@@ -1007,7 +1007,7 @@ export default function Produtos() {
                           size="sm"
                           onClick={goToNextPage}
                           disabled={!totalPages || page >= totalPages || isFetching}
-                          className="h-8 border-gray-200"
+                          className="h-8 border-border"
                         >
                           Próxima
                           <ChevronRight className="h-4 w-4 ml-1" />
@@ -1040,8 +1040,8 @@ export default function Produtos() {
                           key={produto.id}
                           className={`rounded-xl border overflow-hidden touch-manipulation active:scale-[0.99] cursor-pointer transition-all ${
                             selectedProduto?.id === produto.id
-                              ? 'border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-950/30 ring-2 ring-blue-400 ring-offset-2'
-                              : 'border-gray-200 dark:border-gray-700'
+                              ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-400 ring-offset-2 ring-offset-background dark:border-blue-400 dark:bg-blue-500/15'
+                              : 'border-border'
                           }`}
                           onClick={() => isTouchDevice ? handleEdit(produto) : setSelectedProduto(produto)}
                           onDoubleClick={!isTouchDevice ? (e) => { e.stopPropagation(); handleEdit(produto); } : undefined}
@@ -1267,7 +1267,7 @@ export default function Produtos() {
 
               {/* Considerar busca atual */}
               {searchTerm && (
-                <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center space-x-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-950 dark:border-blue-400/40 dark:bg-blue-400/15 dark:text-blue-50">
                   <Checkbox
                     id="usarBusca"
                     checked={exportUsarBuscaAtual}
@@ -1415,7 +1415,7 @@ export default function Produtos() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Preço de Venda</p>
-                    <p className="text-2xl font-semibold text-green-600">
+                    <p className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
                       {currencyFormatters.brl(selectedProduto.valor_venda || selectedProduto.preco_venda || 0)}
                     </p>
                   </div>
@@ -1429,13 +1429,13 @@ export default function Produtos() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Valor Total em Estoque (venda)</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
                       {currencyFormatters.brl((selectedProduto.quantidade || selectedProduto.estoque_atual || 0) * (selectedProduto.valor_venda || selectedProduto.preco_venda || 0))}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Lucro Potencial</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                       {currencyFormatters.brl(
                         ((selectedProduto.quantidade || selectedProduto.estoque_atual || 0) * (selectedProduto.valor_venda || selectedProduto.preco_venda || 0)) - 
                         ((selectedProduto.quantidade || selectedProduto.estoque_atual || 0) * (selectedProduto.preco_custo || selectedProduto.valor_compra || 0))

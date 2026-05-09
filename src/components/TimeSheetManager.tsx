@@ -211,11 +211,11 @@ export function TimeSheetManager() {
 
   const getStatusBadge = (date: Date, record: TimeRecord | undefined) => {
     if (isSunday(date)) {
-      return <Badge variant="secondary" className="text-xs">Descanso</Badge>;
+      return <Badge variant="outline" className="border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-500/40 dark:bg-slate-500/20 dark:text-slate-100 text-xs">Descanso</Badge>;
     }
     
     if (!record && isSameMonth(date, currentDate)) {
-      return <Badge variant="destructive" className="text-xs">Falta</Badge>;
+      return <Badge variant="outline" className="border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100 text-xs">Falta</Badge>;
     }
     
     if (!record) {
@@ -223,14 +223,14 @@ export function TimeSheetManager() {
     }
     
     if (record.clock_in && record.clock_out) {
-      return <Badge variant="default" className="text-xs bg-green-500">Completo</Badge>;
+      return <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100 text-xs">Completo</Badge>;
     }
     
     if (record.clock_in && !record.clock_out) {
-      return <Badge variant="default" className="text-xs bg-yellow-500">Em andamento</Badge>;
+      return <Badge variant="outline" className="border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-100 text-xs">Em andamento</Badge>;
     }
     
-    return <Badge variant="secondary" className="text-xs">Parcial</Badge>;
+    return <Badge variant="outline" className="border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/20 dark:text-blue-100 text-xs">Parcial</Badge>;
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -247,8 +247,8 @@ export function TimeSheetManager() {
 
   return (
     <div className="space-y-4 md:space-y-6 px-1 md:px-0">
-      <Card className="border-2 border-gray-300 shadow-sm">
-        <CardHeader className="pb-3 pt-3 md:pt-6 px-3 md:px-6 border-b-2 border-gray-200">
+      <Card className="rounded-2xl border-2 border-border bg-card shadow-sm">
+        <CardHeader className="pb-3 pt-3 md:pt-6 px-3 md:px-6 border-b-2 border-border">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <div className="p-1.5 md:p-2 rounded-lg bg-[#00F7A5]/15 border-2 border-[#00F7A5]/30">
@@ -259,7 +259,7 @@ export function TimeSheetManager() {
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
               {isAdmin && (
                 <Select value={selectedUser} onValueChange={setSelectedUser}>
-                  <SelectTrigger className="w-full md:w-48 h-9 md:h-10 text-base md:text-sm border-2 border-gray-300">
+                  <SelectTrigger className="w-full md:w-48 h-9 md:h-10 text-base md:text-sm border-2 border-border bg-background text-foreground">
                     <SelectValue placeholder="Selecionar usuário" />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,7 +280,7 @@ export function TimeSheetManager() {
                   variant="outline" 
                   size="sm" 
                   onClick={() => navigateMonth('prev')}
-                  className="h-9 w-9 border-2 border-gray-300"
+                  className="h-9 w-9 border-2 border-border bg-background text-foreground hover:bg-muted"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -291,7 +291,7 @@ export function TimeSheetManager() {
                   variant="outline" 
                   size="sm" 
                   onClick={() => navigateMonth('next')}
-                  className="h-9 w-9 border-2 border-gray-300"
+                  className="h-9 w-9 border-2 border-border bg-background text-foreground hover:bg-muted"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -304,13 +304,13 @@ export function TimeSheetManager() {
           {loading ? (
             <div className="text-center py-8 text-sm md:text-base text-muted-foreground">Carregando registros...</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card p-2">
               <div className="grid grid-cols-7 gap-1.5 md:gap-2 min-w-[700px]">
               {/* Headers dos dias da semana */}
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                 <div 
                   key={day} 
-                  className="p-1.5 md:p-2 text-center font-semibold text-[10px] md:text-sm bg-gray-100 border-2 border-gray-300 rounded"
+                  className="p-1.5 md:p-2 text-center font-semibold text-[10px] md:text-sm bg-muted/80 border-2 border-border rounded-xl text-foreground"
                 >
                   {day}
                 </div>
@@ -326,7 +326,7 @@ export function TimeSheetManager() {
                 return (
                   <Card 
                     key={date.toISOString()} 
-                    className={`p-2 md:p-3 min-h-[80px] md:min-h-24 border-2 ${isToday ? 'border-[#00C27F] ring-2 ring-[#00F7A5]/30' : 'border-gray-300'} ${isSundayDay ? 'bg-gray-50' : ''} ${!isCurrentMonth ? 'opacity-30' : ''} shadow-sm`}
+                    className={`p-2 md:p-3 min-h-[80px] md:min-h-24 border-2 bg-card text-foreground ${isToday ? 'border-[#00C27F] ring-2 ring-[#00F7A5]/30' : 'border-border'} ${isSundayDay ? 'bg-muted/40' : ''} ${!isCurrentMonth ? 'opacity-40 bg-muted/30' : ''} shadow-sm`}
                   >
                     <div className="space-y-1.5 md:space-y-2">
                       <div className="flex items-center justify-between">
@@ -347,14 +347,14 @@ export function TimeSheetManager() {
                             <span className="font-mono">{formatTime(record.clock_out)}</span>
                           </div>
                           {record.lunch_start && record.lunch_end && (
-                            <div className="flex justify-between text-muted-foreground">
+                            <div className="flex justify-between text-foreground/70 dark:text-foreground/80">
                               <span>Almoço:</span>
                               <span className="font-mono text-[9px] md:text-xs">
                                 {formatTime(record.lunch_start)}-{formatTime(record.lunch_end)}
                               </span>
                             </div>
                           )}
-                          <div className="flex justify-between font-medium pt-1 border-t border-gray-200">
+                          <div className="flex justify-between font-medium pt-1 border-t border-border">
                             <span>Total:</span>
                             <span className="font-mono">{calculateTotalHours(record)}</span>
                           </div>

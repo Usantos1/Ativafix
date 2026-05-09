@@ -25,7 +25,7 @@ export function PainelAlertasNav() {
     : ALL_LINKS;
 
   return (
-    <nav className="flex flex-wrap gap-1 p-2 rounded-lg bg-muted/50 border mb-4">
+    <nav className="flex flex-wrap gap-1 rounded-2xl border border-border bg-card/80 p-2 shadow-sm mb-4 dark:bg-card">
       {LINKS.map(({ to, label, icon: Icon }) => {
         const isActive = pathname === to;
         return (
@@ -33,10 +33,10 @@ export function PainelAlertasNav() {
             key={to}
             to={to}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+              'flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors',
               isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-foreground/70 hover:bg-muted hover:text-foreground dark:text-foreground/80'
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />

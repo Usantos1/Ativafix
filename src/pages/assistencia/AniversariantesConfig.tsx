@@ -107,6 +107,22 @@ const isoToLocalInput = (value?: string | null) => {
   return local.toISOString().slice(0, 16);
 };
 
+const statusBadgeClass = (status?: string | null) => {
+  switch (status) {
+    case 'enviado':
+      return 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100';
+    case 'erro':
+      return 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100';
+    case 'cancelado':
+      return 'border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/20 dark:text-rose-100';
+    case 'agendado':
+    case 'pendente':
+      return 'border-sky-200 bg-sky-100 text-sky-800 dark:border-sky-400/40 dark:bg-sky-400/20 dark:text-sky-100';
+    default:
+      return 'border-border bg-muted text-foreground';
+  }
+};
+
 export default function AniversariantesConfig() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<BirthdayConfig>({
@@ -516,20 +532,20 @@ export default function AniversariantesConfig() {
                   </SelectContent>
                 </Select>
               <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-emerald-200 bg-emerald-50/50 px-4 py-2 shadow-sm">
-                  <p className="text-xs text-muted-foreground">Agendadas</p>
+                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-950 shadow-sm dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-50">
+                  <p className="text-xs font-medium text-emerald-900/80 dark:text-emerald-100/80">Agendadas</p>
                   <p className="text-lg font-semibold leading-none">{summary.pending_jobs}</p>
                 </div>
-                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-blue-200 bg-blue-50/50 px-4 py-2 shadow-sm">
-                  <p className="text-xs text-muted-foreground">Enviadas</p>
+                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-blue-950 shadow-sm dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-50">
+                  <p className="text-xs font-medium text-blue-900/80 dark:text-blue-100/80">Enviadas</p>
                   <p className="text-lg font-semibold leading-none">{summary.sent_jobs}</p>
                 </div>
-                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-amber-200 bg-amber-50/50 px-4 py-2 shadow-sm">
-                  <p className="text-xs text-muted-foreground">Com erro</p>
+                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-amber-950 shadow-sm dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-50">
+                  <p className="text-xs font-medium text-amber-900/80 dark:text-amber-100/80">Com erro</p>
                   <p className="text-lg font-semibold leading-none">{summary.error_jobs}</p>
                 </div>
-                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-rose-200 bg-rose-50/50 px-4 py-2 shadow-sm">
-                  <p className="text-xs text-muted-foreground">Canceladas</p>
+                <div className="flex min-h-12 items-center justify-between gap-3 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-rose-950 shadow-sm dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-50">
+                  <p className="text-xs font-medium text-rose-900/80 dark:text-rose-100/80">Canceladas</p>
                   <p className="text-lg font-semibold leading-none">{summary.cancelled_jobs}</p>
                 </div>
               </div>
@@ -568,7 +584,9 @@ export default function AniversariantesConfig() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{loadingUpcoming ? '...' : upcomingData?.total ?? 0} cliente(s)</Badge>
+                  <Badge variant="outline" className="border-border bg-muted text-foreground">
+                    {loadingUpcoming ? '...' : upcomingData?.total ?? 0} cliente(s)
+                  </Badge>
                   <Button variant="ghost" size="sm" onClick={() => refetchUpcoming()} disabled={loadingUpcoming} className="rounded-xl">
                     <RefreshCcw className="mr-1 h-3.5 w-3.5" />
                     Atualizar
@@ -609,11 +627,11 @@ export default function AniversariantesConfig() {
                             </TableCell>
                             <TableCell>
                               {client.job_status ? (
-                                <Badge variant={isSent ? 'default' : client.job_status === 'erro' ? 'destructive' : 'secondary'}>{client.job_status}</Badge>
+                                <Badge variant="outline" className={statusBadgeClass(client.job_status)}>{client.job_status}</Badge>
                               ) : '-'}
                             </TableCell>
                             <TableCell className="max-w-[320px]">
-                              <p className="line-clamp-3 text-xs text-muted-foreground">{client.mensagem_renderizada || '-'}</p>
+                              <p className="line-clamp-3 text-xs text-foreground/80 dark:text-foreground/90">{client.mensagem_renderizada || '-'}</p>
                             </TableCell>
                             <TableCell>
                               <div className="flex justify-end gap-1">

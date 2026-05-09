@@ -99,7 +99,7 @@ export default function PlanejamentoAnual() {
         subtitle="Planeje suas metas financeiras para o ano"
       >
         <div className="flex flex-col gap-4">
-          <Card className="flex-shrink-0 border-2 border-gray-300 dark:border-gray-600 rounded-xl p-4">
+          <Card className="flex-shrink-0 border-2 border-border rounded-xl p-4">
             <div className="flex items-end gap-3">
               <div className="space-y-1 flex-1 max-w-xs">
                 <Label className="text-xs font-semibold text-muted-foreground">Ano</Label>
@@ -110,20 +110,20 @@ export default function PlanejamentoAnual() {
           </Card>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+              <Card key={i} className="border-2 border-border rounded-xl">
                 <CardHeader className="pb-3"><Skeleton className="h-5 w-32" /></CardHeader>
                 <CardContent><Skeleton className="h-12 w-full" /></CardContent>
               </Card>
             ))}
           </div>
-          <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl flex flex-col">
+          <Card className="border-2 border-border rounded-xl flex flex-col">
             <CardHeader>
               <CardTitle className="text-lg font-bold">Metas Mensais</CardTitle>
               <CardDescription>Distribua a receita planejada pelos meses do ano</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="border-b-[3px] border-gray-400">
+                <TableHeader className="border-b-[3px] border-border bg-muted">
                   <TableRow>
                     <TableHead className="font-bold">Mês</TableHead>
                     <TableHead className="font-bold text-right">Meta Mensal</TableHead>
@@ -132,7 +132,7 @@ export default function PlanejamentoAnual() {
                 </TableHeader>
                 <TableBody>
                   {meses.map((_, i) => (
-                    <TableRow key={i} className="border-b-[2px] border-gray-300">
+                    <TableRow key={i} className="border-b-[2px] border-border">
                       <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-9 w-40 ml-auto" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
@@ -142,7 +142,7 @@ export default function PlanejamentoAnual() {
               </Table>
             </CardContent>
           </Card>
-          <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl">
+          <Card className="border-2 border-border rounded-xl">
             <CardHeader>
               <CardTitle className="text-lg font-bold">Observações</CardTitle>
               <CardDescription>Anotações e observações sobre o planejamento</CardDescription>
@@ -161,7 +161,7 @@ export default function PlanejamentoAnual() {
     >
       <div className="flex flex-col gap-4 pb-8 min-w-0">
         {/* Controles — mobile: toque confortável */}
-        <Card className="flex-shrink-0 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm p-3 sm:p-4 min-w-0">
+        <Card className="flex-shrink-0 border-2 border-border rounded-xl shadow-sm p-3 sm:p-4 min-w-0">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
             <div className="space-y-1 flex-1 min-w-0">
               <Label className="text-xs font-semibold text-muted-foreground">Ano</Label>
@@ -171,13 +171,13 @@ export default function PlanejamentoAnual() {
                 max={2100}
                 value={ano}
                 onChange={(e) => setAno(Math.max(2020, Math.min(2100, parseInt(e.target.value) || anoAtual)))}
-                className="min-h-[44px] sm:h-10 border-2 border-gray-300 dark:border-gray-600 rounded-xl touch-manipulation"
+                className="min-h-[44px] sm:h-10 border-2 border-border rounded-xl touch-manipulation"
               />
             </div>
             <Button
               onClick={handleSalvar}
               disabled={salvarPlanejamento.isPending}
-              className="min-h-[44px] sm:h-10 rounded-full bg-green-600 hover:bg-green-700 touch-manipulation"
+              className="min-h-[44px] sm:h-10 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 touch-manipulation"
             >
               <Save className="h-4 w-4 mr-2" />
               Salvar Planejamento
@@ -187,7 +187,7 @@ export default function PlanejamentoAnual() {
         
         {/* Resumo — mobile: 2 colunas */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 min-w-0">
-          <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm min-w-0">
+          <Card className="border-2 border-border rounded-xl shadow-sm min-w-0">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <Target className="h-5 w-5" />
@@ -199,13 +199,13 @@ export default function PlanejamentoAnual() {
                 value={receitaPlanejada}
                 onChange={setReceitaPlanejada}
                 showCurrency
-                className="text-lg sm:text-2xl font-bold border-2 border-gray-300 focus:border-primary min-h-[44px] sm:h-12 rounded-xl touch-manipulation"
+                className="text-lg sm:text-2xl font-bold border-2 border-border focus:border-primary min-h-[44px] sm:h-12 rounded-xl touch-manipulation"
                 placeholder="0,00"
               />
             </CardContent>
           </Card>
           
-          <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm min-w-0">
+          <Card className="border-2 border-border rounded-xl shadow-sm min-w-0">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <DollarSign className="h-5 w-5 shrink-0" />
@@ -217,13 +217,13 @@ export default function PlanejamentoAnual() {
                 value={despesasPlanejadas}
                 onChange={setDespesasPlanejadas}
                 showCurrency
-                className="text-lg sm:text-2xl font-bold border-2 border-gray-300 focus:border-primary min-h-[44px] sm:h-12 rounded-xl touch-manipulation"
+                className="text-lg sm:text-2xl font-bold border-2 border-border focus:border-primary min-h-[44px] sm:h-12 rounded-xl touch-manipulation"
                 placeholder="0,00"
               />
             </CardContent>
           </Card>
           
-          <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm min-w-0">
+          <Card className="border-2 border-border rounded-xl shadow-sm min-w-0">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 shrink-0" />
@@ -231,13 +231,13 @@ export default function PlanejamentoAnual() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${lucroEsperado >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-2xl font-bold ${lucroEsperado >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
                 {fmt(lucroEsperado)}
               </div>
             </CardContent>
           </Card>
           
-          <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm">
+          <Card className="border-2 border-border rounded-xl shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <Target className="h-5 w-5" />
@@ -245,7 +245,7 @@ export default function PlanejamentoAnual() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${margemEsperada >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-2xl font-bold ${margemEsperada >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
                 {margemEsperada.toFixed(1)}%
               </div>
             </CardContent>
@@ -253,7 +253,7 @@ export default function PlanejamentoAnual() {
         </div>
         
         {/* Metas Mensais */}
-        <Card className="flex-1 overflow-hidden border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm flex flex-col">
+        <Card className="flex-1 overflow-hidden border-2 border-border rounded-xl shadow-sm flex flex-col">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Metas Mensais</CardTitle>
             <CardDescription>
@@ -262,7 +262,7 @@ export default function PlanejamentoAnual() {
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-0 scrollbar-thin">
             <Table>
-              <TableHeader className="sticky top-0 bg-white z-10 border-b-[3px] border-gray-400">
+              <TableHeader className="sticky top-0 bg-muted z-10 border-b-[3px] border-border">
                 <TableRow>
                   <TableHead className="font-bold">Mês</TableHead>
                   <TableHead className="font-bold text-right">Meta Mensal</TableHead>
@@ -276,14 +276,14 @@ export default function PlanejamentoAnual() {
                   const percentual = receitaPlanejada > 0 ? (valor / receitaPlanejada) * 100 : 0;
                   
                   return (
-                    <TableRow key={mesNum} className="border-b-[2px] border-gray-300">
+                    <TableRow key={mesNum} className="border-b-[2px] border-border">
                       <TableCell className="font-semibold">{mes}</TableCell>
                       <TableCell className="text-right">
                         <CurrencyInput
                           value={valor}
                           onChange={(val) => updateMetaMensal(mesNum, val)}
                           showCurrency
-                          className="text-right border-[2px] border-gray-300 w-40 ml-auto h-9"
+                          className="text-right border-[2px] border-border w-40 ml-auto h-9"
                           placeholder="0,00"
                         />
                       </TableCell>
@@ -293,7 +293,7 @@ export default function PlanejamentoAnual() {
                     </TableRow>
                   );
                 })}
-                <TableRow className="border-t-[3px] border-gray-400 bg-gray-50 font-bold">
+                <TableRow className="border-t-[3px] border-border bg-muted/60 font-bold">
                   <TableCell>TOTAL</TableCell>
                   <TableCell className="text-right">{fmt(totalMetaMensal)}</TableCell>
                   <TableCell className="text-right">
@@ -301,11 +301,11 @@ export default function PlanejamentoAnual() {
                   </TableCell>
                 </TableRow>
                 {diferencaMeta !== 0 && (
-                  <TableRow className={diferencaMeta > 0 ? 'bg-yellow-50' : 'bg-red-50'}>
+                  <TableRow className={diferencaMeta > 0 ? 'bg-yellow-50 text-yellow-950 dark:bg-yellow-500/15 dark:text-yellow-50' : 'bg-red-50 text-red-950 dark:bg-red-500/15 dark:text-red-50'}>
                     <TableCell colSpan={2} className="font-semibold">
                       {diferencaMeta > 0 ? 'Faltam distribuir:' : 'Excesso distribuído:'}
                     </TableCell>
-                    <TableCell className={`text-right font-bold ${diferencaMeta > 0 ? 'text-yellow-700' : 'text-red-700'}`}>
+                    <TableCell className={`text-right font-bold ${diferencaMeta > 0 ? 'text-yellow-800 dark:text-yellow-100' : 'text-red-800 dark:text-red-100'}`}>
                       {fmt(Math.abs(diferencaMeta))}
                     </TableCell>
                   </TableRow>
@@ -316,7 +316,7 @@ export default function PlanejamentoAnual() {
         </Card>
         
         {/* Observações */}
-        <Card className="border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-sm">
+        <Card className="border-2 border-border rounded-xl shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Observações</CardTitle>
             <CardDescription>Anotações e observações sobre o planejamento</CardDescription>
@@ -326,7 +326,7 @@ export default function PlanejamentoAnual() {
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               placeholder="Adicione observações, estratégias, premissas e outras informações relevantes para o planejamento..."
-              className="min-h-[120px] border-2 border-gray-300 dark:border-gray-600"
+              className="min-h-[120px] border-2 border-border"
             />
           </CardContent>
         </Card>

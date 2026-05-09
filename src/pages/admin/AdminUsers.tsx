@@ -10,23 +10,23 @@ export default function AdminUsers() {
       title="Gestão de Usuários e Funções"
       subtitle="Gerencie usuários, funções e permissões do sistema"
     >
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="users" className="flex items-center gap-2">
+      <Tabs defaultValue="users" className="w-full space-y-5">
+        <TabsList className="inline-flex h-auto w-auto max-w-full flex-wrap gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm">
+          <TabsTrigger value="users" className="min-h-9 rounded-full px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Users className="h-4 w-4" />
             Usuários
           </TabsTrigger>
-          <TabsTrigger value="roles" className="flex items-center gap-2">
+          <TabsTrigger value="roles" className="min-h-9 rounded-full px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Shield className="h-4 w-4" />
             Funções
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users" className="mt-6">
+        <TabsContent value="users" className="mt-0">
           <UserManagementNew />
         </TabsContent>
 
-        <TabsContent value="roles" className="mt-6">
+        <TabsContent value="roles" className="mt-0">
           <RolesManager />
         </TabsContent>
       </Tabs>

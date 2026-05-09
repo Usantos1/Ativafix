@@ -61,10 +61,10 @@ export default function PainelAlertasCategoria() {
           <p className="text-muted-foreground">Carregando catálogo...</p>
         ) : (
           <div className="space-y-6 pb-4 overflow-auto">
-            <Card>
+            <Card className="rounded-2xl border-border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
+                  <Activity className="h-5 w-5 text-primary" />
                   {tituloCategoria}
                 </CardTitle>
                 <CardDescription>

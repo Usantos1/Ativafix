@@ -18,8 +18,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useAlertsLogs } from '@/hooks/useAlerts';
+import { cn } from '@/lib/utils';
 import { CATEGORIAS } from './constants';
 import { PainelAlertasNav } from './PainelAlertasNav';
+
+const statusBadgeClass = (status?: string | null) =>
+  status === 'enviado'
+    ? 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100'
+    : 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100';
 
 export default function PainelAlertasHistorico() {
   const [periodoInicio, setPeriodoInicio] = useState('');
@@ -46,7 +52,7 @@ export default function PainelAlertasHistorico() {
     >
       <div className="h-full flex flex-col min-h-0 p-4 md:p-6 w-full">
         <PainelAlertasNav />
-        <Card className="flex-1 flex flex-col min-h-0">
+        <Card className="flex-1 flex flex-col min-h-0 rounded-2xl border-border">
           <CardHeader>
             <CardTitle>Histórico de alertas</CardTitle>
             <CardDescription>
@@ -56,28 +62,30 @@ export default function PainelAlertasHistorico() {
           <CardContent className="space-y-4 flex-1 flex flex-col min-h-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Início</Label>
+                <Label className="text-xs text-foreground/80">Início</Label>
                 <Input
                   type="date"
                   value={periodoInicio}
                   onChange={(e) => setPeriodoInicio(e.target.value)}
+                  className="border-border bg-background text-foreground"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Fim</Label>
+                <Label className="text-xs text-foreground/80">Fim</Label>
                 <Input
                   type="date"
                   value={periodoFim}
                   onChange={(e) => setPeriodoFim(e.target.value)}
+                  className="border-border bg-background text-foreground"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Categoria</Label>
+                <Label className="text-xs text-foreground/80">Categoria</Label>
                 <Select
                   value={categoria || '__all__'}
                   onValueChange={(v) => setCategoria(v === '__all__' ? '' : v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-border bg-background text-foreground">
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -91,12 +99,12 @@ export default function PainelAlertasHistorico() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Status</Label>
+                <Label className="text-xs text-foreground/80">Status</Label>
                 <Select
                   value={status || '__all__'}
                   onValueChange={(v) => setStatus(v === '__all__' ? '' : v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-border bg-background text-foreground">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -110,9 +118,9 @@ export default function PainelAlertasHistorico() {
             {logsLoading ? (
               <p className="text-muted-foreground">Carregando...</p>
             ) : (
-              <ScrollArea className="w-full flex-1">
+              <ScrollArea className="w-full flex-1 rounded-2xl border border-border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-muted/70 dark:bg-muted/40">
                     <TableRow>
                       <TableHead>Data/Hora</TableHead>
                       <TableHead>Tipo</TableHead>
@@ -135,38 +143,34 @@ export default function PainelAlertasHistorico() {
                       </TableRow>
                     ) : (
                       logs.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="whitespace-nowrap text-sm">
+                        <TableRow key={row.id} className="hover:bg-muted/40">
+                          <TableCell className="whitespace-nowrap text-sm text-foreground/80 dark:text-foreground/90">
                             {row.created_at
                               ? new Date(row.created_at).toLocaleString('pt-BR')
                               : '-'}
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
+                          <TableCell className="font-mono text-xs text-foreground/80 dark:text-foreground/90">
                             {row.codigo_alerta}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">
+                            <Badge variant="outline" className="border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/20 dark:text-blue-100">
                               {CATEGORIAS[row.categoria ?? ''] ?? row.categoria ?? '-'}
                             </Badge>
                           </TableCell>
-                          <TableCell>{row.destino}</TableCell>
+                          <TableCell className="text-foreground/80 dark:text-foreground/90">{row.destino}</TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                row.status === 'enviado' ? 'default' : 'destructive'
-                              }
-                            >
+                            <Badge variant="outline" className={cn('rounded-full', statusBadgeClass(row.status))}>
                               {row.status}
                             </Badge>
                           </TableCell>
                           <TableCell
-                            className="max-w-[200px] truncate text-sm"
+                            className="max-w-[200px] truncate text-sm text-foreground/80 dark:text-foreground/90"
                             title={row.mensagem_final}
                           >
                             {row.mensagem_final ?? '-'}
                           </TableCell>
                           <TableCell
-                            className="text-destructive text-xs max-w-[150px] truncate"
+                            className="max-w-[150px] truncate text-xs text-red-700 dark:text-red-300"
                             title={row.erro}
                           >
                             {row.erro ?? '-'}

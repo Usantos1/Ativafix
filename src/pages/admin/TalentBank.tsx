@@ -34,7 +34,11 @@ interface Candidate {
   ai_analysis?: any;
 }
 
-export default function TalentBank() {
+interface TalentBankProps {
+  embedded?: boolean;
+}
+
+export default function TalentBank({ embedded = false }: TalentBankProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -473,11 +477,8 @@ export default function TalentBank() {
     });
   };
 
-  return (
-    <ModernLayout
-      title="Banco de Talentos"
-      subtitle="Visualize todos os candidatos de todas as vagas"
-    >
+  const content = (
+    <>
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -693,6 +694,19 @@ export default function TalentBank() {
         evaluation={selectedEvaluation}
         onEvaluationSaved={handleEvaluationSaved}
       />
+    </>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <ModernLayout
+      title="Banco de Talentos"
+      subtitle="Visualize todos os candidatos de todas as vagas"
+    >
+      {content}
     </ModernLayout>
   );
 }

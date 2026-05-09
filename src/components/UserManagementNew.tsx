@@ -49,6 +49,23 @@ const USER_ROLE_DESCRIPTIONS: Record<UserRoleType, string> = {
   member: 'Acesso básico ao sistema'
 };
 
+const inputClass = 'border-border bg-background text-foreground placeholder:text-muted-foreground';
+const outlineButtonClass = 'border-border bg-background text-foreground hover:bg-muted hover:text-foreground';
+const roleBadgeClass = (role?: string | null) => {
+  const normalized = (role || '').toLowerCase();
+  if (normalized === 'admin' || normalized === 'administrador') {
+    return 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100';
+  }
+  if (normalized === 'gerente') {
+    return 'border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/20 dark:text-blue-100';
+  }
+  return 'border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-500/40 dark:bg-slate-500/20 dark:text-slate-100';
+};
+const statusBadgeClass = (approved?: boolean) =>
+  approved
+    ? 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100'
+    : 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100';
+
 interface UserProfile {
   id: string;
   user_id: string;
@@ -627,28 +644,33 @@ export const UserManagementNew = () => {
   const approvedUsers = filteredUsers.filter(user => user.approved);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header com busca e filtros */}
-      <Card>
+      <Card className="rounded-2xl border-border bg-card shadow-sm">
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
+                <span className="rounded-full border border-primary/25 bg-primary/10 p-2 text-primary">
+                  <Shield className="h-4 w-4" />
+                </span>
                 Gestão de Usuários e Permissões
               </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-foreground/70 dark:text-foreground/80 mt-1">
                 Gerencie usuários, funções e permissões do sistema
               </p>
             </div>
             {!isDemoSession() && (
-            <Button onClick={() => {
-              setNewUser(prev => ({ ...prev, role: rolesFromApi[0]?.name ?? prev.role ?? '' }));
-              setNewUserDialogOpen(true);
-            }}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Novo Usuário
-            </Button>
+              <Button
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => {
+                  setNewUser(prev => ({ ...prev, role: rolesFromApi[0]?.name ?? prev.role ?? '' }));
+                  setNewUserDialogOpen(true);
+                }}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Novo Usuário
+              </Button>
             )}
           </div>
         </CardHeader>
@@ -661,12 +683,12 @@ export const UserManagementNew = () => {
                   placeholder="Buscar por nome ou email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className={`pl-9 ${inputClass}`}
                 />
               </div>
             </div>
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
+              <SelectTrigger className={`w-full md:w-[220px] ${inputClass}`}>
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Departamento" />
               </SelectTrigger>
@@ -678,7 +700,7 @@ export const UserManagementNew = () => {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
+              <SelectTrigger className={`w-full md:w-[200px] ${inputClass}`}>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -693,16 +715,17 @@ export const UserManagementNew = () => {
 
       {/* Usuários Pendentes */}
       {pendingUsers.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-amber-200 bg-amber-50/60 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+              <User className="h-5 w-5 text-amber-700 dark:text-amber-300" />
               Usuários Pendentes ({pendingUsers.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/70 dark:bg-muted/40">
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
@@ -713,16 +736,16 @@ export const UserManagementNew = () => {
               </TableHeader>
               <TableBody>
                 {pendingUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.display_name || 'Sem nome'}</TableCell>
+                  <TableRow key={user.id} className="hover:bg-muted/40">
+                    <TableCell className="font-medium">{user.display_name || 'Sem nome'}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-foreground/80 dark:text-foreground/90">
                         <Mail className="h-3 w-3 text-muted-foreground" />
                         {user.authEmail || user.email || '-'}
                       </div>
                     </TableCell>
-                    <TableCell>{user.department || '-'}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-foreground/80 dark:text-foreground/90">{user.department || '-'}</TableCell>
+                    <TableCell className="text-foreground/80 dark:text-foreground/90">
                       {new Date(user.created_at).toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell>
@@ -747,22 +770,23 @@ export const UserManagementNew = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Usuários Aprovados */}
-      <Card>
+      <Card className="rounded-2xl border-border bg-card shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+            <Shield className="h-5 w-5 text-primary" />
             Usuários Aprovados ({approvedUsers.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="max-h-[70vh] overflow-auto scrollbar-thin">
+          <div className="max-h-[70vh] overflow-auto rounded-2xl border border-border scrollbar-thin">
             <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/70 dark:bg-muted/40">
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
@@ -774,32 +798,34 @@ export const UserManagementNew = () => {
             </TableHeader>
             <TableBody>
               {approvedUsers.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} className="hover:bg-muted/40">
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
+                    <div className="flex items-center gap-2 font-medium">
+                      <span className="rounded-full border border-primary/20 bg-primary/10 p-1.5 text-primary">
+                        <User className="h-3.5 w-3.5" />
+                      </span>
                       {user.display_name || 'Sem nome'}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-foreground/80 dark:text-foreground/90">
                       <Mail className="h-3 w-3 text-muted-foreground" />
                       {user.authEmail || user.email || '-'}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-foreground/80 dark:text-foreground/90">
                       <Building2 className="h-3 w-3 text-muted-foreground" />
                       {user.department || '-'}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' || user.role === 'Administrador' ? 'default' : user.role === 'gerente' || user.role === 'Gerente' ? 'default' : 'secondary'}>
+                    <Badge variant="outline" className={roleBadgeClass(user.role)}>
                       {roleDisplayName(user.role)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.approved ? 'default' : 'destructive'}>
+                    <Badge variant="outline" className={statusBadgeClass(user.approved)}>
                       {user.approved ? 'Ativo' : 'Bloqueado'}
                     </Badge>
                   </TableCell>
@@ -808,6 +834,7 @@ export const UserManagementNew = () => {
                       <Button
                         size="sm"
                         variant="outline"
+                        className={outlineButtonClass}
                         onClick={() => handleEditUser(user)}
                       >
                         <Edit className="h-4 w-4 mr-1" />
@@ -816,6 +843,7 @@ export const UserManagementNew = () => {
                       <Button
                         size="sm"
                         variant="outline"
+                        className={outlineButtonClass}
                         onClick={() => handleBlockUser(user)}
                       >
                         {user.approved ? (
@@ -853,7 +881,7 @@ export const UserManagementNew = () => {
 
       {/* Dialog de Editar Usuário */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-border bg-card">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
@@ -868,6 +896,7 @@ export const UserManagementNew = () => {
                   value={editFormData.display_name}
                   onChange={(e) => setEditFormData({ ...editFormData, display_name: e.target.value })}
                   placeholder="Nome do usuário"
+                  className={inputClass}
                   required
                 />
               </div>
@@ -879,6 +908,7 @@ export const UserManagementNew = () => {
                   value={editFormData.email}
                   onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                   placeholder="email@empresa.com"
+                  className={inputClass}
                   required
                 />
               </div>
@@ -889,6 +919,7 @@ export const UserManagementNew = () => {
                   value={editFormData.phone}
                   onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
                   placeholder="(00) 00000-0000"
+                  className={inputClass}
                 />
               </div>
               <div className="space-y-2">
@@ -897,7 +928,7 @@ export const UserManagementNew = () => {
                   value={editFormData.department} 
                   onValueChange={(value) => setEditFormData({ ...editFormData, department: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={inputClass}>
                     <SelectValue placeholder="Selecione o departamento" />
                   </SelectTrigger>
                   <SelectContent>
@@ -913,7 +944,7 @@ export const UserManagementNew = () => {
                   value={editFormData.role || undefined} 
                   onValueChange={(value: string) => setEditFormData({ ...editFormData, role: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={inputClass}>
                     <SelectValue placeholder={rolesFromApi.length === 0 ? "Carregando funções..." : "Selecione a função"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -925,11 +956,11 @@ export const UserManagementNew = () => {
                   </SelectContent>
                 </Select>
                 {editFormData.role && roleDescription(editFormData.role) && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-foreground/70 dark:text-foreground/80 mt-1">
                     {roleDescription(editFormData.role)}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-foreground/70 dark:text-foreground/80 mt-1">
                   Para alterar o que cada função pode acessar, use a aba <strong>Funções</strong> nesta página.
                 </p>
               </div>
@@ -941,15 +972,16 @@ export const UserManagementNew = () => {
                   value={editFormData.password}
                   onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
                   placeholder="Deixe em branco para não alterar"
+                  className={inputClass}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-foreground/70 dark:text-foreground/80">
                   Deixe em branco se não quiser alterar a senha
                 </p>
               </div>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-border bg-muted/30 rounded-2xl">
                 <div className="space-y-0.5">
                   <Label htmlFor="edit_approved">Status do Usuário</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-foreground/70 dark:text-foreground/80">
                     {editFormData.approved ? 'Usuário está ativo e pode acessar o sistema' : 'Usuário está bloqueado e não pode acessar'}
                   </p>
                 </div>
@@ -961,7 +993,7 @@ export const UserManagementNew = () => {
               </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => {
+            <Button type="button" variant="outline" className={outlineButtonClass} onClick={() => {
               setEditDialogOpen(false);
               setSelectedUser(null);
             }}>
@@ -973,91 +1005,6 @@ export const UserManagementNew = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Dialog Criar Novo Usuário */}
-      <Dialog open={newUserDialogOpen} onOpenChange={setNewUserDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Criar Novo Usuário</DialogTitle>
-            <DialogDescription>
-              Preencha os dados para criar um novo usuário no sistema.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                placeholder="email@empresa.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome Completo *</Label>
-              <Input
-                id="nome"
-                value={newUser.display_name}
-                onChange={(e) => setNewUser({...newUser, display_name: e.target.value})}
-                placeholder="Nome do usuário"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="senha">Senha Temporária *</Label>
-              <Input
-                id="senha"
-                type="password"
-                value={newUser.password}
-                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                placeholder="Mínimo 6 caracteres"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="department">Departamento *</Label>
-              <Select value={newUser.department} onValueChange={(value) => setNewUser({...newUser, department: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map(dept => (
-                    <SelectItem key={dept.id} value={dept.nome}>{dept.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Função *</Label>
-              <Select value={newUser.role || undefined} onValueChange={(value: string) => setNewUser({...newUser, role: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder={rolesFromApi.length === 0 ? "Carregando funções..." : "Selecione a função"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {rolesFromApi.map((r) => (
-                    <SelectItem key={r.id} value={r.name}>
-                      {r.display_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {newUser.role && roleDescription(newUser.role) && (
-                <p className="text-xs text-muted-foreground">
-                  {roleDescription(newUser.role)}
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewUserDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => createUser({ preventDefault: () => {} } as React.FormEvent)} disabled={loading || !newUser.role || rolesFromApi.length === 0}>
-              {loading ? 'Criando...' : 'Criar Usuário'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
 
       {/* Dialog de Confirmação de Exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -1088,7 +1035,7 @@ export const UserManagementNew = () => {
 
       {/* Dialog de Novo Usuário */}
       <Dialog open={newUserDialogOpen} onOpenChange={setNewUserDialogOpen}>
-        <DialogContent>
+        <DialogContent className="border-border bg-card">
           <DialogHeader>
             <DialogTitle>Criar Novo Usuário</DialogTitle>
             <DialogDescription>
@@ -1104,6 +1051,7 @@ export const UserManagementNew = () => {
                 value={newUser.email}
                 onChange={(e) => setNewUser({...newUser, email: e.target.value})}
                 placeholder="email@empresa.com"
+                className={inputClass}
                 required
               />
             </div>
@@ -1114,6 +1062,7 @@ export const UserManagementNew = () => {
                 value={newUser.display_name}
                 onChange={(e) => setNewUser({...newUser, display_name: e.target.value})}
                 placeholder="Nome do usuário"
+                className={inputClass}
                 required
               />
             </div>
@@ -1125,13 +1074,14 @@ export const UserManagementNew = () => {
                 value={newUser.password}
                 onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                 placeholder="Senha inicial"
+                className={inputClass}
                 required
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="department">Departamento *</Label>
               <Select value={newUser.department} onValueChange={(value) => setNewUser({...newUser, department: value})}>
-                <SelectTrigger>
+                <SelectTrigger className={inputClass}>
                   <SelectValue placeholder="Selecione o departamento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1144,7 +1094,7 @@ export const UserManagementNew = () => {
             <div className="space-y-2">
               <Label htmlFor="role">Função *</Label>
               <Select value={newUser.role || undefined} onValueChange={(value: string) => setNewUser({...newUser, role: value})}>
-                <SelectTrigger>
+                <SelectTrigger className={inputClass}>
                   <SelectValue placeholder={rolesFromApi.length === 0 ? "Carregando funções..." : "Selecione a função"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -1156,13 +1106,13 @@ export const UserManagementNew = () => {
                 </SelectContent>
               </Select>
               {newUser.role && roleDescription(newUser.role) && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-foreground/70 dark:text-foreground/80">
                   {roleDescription(newUser.role)}
                 </p>
               )}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setNewUserDialogOpen(false)}>
+              <Button type="button" variant="outline" className={outlineButtonClass} onClick={() => setNewUserDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={!newUser.role || rolesFromApi.length === 0}>Criar Usuário</Button>

@@ -33,6 +33,16 @@ interface TransactionsManagerProps {
 
 const ITEMS_PER_PAGE = 20;
 
+const transactionBadgeClass = (source: string, type: string) => {
+  if (source === 'bill') {
+    return 'border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-500/40 dark:bg-orange-500/20 dark:text-orange-100';
+  }
+  if (type === 'entrada') {
+    return 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100';
+  }
+  return 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100';
+};
+
 export function TransactionsManager({ month, startDate, endDate, valuesVisible = true }: TransactionsManagerProps) {
   const fmt = (n: number) => (valuesVisible ? currencyFormatters.brl(n) : MASKED_VALUE);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -416,29 +426,29 @@ export function TransactionsManager({ month, startDate, endDate, valuesVisible =
       <CardContent className="space-y-4 min-w-0">
         {/* Resumo — mobile: 2 colunas */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 min-w-0">
-          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full bg-red-50 border-2 border-red-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Total Custo</p>
-            <p className="text-lg font-bold text-red-600 tabular-nums shrink-0">{fmt(totalCusto)}</p>
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-red-200 bg-red-50 px-4 text-red-950 min-w-0 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-50">
+            <p className="text-xs font-medium text-red-900/80 truncate dark:text-red-100/80">Total Custo</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">{fmt(totalCusto)}</p>
           </div>
-          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full bg-blue-50 border-2 border-blue-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Total Vendas</p>
-            <p className="text-lg font-bold text-blue-600 tabular-nums shrink-0">{fmt(totalVenda)}</p>
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-blue-200 bg-blue-50 px-4 text-blue-950 min-w-0 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-50">
+            <p className="text-xs font-medium text-blue-900/80 truncate dark:text-blue-100/80">Total Vendas</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">{fmt(totalVenda)}</p>
           </div>
-          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full bg-orange-50 border-2 border-orange-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Total Despesas</p>
-            <p className="text-lg font-bold text-orange-600 tabular-nums shrink-0">{fmt(totalDespesas)}</p>
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-orange-200 bg-orange-50 px-4 text-orange-950 min-w-0 dark:border-orange-500/40 dark:bg-orange-500/15 dark:text-orange-50">
+            <p className="text-xs font-medium text-orange-900/80 truncate dark:text-orange-100/80">Total Despesas</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">{fmt(totalDespesas)}</p>
           </div>
-          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full bg-green-50 border-2 border-green-200 px-4 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Total Lucro</p>
-            <p className="text-lg font-bold text-green-600 tabular-nums shrink-0">{fmt(totalLucro)}</p>
+          <div className="flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 border-emerald-200 bg-emerald-50 px-4 text-emerald-950 min-w-0 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-50">
+            <p className="text-xs font-medium text-emerald-900/80 truncate dark:text-emerald-100/80">Total Lucro</p>
+            <p className="text-lg font-bold tabular-nums shrink-0">{fmt(totalLucro)}</p>
           </div>
           <div className={cn(
             "flex h-14 items-center justify-between gap-2 rounded-2xl md:rounded-full border-2 px-4 min-w-0 col-span-2 md:col-span-1",
             totalEntradas - totalSaidas >= 0 
-              ? "bg-primary/10 border-primary/30" 
-              : "bg-destructive/10 border-destructive/30"
+              ? "border-primary/30 bg-primary/10 text-foreground dark:border-primary/50 dark:bg-primary/20" 
+              : "border-destructive/30 bg-destructive/10 text-foreground dark:border-destructive/50 dark:bg-destructive/20"
           )}>
-            <p className="text-xs text-muted-foreground truncate">Saldo</p>
+            <p className="text-xs font-medium text-foreground/70 truncate dark:text-foreground/80">Saldo</p>
             <p className={cn(
               "text-lg font-bold tabular-nums shrink-0",
               totalEntradas - totalSaidas >= 0 ? "text-primary" : "text-destructive"
@@ -486,29 +496,22 @@ export function TransactionsManager({ month, startDate, endDate, valuesVisible =
               {paginatedTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-card p-3 min-w-0"
+                  className="rounded-2xl border border-border bg-card p-3 min-w-0"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate">{transaction.description}</p>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
                         <span className="text-xs text-muted-foreground">{dateFormatters.short(transaction.date)}</span>
-                        <Badge className={cn(
-                          'text-[10px] rounded-full',
-                          transaction.source === 'bill'
-                            ? 'bg-orange-100 text-orange-700 border-orange-300'
-                            : transaction.type === 'entrada'
-                              ? 'bg-success/10 text-success border-success/30'
-                              : 'bg-destructive/10 text-destructive border-destructive/30'
-                        )}>
+                        <Badge variant="outline" className={cn('text-[10px] rounded-full', transactionBadgeClass(transaction.source, transaction.type))}>
                           {transaction.source === 'sale' ? 'Venda' : transaction.source === 'bill' ? 'Despesa' : TRANSACTION_TYPE_LABELS[transaction.type]}
                         </Badge>
                       </div>
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-2 text-xs tabular-nums">
-                        {transaction.custo != null && transaction.custo > 0 && <span className="text-red-600">Custo {fmt(transaction.custo)}</span>}
-                        {transaction.source === 'sale' && <span className="text-blue-600 font-medium">Venda {fmt(transaction.amount)}</span>}
-                        {transaction.source === 'bill' && <span className="text-orange-600 font-medium">Desp. {fmt(transaction.amount)}</span>}
-                        {transaction.lucro != null && transaction.lucro > 0 && <span className="text-green-600 font-medium">Lucro {fmt(transaction.lucro)}</span>}
+                        {transaction.custo != null && transaction.custo > 0 && <span className="text-red-700 dark:text-red-300">Custo {fmt(transaction.custo)}</span>}
+                        {transaction.source === 'sale' && <span className="text-blue-700 font-medium dark:text-blue-300">Venda {fmt(transaction.amount)}</span>}
+                        {transaction.source === 'bill' && <span className="text-orange-700 font-medium dark:text-orange-300">Desp. {fmt(transaction.amount)}</span>}
+                        {transaction.lucro != null && transaction.lucro > 0 && <span className="text-emerald-700 font-medium dark:text-emerald-300">Lucro {fmt(transaction.lucro)}</span>}
                       </div>
                     </div>
                     {transaction.source !== 'sale' && (
@@ -516,7 +519,7 @@ export function TransactionsManager({ month, startDate, endDate, valuesVisible =
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-9 w-9 text-blue-600 touch-manipulation"
+                          className="h-9 w-9 text-blue-700 touch-manipulation hover:bg-blue-50 hover:text-blue-800 dark:text-blue-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-100"
                           onClick={() => handleEditDateClick({
                             id: transaction.id,
                             source: transaction.source,
@@ -554,10 +557,10 @@ export function TransactionsManager({ month, startDate, endDate, valuesVisible =
                     <TableHead>Data</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right text-red-600">Custo</TableHead>
-                    <TableHead className="text-right text-blue-600">Venda</TableHead>
-                    <TableHead className="text-right text-orange-600">Despesa</TableHead>
-                    <TableHead className="text-right text-green-600">Lucro</TableHead>
+                    <TableHead className="text-right text-red-700 dark:text-red-300">Custo</TableHead>
+                    <TableHead className="text-right text-blue-700 dark:text-blue-300">Venda</TableHead>
+                    <TableHead className="text-right text-orange-700 dark:text-orange-300">Despesa</TableHead>
+                    <TableHead className="text-right text-emerald-700 dark:text-emerald-300">Lucro</TableHead>
                     <TableHead className="w-20">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -566,14 +569,7 @@ export function TransactionsManager({ month, startDate, endDate, valuesVisible =
                     <TableRow key={transaction.id}>
                       <TableCell>{dateFormatters.short(transaction.date)}</TableCell>
                       <TableCell>
-                        <Badge className={cn(
-                          'rounded-full',
-                          transaction.source === 'bill'
-                            ? 'bg-orange-100 text-orange-700 border-orange-300'
-                            : transaction.type === 'entrada'
-                              ? 'bg-success/10 text-success border-success/30'
-                              : 'bg-destructive/10 text-destructive border-destructive/30'
-                        )}>
+                        <Badge variant="outline" className={cn('rounded-full', transactionBadgeClass(transaction.source, transaction.type))}>
                           {transaction.source === 'sale' ? (
                             <ShoppingCart className="h-3 w-3 mr-1" />
                           ) : transaction.source === 'bill' ? (
@@ -587,16 +583,16 @@ export function TransactionsManager({ month, startDate, endDate, valuesVisible =
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">{transaction.description}</TableCell>
-                      <TableCell className="text-right text-red-600">
+                      <TableCell className="text-right text-red-700 dark:text-red-300">
                         {transaction.custo && transaction.custo > 0 ? fmt(transaction.custo) : '-'}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-blue-600">
+                      <TableCell className="text-right font-semibold text-blue-700 dark:text-blue-300">
                         {transaction.source === 'sale' ? fmt(transaction.amount) : '-'}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-orange-600">
+                      <TableCell className="text-right font-semibold text-orange-700 dark:text-orange-300">
                         {transaction.source === 'bill' ? fmt(transaction.amount) : '-'}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
+                      <TableCell className="text-right font-semibold text-emerald-700 dark:text-emerald-300">
                         {transaction.lucro && transaction.lucro > 0 ? fmt(transaction.lucro) : '-'}
                       </TableCell>
                       <TableCell>
@@ -606,7 +602,7 @@ export function TransactionsManager({ month, startDate, endDate, valuesVisible =
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                className="h-8 w-8 text-blue-700 hover:bg-blue-50 hover:text-blue-800 dark:text-blue-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-100"
                                 onClick={() => handleEditDateClick({
                                   id: transaction.id,
                                   source: transaction.source,

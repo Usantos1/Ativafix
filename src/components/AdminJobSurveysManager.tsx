@@ -20,7 +20,7 @@ import { ptBR } from 'date-fns/locale';
 import { Plus, Eye, EyeOff, Edit, Trash2, ExternalLink, Download, Search, Copy, Clock, MapPin, DollarSign, Users, Briefcase, Star, Filter, UserX, Calendar, BarChart3, TrendingUp, Brain, Video, Loader2, Sparkles, Award, FileText, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { ModernSwitch } from '@/components/ui/modern-switch';
+import { Switch } from '@/components/ui/switch';
 import { ResponseModal } from '@/components/ResponseModal';
 import { CandidateEvaluationModal } from '@/components/CandidateEvaluationModal';
 import { DraftPreviewModal } from '@/components/DraftPreviewModal';
@@ -29,6 +29,10 @@ import { useCandidateEvaluations } from '@/hooks/useCandidateEvaluations';
 import { useJobSurveyStats } from '@/hooks/useJobSurveys';
 import { DiscTestResults } from '@/components/DiscTestResults';
 import { DiscResponsesModal } from '@/components/DiscResponsesModal';
+import { cn } from '@/lib/utils';
+
+const inputClass = 'border-border bg-background text-foreground placeholder:text-muted-foreground';
+const outlineButtonClass = 'border-border bg-background text-foreground hover:bg-muted hover:text-foreground';
 
 interface JobSurvey {
   id: string;
@@ -2268,8 +2272,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
   const weekDays = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
   return (
-    <div className="space-y-6 overflow-auto max-h-[calc(100vh-200px)] pb-8">
-      <div className="flex justify-between items-center">
+    <div className="space-y-5 overflow-auto max-h-[calc(100vh-190px)] pb-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Formulários de Vaga</h1>
         <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
           <Plus className="h-4 w-4 mr-2" />
@@ -2277,19 +2281,19 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
         </Button>
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border-border bg-card shadow-sm">
         <CardHeader>
           <div className="flex flex-col gap-3">
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4" />
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar formulários..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
+                className={cn('pl-9', inputClass)}
               />
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-900 dark:text-blue-100">
               Dica: as vagas exibem quantas perguntas são base e quantas foram geradas por IA. Use isso para revisar rapidamente o questionário antes de enviar o link.
             </div>
           </div>
@@ -2305,12 +2309,12 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
               <p className="text-muted-foreground">Nenhum formulário encontrado</p>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {filteredSurveys.map((survey) => (
-                <Card key={survey.id} className="border border-border/50 hover:border-border transition-colors">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                <Card key={survey.id} className="rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-md">
+                  <CardContent className="p-4 md:p-5">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-lg font-semibold">{survey.title}</h3>
                           <Badge
@@ -2331,25 +2335,25 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                           )}
                         </div>
                         
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="grid gap-2 mb-4 text-sm text-foreground/70 dark:text-foreground/80 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                          <div className="flex items-center gap-2">
                             <Briefcase className="h-4 w-4" />
                             <span>{survey.position_title}</span>
                           </div>
                           {survey.company_name && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
                               <Users className="h-4 w-4" />
                               <span>{survey.company_name}</span>
                             </div>
                           )}
                           {survey.location && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
                               <MapPin className="h-4 w-4" />
                               <span>{survey.location}</span>
                             </div>
                           )}
                           {(survey.salary_min || survey.salary_max) && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
                               <DollarSign className="h-4 w-4" />
                               <span>
                                 R$ {survey.salary_min?.toLocaleString()} - R$ {survey.salary_max?.toLocaleString()}
@@ -2357,14 +2361,14 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                             </div>
                           )}
                           {survey.weekly_hours && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4" />
                               <span>{survey.weekly_hours}h semanais - {survey.work_modality}</span>
                             </div>
                           )}
                         </div>
 
-                        <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                        <div className="text-sm text-foreground/70 dark:text-foreground/80 flex flex-col sm:flex-row sm:items-center sm:gap-3">
                           <div>
                             {survey.questions.length} pergunta(s) base
                             {survey.dynamic_questions?.length ? ` • ${survey.dynamic_questions.length} dinâmicas (IA)` : ''}
@@ -2383,71 +2387,76 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 ml-4 shrink-0">
-                        <div className="flex flex-col items-end gap-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Ativa</span>
-                            <ModernSwitch
+                      <div className="flex flex-wrap items-center gap-2 xl:shrink-0 xl:justify-end">
+                        <div className="flex flex-row flex-wrap gap-2">
+                          <div className="flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1.5">
+                            <span className="text-[10px] uppercase tracking-wide text-foreground/70 dark:text-foreground/80">Ativa</span>
+                            <Switch
                               checked={survey.is_active}
                               onCheckedChange={(checked) => handleToggleActive(survey.id, checked)}
                             />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground" title="Listagem /vagas e link público">
+                          <div className="flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1.5">
+                            <span className="text-[10px] uppercase tracking-wide text-foreground/70 dark:text-foreground/80" title="Listagem /vagas e link público">
                               Portal
                             </span>
-                            <ModernSwitch
+                            <Switch
                               checked={survey.visible_on_portal !== false}
                               onCheckedChange={(checked) => handleTogglePortalVisibility(survey.id, checked)}
                             />
                           </div>
                         </div>
                         
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            window.location.href = `/admin/job-surveys/${survey.id}`;
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Ver
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyPublicLink(survey)}
-                        >
-                          <Copy className="h-4 w-4 mr-1" />
-                          Link
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(survey)}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => duplicateSurvey(survey)}
-                        >
-                          <Copy className="h-4 w-4 mr-1" />
-                          Duplicar
-                        </Button>
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Excluir
-                            </Button>
-                          </AlertDialogTrigger>
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-nowrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={outlineButtonClass}
+                            onClick={() => {
+                              window.location.href = `/admin/job-surveys/${survey.id}`;
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={outlineButtonClass}
+                            onClick={() => copyPublicLink(survey)}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Link
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={outlineButtonClass}
+                            onClick={() => openEditDialog(survey)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={outlineButtonClass}
+                            onClick={() => duplicateSurvey(survey)}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Duplicar
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-200 dark:hover:bg-red-500/25">
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Excluir
+                              </Button>
+                            </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
@@ -2465,7 +2474,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
-                        </AlertDialog>
+                          </AlertDialog>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -2495,12 +2505,12 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
           </DialogHeader>
 
           <Tabs defaultValue="info" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="info">Informações</TabsTrigger>
-              <TabsTrigger value="schedule">Horários</TabsTrigger>
-              <TabsTrigger value="compensation">Remuneração</TabsTrigger>
-              <TabsTrigger value="scheduling">Agendamento</TabsTrigger>
-              <TabsTrigger value="questions">Perguntas</TabsTrigger>
+            <TabsList className="inline-flex h-auto max-w-full flex-wrap gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm">
+              <TabsTrigger value="info" className="min-h-9 rounded-full px-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Informações</TabsTrigger>
+              <TabsTrigger value="schedule" className="min-h-9 rounded-full px-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Horários</TabsTrigger>
+              <TabsTrigger value="compensation" className="min-h-9 rounded-full px-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Remuneração</TabsTrigger>
+              <TabsTrigger value="scheduling" className="min-h-9 rounded-full px-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Agendamento</TabsTrigger>
+              <TabsTrigger value="questions" className="min-h-9 rounded-full px-3 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Perguntas</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info" className="space-y-4">

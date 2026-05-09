@@ -338,8 +338,8 @@ export function RolesManager() {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3" />
-          <div className="h-64 bg-gray-200 rounded" />
+          <div className="h-8 bg-muted rounded w-1/3" />
+          <div className="h-64 bg-muted rounded-2xl" />
         </div>
       </div>
     );
@@ -349,10 +349,10 @@ export function RolesManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold">Gerenciar Cargos</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/70 dark:text-foreground/80">
             Crie e gerencie cargos com permissões específicas por módulo
           </p>
         </div>
@@ -362,7 +362,7 @@ export function RolesManager() {
         </Button>
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border-border bg-card shadow-sm">
         <CardHeader>
           <CardTitle>Cargos do Sistema</CardTitle>
           <CardDescription>
@@ -373,8 +373,9 @@ export function RolesManager() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto rounded-2xl border border-border">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/70 dark:bg-muted/40">
               <TableRow>
                 <TableHead>Cargo</TableHead>
                 <TableHead>Descrição</TableHead>
@@ -389,19 +390,19 @@ export function RolesManager() {
                 const permCount = rolesPermissionsMap.get(role.id) || 0;
                 const isAdmin = role.name === 'admin';
                 return (
-                  <TableRow key={role.id}>
+                  <TableRow key={role.id} className="hover:bg-muted/40">
                     <TableCell className="font-medium">{role.display_name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{role.description || '-'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-foreground/70 dark:text-foreground/80">{role.description || '-'}</TableCell>
+                    <TableCell className="text-sm text-foreground/70 dark:text-foreground/80">
                       {role.segmento_slug ? (SEGMENTO_LABELS[role.segmento_slug] || role.segmento_slug) : 'Global'}
                     </TableCell>
                     <TableCell>
                       {role.is_system
-                        ? <Badge variant="outline">Sistema</Badge>
-                        : <Badge variant="secondary">Customizado</Badge>}
+                        ? <Badge variant="outline" className="border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/20 dark:text-blue-100">Sistema</Badge>
+                        : <Badge variant="outline" className="border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-500/40 dark:bg-slate-500/20 dark:text-slate-100">Customizado</Badge>}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100">
                         {isAdmin ? 'Total' : `${permCount} / ${totalSystemPerms}`}
                       </Badge>
                     </TableCell>
@@ -426,6 +427,7 @@ export function RolesManager() {
               })}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

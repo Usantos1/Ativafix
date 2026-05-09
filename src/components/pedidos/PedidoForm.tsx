@@ -140,8 +140,8 @@ export function PedidoForm({ open, onOpenChange, editando, onSubmit, onCreatePro
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
-          <div>
+        <div className="space-y-4 overflow-y-auto flex-1 min-h-0 px-1 pb-1">
+          <div className="pt-1">
             <Label className="text-sm">Nome do pedido</Label>
             <Input
               placeholder="Ex: Pedido Fornecedor X - Jan/2026"

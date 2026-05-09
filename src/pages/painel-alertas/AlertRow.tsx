@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Send } from 'lucide-react';
 import type { AlertCatalogItem, AlertConfigItem } from '@/hooks/useAlerts';
 
 /** Valores de exemplo para teste de envio — mensagem não sai "vazia" com [var]. */
@@ -114,17 +113,19 @@ export function AlertRow({
   };
 
   return (
-    <div className="rounded-lg border p-4 space-y-4">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <p className="font-medium">{catalogItem.nome}</p>
           {catalogItem.descricao && (
-            <p className="text-sm text-muted-foreground">{catalogItem.descricao}</p>
+            <p className="text-sm text-foreground/70 dark:text-foreground/80">{catalogItem.descricao}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1.5">
           <Switch checked={ativo} onCheckedChange={setAtivo} />
-          <span className="text-sm">{ativo ? 'Ativo' : 'Inativo'}</span>
+          <span className={ativo ? 'text-sm font-medium text-emerald-700 dark:text-emerald-300' : 'text-sm font-medium text-foreground/70 dark:text-foreground/80'}>
+            {ativo ? 'Ativo' : 'Inativo'}
+          </span>
         </div>
       </div>
       <div className="space-y-2">
@@ -134,11 +135,11 @@ export function AlertRow({
           onChange={(e) => setTemplate(e.target.value)}
           placeholder="Use variáveis como {cliente}, {numero_os}, {valor}..."
           rows={6}
-          className="resize-y min-h-[120px] font-mono text-sm"
+          className="min-h-[120px] resize-y border-border bg-background font-mono text-sm text-foreground placeholder:text-muted-foreground"
         />
         <div className="flex items-center justify-between">
           {vars.length > 0 && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground/70 dark:text-foreground/80">
               Variáveis: {vars.map((v) => `{${v}}`).join(', ')}
             </p>
           )}
@@ -147,7 +148,7 @@ export function AlertRow({
               type="button"
               variant="ghost"
               size="sm"
-              className="text-xs h-6 px-2"
+              className="h-6 px-2 text-xs text-foreground/70 hover:bg-muted hover:text-foreground dark:text-foreground/80"
               onClick={() => setTemplate(templateOriginal)}
             >
               Restaurar padrão
@@ -155,25 +156,41 @@ export function AlertRow({
           )}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-foreground/70 dark:text-foreground/80">
         Envia via <strong>WhatsApp</strong> para os números configurados em <strong>Configurações</strong> do painel.
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={handlePreview}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-border bg-background text-foreground hover:bg-muted hover:text-foreground"
+          onClick={handlePreview}
+        >
           Pré-visualizar
         </Button>
-        <Button size="sm" onClick={handleSave} disabled={saving}>
+        <Button
+          size="sm"
+          className="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400"
+          onClick={handleSave}
+          disabled={saving}
+        >
           {saving ? 'Salvando...' : 'Salvar este alerta'}
         </Button>
         {onTest && (
-          <Button size="sm" variant="secondary" onClick={handleTest} disabled={testing}>
-            <Send className="h-3.5 w-3.5 mr-1.5" />
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-blue-200 bg-blue-50 text-blue-900 hover:bg-blue-100 hover:text-blue-950 disabled:bg-blue-50 disabled:text-blue-900 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-100 dark:hover:bg-blue-500/25 dark:hover:text-blue-50 dark:disabled:bg-blue-500/15 dark:disabled:text-blue-100"
+            onClick={handleTest}
+            disabled={testing}
+          >
+            <img src="/whatsapp-logo.png" alt="" className="mr-1.5 h-3.5 w-3.5 object-contain" />
             {testing ? 'Enviando...' : 'Testar mensagem'}
           </Button>
         )}
       </div>
       {previewText && (
-        <div className="rounded bg-muted p-3 text-sm whitespace-pre-wrap">{previewText}</div>
+        <div className="rounded-xl border border-border bg-muted/60 p-3 text-sm text-foreground whitespace-pre-wrap dark:bg-muted/30">{previewText}</div>
       )}
     </div>
   );

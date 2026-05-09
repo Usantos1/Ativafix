@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 interface Interview {
   id: string;
@@ -51,6 +52,9 @@ interface Interview {
     position_title: string;
   };
 }
+
+const inputClass = 'border-border bg-background text-foreground placeholder:text-muted-foreground';
+const outlineButtonClass = 'border-border bg-background text-foreground hover:bg-muted hover:text-foreground';
 
 export const AdminInterviewsManager = () => {
   const { user } = useAuth();
@@ -402,15 +406,15 @@ export const AdminInterviewsManager = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
-      scheduled: { variant: 'outline' as const, label: 'Agendada', icon: Calendar },
-      in_progress: { variant: 'secondary' as const, label: 'Em Andamento', icon: Clock },
-      completed: { variant: 'default' as const, label: 'Concluída', icon: CheckCircle },
-      cancelled: { variant: 'destructive' as const, label: 'Cancelada', icon: XCircle },
+      scheduled: { label: 'Agendada', icon: Calendar, className: 'border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/20 dark:text-blue-100' },
+      in_progress: { label: 'Em Andamento', icon: Clock, className: 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-100' },
+      completed: { label: 'Concluída', icon: CheckCircle, className: 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100' },
+      cancelled: { label: 'Cancelada', icon: XCircle, className: 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100' },
     };
     const config = variants[status] || variants.scheduled;
     const Icon = config.icon;
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
+      <Badge variant="outline" className={cn('flex w-fit items-center gap-1 rounded-full', config.className)}>
         <Icon className="h-3 w-3" />
         {config.label}
       </Badge>
@@ -421,14 +425,14 @@ export const AdminInterviewsManager = () => {
     if (!recommendation) return null;
     
     const variants: Record<string, any> = {
-      approved: { variant: 'default' as const, label: 'Aprovado', icon: CheckCircle, className: 'bg-green-500' },
-      rejected: { variant: 'destructive' as const, label: 'Reprovado', icon: XCircle },
-      manual_review: { variant: 'secondary' as const, label: 'Revisão Manual', icon: AlertCircle },
+      approved: { label: 'Aprovado', icon: CheckCircle, className: 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100' },
+      rejected: { label: 'Reprovado', icon: XCircle, className: 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100' },
+      manual_review: { label: 'Revisão Manual', icon: AlertCircle, className: 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-100' },
     };
     const config = variants[recommendation] || variants.manual_review;
     const Icon = config.icon;
     return (
-      <Badge variant={config.variant} className={`flex items-center gap-1 ${config.className || ''}`}>
+      <Badge variant="outline" className={cn('flex w-fit items-center gap-1 rounded-full', config.className)}>
         <Icon className="h-3 w-3" />
         {config.label}
       </Badge>
@@ -436,26 +440,29 @@ export const AdminInterviewsManager = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Button
-          onClick={() => setShowCreateInterviewDialog(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nova Entrevista
-        </Button>
-      </div>
-
+    <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'candidates' | 'interviews')} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="candidates">Candidatos Avaliados ({evaluatedCandidates.length})</TabsTrigger>
-          <TabsTrigger value="interviews">Entrevistas ({filteredInterviews.length})</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="inline-flex h-auto w-auto max-w-full flex-wrap gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm">
+            <TabsTrigger value="candidates" className="min-h-9 rounded-full px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Candidatos Avaliados ({evaluatedCandidates.length})
+            </TabsTrigger>
+            <TabsTrigger value="interviews" className="min-h-9 rounded-full px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Entrevistas ({filteredInterviews.length})
+            </TabsTrigger>
+          </TabsList>
+          <Button
+            onClick={() => setShowCreateInterviewDialog(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Entrevista
+          </Button>
+        </div>
 
         <TabsContent value="candidates" className="space-y-4">
           {/* Lista de Candidatos Avaliados */}
-          <Card>
+          <Card className="rounded-2xl border-border bg-card shadow-sm">
             <CardHeader>
               <CardTitle>Candidatos Prontos para Entrevista</CardTitle>
               <CardDescription>
@@ -468,9 +475,9 @@ export const AdminInterviewsManager = () => {
                   <p className="text-muted-foreground">Nenhum candidato avaliado encontrado</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
+                <div className="overflow-x-auto rounded-2xl border border-border">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-muted/70 dark:bg-muted/40">
                       <TableRow>
                         <TableHead>Candidato</TableHead>
                         <TableHead>Vaga</TableHead>
@@ -489,31 +496,31 @@ export const AdminInterviewsManager = () => {
                         const jobSurvey = jobResponse?.job_surveys || {};
                         
                         return (
-                          <TableRow key={candidate.id}>
+                          <TableRow key={candidate.id} className="hover:bg-muted/40">
                             <TableCell>
                               <div>
                                 <div className="font-medium">{jobResponse?.name || 'N/A'}</div>
-                                <div className="text-sm text-muted-foreground">{jobResponse?.email}</div>
+                                <div className="text-sm text-foreground/70 dark:text-foreground/80">{jobResponse?.email}</div>
                                 {jobResponse?.phone && (
-                                  <div className="text-xs text-muted-foreground">{jobResponse.phone}</div>
+                                  <div className="text-xs text-foreground/70 dark:text-foreground/80">{jobResponse.phone}</div>
                                 )}
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="text-sm">{jobSurvey.title || 'N/A'}</div>
-                              <div className="text-xs text-muted-foreground">{jobSurvey.position_title}</div>
+                              <div className="text-xs text-foreground/70 dark:text-foreground/80">{jobSurvey.position_title}</div>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <span className="text-lg font-bold">{candidate.analysis_data?.score_geral || 0}</span>
-                                <span className="text-xs text-muted-foreground">/100</span>
+                                <span className="text-xs text-foreground/70 dark:text-foreground/80">/100</span>
                               </div>
                             </TableCell>
                             <TableCell>
                               {getRecommendationBadge(candidate.analysis_data?.recomendacao)}
                             </TableCell>
                             <TableCell>
-                              <div className="flex flex-col gap-1">
+                              <div className="flex flex-wrap gap-1.5">
                                 {candidate.has_online_interview ? (
                                   <Badge variant="outline" className="w-fit">
                                     <Video className="h-3 w-3 mr-1" />
@@ -523,6 +530,7 @@ export const AdminInterviewsManager = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    className={cn(outlineButtonClass, 'w-fit text-xs h-7')}
                                     onClick={async () => {
                                       try {
                                         toast({
@@ -584,7 +592,6 @@ export const AdminInterviewsManager = () => {
                                         });
                                       }
                                     }}
-                                    className="w-fit text-xs h-7"
                                   >
                                     <Video className="h-3 w-3 mr-1" />
                                     Criar Online
@@ -600,6 +607,7 @@ export const AdminInterviewsManager = () => {
                                     variant="outline"
                                     size="sm"
                                     disabled={creatingInterviews.has(`${candidate.job_response_id}-presencial`)}
+                                    className={cn(outlineButtonClass, 'w-fit text-xs h-7')}
                                     onClick={async () => {
                                       const key = `${candidate.job_response_id}-presencial`;
                                       setCreatingInterviews(prev => new Set(prev).add(key));
@@ -670,7 +678,6 @@ export const AdminInterviewsManager = () => {
                                         });
                                       }
                                     }}
-                                    className="w-fit text-xs h-7"
                                   >
                                     {creatingInterviews.has(`${candidate.job_response_id}-presencial`) ? (
                                       <>
@@ -688,10 +695,11 @@ export const AdminInterviewsManager = () => {
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center gap-1 justify-end">
+                              <div className="flex flex-wrap items-center justify-end gap-1.5">
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  className={outlineButtonClass}
                                   onClick={() => {
                                     // Filtrar entrevistas por este candidato na aba de entrevistas
                                     setSearchTerm(jobResponse?.name || '');
@@ -705,6 +713,7 @@ export const AdminInterviewsManager = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  className={outlineButtonClass}
                                   onClick={() => {
                                     // Abrir análise de IA do candidato
                                     window.location.href = `/admin/job-surveys?survey_id=${candidate.survey_id}&candidate_id=${candidate.job_response_id}`;
@@ -728,7 +737,7 @@ export const AdminInterviewsManager = () => {
 
         <TabsContent value="interviews" className="space-y-4">
           {/* Filtros */}
-          <Card>
+          <Card className="rounded-2xl border-border bg-card shadow-sm">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
@@ -738,12 +747,12 @@ export const AdminInterviewsManager = () => {
                       placeholder="Buscar por candidato ou vaga..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
+                      className={cn('pl-9', inputClass)}
                     />
                   </div>
                 </div>
                 <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
-                  <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectTrigger className={cn('w-full md:w-[180px]', inputClass)}>
                     <SelectValue placeholder="Tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -753,7 +762,7 @@ export const AdminInterviewsManager = () => {
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-                  <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectTrigger className={cn('w-full md:w-[180px]', inputClass)}>
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -769,7 +778,7 @@ export const AdminInterviewsManager = () => {
           </Card>
 
           {/* Tabela de Entrevistas */}
-          <Card>
+          <Card className="rounded-2xl border-border bg-card shadow-sm">
             <CardHeader>
               <CardTitle>Entrevistas ({filteredInterviews.length})</CardTitle>
               <CardDescription>
@@ -787,9 +796,9 @@ export const AdminInterviewsManager = () => {
                   <p className="text-muted-foreground">Nenhuma entrevista encontrada</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
+                <div className="overflow-x-auto rounded-2xl border border-border">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-muted/70 dark:bg-muted/40">
                       <TableRow>
                         <TableHead>Candidato</TableHead>
                         <TableHead>Vaga</TableHead>
@@ -802,16 +811,16 @@ export const AdminInterviewsManager = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredInterviews.map((interview) => (
-                        <TableRow key={interview.id}>
+                        <TableRow key={interview.id} className="hover:bg-muted/40">
                           <TableCell>
                             <div>
                               <div className="font-medium">{interview.job_response?.name || 'N/A'}</div>
-                              <div className="text-sm text-muted-foreground">{interview.job_response?.email}</div>
+                              <div className="text-sm text-foreground/70 dark:text-foreground/80">{interview.job_response?.email}</div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">{interview.job_survey?.title || 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground">{interview.job_survey?.position_title}</div>
+                            <div className="text-xs text-foreground/70 dark:text-foreground/80">{interview.job_survey?.position_title}</div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="flex items-center gap-1 w-fit">
@@ -835,13 +844,13 @@ export const AdminInterviewsManager = () => {
                                 {format(new Date(interview.scheduled_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                               </div>
                             ) : (
-                              <span className="text-muted-foreground text-sm">Não agendada</span>
+                              <span className="text-foreground/70 dark:text-foreground/80 text-sm">Não agendada</span>
                             )}
                           </TableCell>
                           <TableCell>
                             {getRecommendationBadge(interview.ai_recommendation)}
                             {interview.ai_score !== null && (
-                              <div className="text-xs text-muted-foreground mt-1">
+                              <div className="text-xs text-foreground/70 dark:text-foreground/80 mt-1">
                                 Score: {interview.ai_score}/100
                               </div>
                             )}
@@ -852,6 +861,7 @@ export const AdminInterviewsManager = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  className={outlineButtonClass}
                                   onClick={() => {
                                     setSelectedInterview(interview);
                                     handleGenerateQuestions(interview);
@@ -879,6 +889,7 @@ export const AdminInterviewsManager = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    className={outlineButtonClass}
                                     onClick={() => {
                                       setSelectedInterview(interview);
                                       setShowTranscriptionDialog(true);
@@ -891,6 +902,7 @@ export const AdminInterviewsManager = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
+                                      className={outlineButtonClass}
                                       onClick={() => handleReEvaluateTranscription(interview)}
                                       disabled={reEvaluatingInterviewId === interview.id}
                                     >
@@ -908,6 +920,7 @@ export const AdminInterviewsManager = () => {
                                 <Button
                                   variant="default"
                                   size="sm"
+                                  className="bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400"
                                   onClick={() => {
                                     window.location.href = `/admin/interviews/evaluate/${interview.id}`;
                                   }}
@@ -920,6 +933,7 @@ export const AdminInterviewsManager = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  className={outlineButtonClass}
                                   onClick={() => window.open(interview.meet_link!, '_blank')}
                                 >
                                   <ExternalLink className="h-4 w-4 mr-1" />
@@ -934,7 +948,7 @@ export const AdminInterviewsManager = () => {
                                   setShowDeleteDialog(true);
                                 }}
                                 disabled={deletingInterviewId === interview.id}
-                                className="text-destructive hover:text-destructive"
+                                className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-200 dark:hover:bg-red-500/25"
                               >
                                 {deletingInterviewId === interview.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />

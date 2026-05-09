@@ -21,6 +21,18 @@ import { LocationDisplay } from '@/utils/locationUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TimeSheetManager } from '@/components/TimeSheetManager';
 
+const inputClass = 'border-border bg-background text-foreground placeholder:text-muted-foreground';
+const outlineButtonClass = 'border-border bg-background text-foreground hover:bg-muted hover:text-foreground';
+const statusBadgeClass = (status: string) => {
+  if (status === 'approved') {
+    return 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100';
+  }
+  if (status === 'rejected') {
+    return 'border-red-200 bg-red-100 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100';
+  }
+  return 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-100';
+};
+
 interface TimeClockRecord {
   id: string;
   user_id: string;
@@ -267,12 +279,6 @@ export const AdminTimeClockManager = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: 'secondary',
-      approved: 'default',
-      rejected: 'destructive'
-    } as const;
-
     const labels = {
       pending: 'Pendente',
       approved: 'Aprovado',
@@ -280,7 +286,7 @@ export const AdminTimeClockManager = () => {
     };
 
     return (
-      <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
+      <Badge variant="outline" className={statusBadgeClass(status)}>
         {labels[status as keyof typeof labels] || status}
       </Badge>
     );
@@ -308,47 +314,50 @@ export const AdminTimeClockManager = () => {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Gestão de Espelhos de Ponto - RH
-            </CardTitle>
-            <Button onClick={exportToExcel} variant="outline" size="sm">
-              <FileDown className="h-4 w-4 mr-2" />
-              Exportar Excel
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="list" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Lista de Registros
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Espelho de Ponto
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="list" className="space-y-4 mt-4">
+      <Card className="rounded-2xl border-border bg-card shadow-sm">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <CardHeader>
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <span className="rounded-full border border-primary/25 bg-primary/10 p-2 text-primary">
+                  <Clock className="h-4 w-4" />
+                </span>
+                Gestão de Espelhos de Ponto - RH
+              </CardTitle>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <TabsList className="inline-flex h-auto w-auto max-w-full flex-wrap gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm">
+                  <TabsTrigger value="list" className="min-h-9 rounded-full px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <FileText className="h-4 w-4" />
+                    Lista de Registros
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="min-h-9 rounded-full px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Calendar className="h-4 w-4" />
+                    Espelho de Ponto
+                  </TabsTrigger>
+                </TabsList>
+                <Button onClick={exportToExcel} variant="outline" size="sm" className={outlineButtonClass}>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Exportar Excel
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <TabsContent value="list" className="space-y-4 mt-0">
           <div className="space-y-4">
             {/* Search and User Filter */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por usuário, data ou localização..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className={`pl-10 ${inputClass}`}
                 />
               </div>
               <Select value={userFilter} onValueChange={setUserFilter}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className={`w-full lg:w-60 ${inputClass}`}>
                   <SelectValue placeholder="Filtrar por colaborador" />
                 </SelectTrigger>
                 <SelectContent>
@@ -360,22 +369,22 @@ export const AdminTimeClockManager = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={fetchRecords} variant="outline">
+              <Button onClick={fetchRecords} variant="outline" className={outlineButtonClass}>
                 Atualizar
               </Button>
             </div>
 
             {/* Date Range Filter */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/30 p-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+                <Calendar className="h-4 w-4 text-primary" />
                 <Label htmlFor="start-date">De:</Label>
                 <Input
                   id="start-date"
                   type="date"
                   value={dateFilter.start}
                   onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-                  className="w-40"
+                  className={`w-full sm:w-40 ${inputClass}`}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -385,7 +394,7 @@ export const AdminTimeClockManager = () => {
                   type="date"
                   value={dateFilter.end}
                   onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-                  className="w-40"
+                  className={`w-full sm:w-40 ${inputClass}`}
                 />
               </div>
             </div>
@@ -394,12 +403,12 @@ export const AdminTimeClockManager = () => {
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-2 text-muted-foreground">Carregando registros...</p>
+              <p className="mt-2 text-foreground/70 dark:text-foreground/80">Carregando registros...</p>
             </div>
           ) : (
-            <div className="border rounded-lg overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 450px)' }}>
+            <div className="border border-border rounded-2xl overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 450px)' }}>
               <Table>
-                <TableHeader className="sticky top-0 bg-background z-10">
+                <TableHeader className="sticky top-0 bg-muted z-10 dark:bg-muted/70">
                   <TableRow>
                     <TableHead>Usuário</TableHead>
                     <TableHead>Data</TableHead>
@@ -414,11 +423,11 @@ export const AdminTimeClockManager = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredRecords.map((record) => (
-                    <TableRow key={record.id}>
+                    <TableRow key={record.id} className="hover:bg-muted/40">
                       <TableCell className="font-medium">
                         {getUserName(record.user_id)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-foreground/80 dark:text-foreground/90">
                         {(() => {
                           try {
                             const dateStr = record.date ? (typeof record.date === 'string' ? record.date.split('T')[0] : format(new Date(record.date), 'yyyy-MM-dd')) : '';
@@ -429,7 +438,7 @@ export const AdminTimeClockManager = () => {
                           }
                         })()}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-foreground/80 dark:text-foreground/90">
                         {record.clock_in ? (() => {
                           try {
                             const date = typeof record.clock_in === 'string' ? parseISO(record.clock_in) : new Date(record.clock_in);
@@ -439,7 +448,7 @@ export const AdminTimeClockManager = () => {
                           }
                         })() : '-'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-foreground/80 dark:text-foreground/90">
                         {record.clock_out ? (() => {
                           try {
                             const date = typeof record.clock_out === 'string' ? parseISO(record.clock_out) : new Date(record.clock_out);
@@ -449,8 +458,8 @@ export const AdminTimeClockManager = () => {
                           }
                         })() : '-'}
                       </TableCell>
-                      <TableCell>{formatTotalHours(record.total_hours)}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-foreground/90">{formatTotalHours(record.total_hours)}</TableCell>
+                      <TableCell className="text-foreground/80 dark:text-foreground/90">
                         <div className="flex items-center gap-1">
                           {record.location && <MapPin className="h-3 w-3" />}
                           {record.location ? (
@@ -460,7 +469,7 @@ export const AdminTimeClockManager = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs">{record.ip_address || '-'}</TableCell>
+                      <TableCell className="text-xs text-foreground/70 dark:text-foreground/80">{record.ip_address || '-'}</TableCell>
                       <TableCell>{getStatusBadge(record.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -471,12 +480,13 @@ export const AdminTimeClockManager = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    className={outlineButtonClass}
                                     onClick={() => setSelectedRecord(record)}
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
+                                <DialogContent className="max-w-2xl border-border bg-card">
                                   <DialogHeader>
                                     <DialogTitle>Editar Registro de Ponto</DialogTitle>
                                   </DialogHeader>
@@ -492,7 +502,7 @@ export const AdminTimeClockManager = () => {
                               
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm">
+                                  <Button variant="outline" size="sm" className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-200 dark:hover:bg-red-500/25">
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -513,7 +523,7 @@ export const AdminTimeClockManager = () => {
                               </AlertDialog>
                             </>
                           ) : (
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-foreground/70 dark:text-foreground/80">
                               Apenas visualização
                             </span>
                           )}
@@ -527,11 +537,11 @@ export const AdminTimeClockManager = () => {
           )}
             </TabsContent>
             
-            <TabsContent value="calendar" className="mt-4">
+            <TabsContent value="calendar" className="mt-0">
               <TimeSheetManager />
             </TabsContent>
-          </Tabs>
-        </CardContent>
+          </CardContent>
+        </Tabs>
       </Card>
     </div>
   );
@@ -586,18 +596,18 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>Usuário</Label>
-          <Input value={getUserName(record.user_id)} disabled />
+          <Input value={getUserName(record.user_id)} disabled className={inputClass} />
         </div>
         <div>
           <Label>Data</Label>
-          <Input value={format(new Date(record.date), 'dd/MM/yyyy')} disabled />
+          <Input value={format(new Date(record.date), 'dd/MM/yyyy')} disabled className={inputClass} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="clock_in">Entrada</Label>
           <Input
@@ -605,6 +615,7 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
             type="datetime-local"
             value={formData.clock_in}
             onChange={(e) => setFormData(prev => ({ ...prev, clock_in: e.target.value }))}
+            className={inputClass}
           />
         </div>
         <div>
@@ -614,11 +625,12 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
             type="datetime-local"
             value={formData.clock_out}
             onChange={(e) => setFormData(prev => ({ ...prev, clock_out: e.target.value }))}
+            className={inputClass}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="break_start">Início da Pausa</Label>
           <Input
@@ -626,6 +638,7 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
             type="datetime-local"
             value={formData.break_start}
             onChange={(e) => setFormData(prev => ({ ...prev, break_start: e.target.value }))}
+            className={inputClass}
           />
         </div>
         <div>
@@ -635,11 +648,12 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
             type="datetime-local"
             value={formData.break_end}
             onChange={(e) => setFormData(prev => ({ ...prev, break_end: e.target.value }))}
+            className={inputClass}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="lunch_start">Início do Almoço</Label>
           <Input
@@ -647,6 +661,7 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
             type="datetime-local"
             value={formData.lunch_start}
             onChange={(e) => setFormData(prev => ({ ...prev, lunch_start: e.target.value }))}
+            className={inputClass}
           />
         </div>
         <div>
@@ -656,15 +671,16 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
             type="datetime-local"
             value={formData.lunch_end}
             onChange={(e) => setFormData(prev => ({ ...prev, lunch_end: e.target.value }))}
+            className={inputClass}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="status">Status</Label>
           <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'pending' | 'approved' | 'rejected' }))}>
-            <SelectTrigger>
+            <SelectTrigger className={inputClass}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -680,6 +696,7 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
             id="location"
             value={formData.location}
             onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+            className={inputClass}
           />
         </div>
       </div>
@@ -691,6 +708,7 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({ record, onSave, getUser
           value={formData.notes}
           onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
           rows={3}
+          className={inputClass}
         />
       </div>
 

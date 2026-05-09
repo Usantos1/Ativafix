@@ -48,7 +48,6 @@ import CadastrosBase from "./pages/admin/CadastrosBase";
 import RH from "./pages/RH";
 import AdminJobSurveys from "./pages/admin/AdminJobSurveys";
 import JobSurveyDetail from "./pages/admin/JobSurveyDetail";
-import TalentBank from "./pages/admin/TalentBank";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminInterviews from "./pages/admin/AdminInterviews";
 import InterviewEvaluation from "./pages/admin/InterviewEvaluation";
@@ -196,8 +195,8 @@ const App = () => {
               <Route path="/assinatura" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
               <Route path="/admin/job-surveys" element={<ProtectedRoute><RecrutamentoGuard><RecruitmentManager /></RecrutamentoGuard></ProtectedRoute>} />
               <Route path="/admin/job-surveys/:id" element={<ProtectedRoute><RecrutamentoGuard><JobSurveyDetail /></RecrutamentoGuard></ProtectedRoute>} />
-              <Route path="/admin/talent-bank" element={<ProtectedRoute><RecrutamentoGuard><TalentBank /></RecrutamentoGuard></ProtectedRoute>} />
-              <Route path="/admin/interviews" element={<ProtectedRoute><RecrutamentoGuard><RecruitmentManager /></RecrutamentoGuard></ProtectedRoute>} />
+              <Route path="/admin/talent-bank" element={<ProtectedRoute><RecrutamentoGuard><RecruitmentManager initialTab="talent" /></RecrutamentoGuard></ProtectedRoute>} />
+              <Route path="/admin/interviews" element={<ProtectedRoute><RecrutamentoGuard><RecruitmentManager initialTab="interviews" /></RecrutamentoGuard></ProtectedRoute>} />
               <Route path="/admin/interviews/evaluate/:interview_id" element={<ProtectedRoute><RecrutamentoGuard><InterviewEvaluation /></RecrutamentoGuard></ProtectedRoute>} />
               <Route path="/admin/logs" element={<PermissionRoute permission="admin.logs"><AdminLogs /></PermissionRoute>} />
               <Route path="/admin/estrutura" element={<ProtectedRoute><EstruturaOrganizacional /></ProtectedRoute>} />
