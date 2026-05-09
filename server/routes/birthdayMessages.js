@@ -59,7 +59,10 @@ router.put('/settings', async (req, res) => {
     const payload = req.body || {};
     await upsertBirthdaySettings(pool, req.companyId, payload);
     const row = await getBirthdaySettingsRow(pool, req.companyId);
-    const syncResult = await syncBirthdayJobsForCompany(pool, req.companyId, { force: true });
+    const syncResult = await syncBirthdayJobsForCompany(pool, req.companyId, {
+      force: true,
+      period: payload.sync_period === 'month' ? 'month' : 'today',
+    });
     const processResult = payload.ativo
       ? await processDueBirthdayMessages(pool, 30, req.companyId)
       : null;
@@ -103,6 +106,9 @@ router.get('/jobs', async (req, res) => {
 
     if (period === 'today') {
       where.push(`j.source_date = timezone('America/Sao_Paulo', now())::date`);
+    } else if (period === 'month') {
+      where.push(`j.source_date BETWEEN timezone('America/Sao_Paulo', now())::date
+        AND ((date_trunc('month', timezone('America/Sao_Paulo', now())) + interval '1 month - 1 day')::date)`);
     } else if (period === 'upcoming') {
       where.push(`j.scheduled_at >= now() - interval '1 day'`);
     }
@@ -133,7 +139,12 @@ router.get('/jobs', async (req, res) => {
          COUNT(*) FILTER (WHERE status = 'cancelado')::int AS cancelled_jobs
        FROM birthday_message_jobs
        WHERE company_id = $1
-         AND source_date = timezone('America/Sao_Paulo', now())::date`,
+         AND ${
+           period === 'month'
+             ? `source_date BETWEEN timezone('America/Sao_Paulo', now())::date
+                AND ((date_trunc('month', timezone('America/Sao_Paulo', now())) + interval '1 month - 1 day')::date)`
+             : `source_date = timezone('America/Sao_Paulo', now())::date`
+         }`,
       [req.companyId]
     );
 
@@ -304,7 +315,8 @@ router.delete('/jobs/:id', async (req, res) => {
 
 router.post('/sync', async (req, res) => {
   try {
-    const result = await syncBirthdayJobs(pool, req.companyId, { force: true });
+    const period = req.body?.period === 'month' ? 'month' : 'today';
+    const result = await syncBirthdayJobs(pool, req.companyId, { force: true, period });
     res.json(result);
   } catch (error) {
     console.error('[Birthday Messages] POST sync:', error);

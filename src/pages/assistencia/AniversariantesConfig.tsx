@@ -88,6 +88,7 @@ type BirthdayUpcomingClient = {
   job_id: string | null;
   job_status: string | null;
   scheduled_at: string | null;
+  source_date: string | null;
   mensagem_renderizada: string | null;
 };
 
@@ -154,7 +155,7 @@ export default function AniversariantesConfig() {
   } = useQuery({
     queryKey: ['birthday-message-jobs-page', jobFilter],
     queryFn: async () => {
-      const query = new URLSearchParams({ limit: '100', status: jobFilter, period: 'today' });
+      const query = new URLSearchParams({ limit: '100', status: jobFilter, period: 'month' });
       const { data, error } = await apiClient.get(`/birthday-messages/jobs?${query.toString()}`);
       if (error) throw new Error(typeof error === 'string' ? error : 'Erro ao carregar agendamentos');
       return (data || { jobs: [], summary: {} }) as BirthdayJobsResponse;
@@ -206,6 +207,7 @@ export default function AniversariantesConfig() {
         horario_envio: settings.horario,
         timezone: settings.timezone || 'America/Sao_Paulo',
         template_mensagem: settings.mensagem,
+        sync_period: 'month',
       });
       if (error) throw new Error(typeof error === 'string' ? error : 'Erro ao salvar configuração');
       await Promise.all([refetchJobs(), refetchUpcoming()]);
@@ -220,12 +222,12 @@ export default function AniversariantesConfig() {
   const syncJobs = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await apiClient.post('/birthday-messages/sync', {});
+      const { data, error } = await apiClient.post('/birthday-messages/sync', { period: 'month' });
       if (error) throw new Error(typeof error === 'string' ? error : 'Erro ao sincronizar');
       await Promise.all([refetchJobs(), refetchUpcoming()]);
       toast({
         title: 'Fila sincronizada',
-        description: `${data?.clientes_encontrados ?? 0} encontrados, ${data?.created ?? 0} criados.`,
+        description: `${data?.clientes_encontrados ?? 0} encontrados no mês, ${data?.created ?? 0} criados.`,
       });
     } catch (error: any) {
       toast({ title: 'Erro ao sincronizar', description: error?.message, variant: 'destructive' });
@@ -308,7 +310,11 @@ export default function AniversariantesConfig() {
 
       const { error } = editingClient.job_id
         ? await apiClient.patch(`/birthday-messages/jobs/${editingClient.job_id}`, { ...payload, status: 'agendado' })
-        : await apiClient.post('/birthday-messages/jobs', { ...payload, cliente_id: editingClient.id });
+        : await apiClient.post('/birthday-messages/jobs', {
+            ...payload,
+            cliente_id: editingClient.id,
+            source_date: editingClient.source_date,
+          });
 
       if (error) throw new Error(typeof error === 'string' ? error : 'Erro ao salvar mensagem');
       await Promise.all([refetchJobs(), refetchUpcoming()]);
@@ -352,7 +358,7 @@ export default function AniversariantesConfig() {
                 Mensagem e automação
               </CardTitle>
               <CardDescription>
-                Configure o envio automático e personalize o texto enviado aos aniversariantes do dia.
+                Configure o envio automático e personalize o texto enviado aos aniversariantes do mês.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -366,7 +372,7 @@ export default function AniversariantesConfig() {
                     <div>
                       <Label>Envio automático ativo</Label>
                       <p className="text-sm text-muted-foreground">
-                        Quando ativado, o sistema cria a fila diária e envia no horário configurado.
+                        Quando ativado, o sistema cria a fila do mês e envia no dia e horário configurados.
                       </p>
                     </div>
                     <Switch
@@ -475,7 +481,7 @@ export default function AniversariantesConfig() {
           <CardHeader className="space-y-3 pb-3">
             <div>
               <CardTitle className="text-base sm:text-lg">Fila de aniversários</CardTitle>
-              <CardDescription>Agendamentos de hoje e aniversariantes do mês.</CardDescription>
+              <CardDescription>Agendamentos do mês a partir de hoje.</CardDescription>
             </div>
             <div className="grid gap-3 rounded-[28px] border bg-muted/20 p-3 xl:grid-cols-[180px_minmax(0,1fr)_auto] xl:items-stretch">
                 <Select value={jobFilter} onValueChange={(value) => setJobFilter(value as typeof jobFilter)}>

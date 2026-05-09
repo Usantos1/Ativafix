@@ -1,11 +1,11 @@
 /**
- * Sincroniza a fila de aniversariantes do dia.
- * Deve rodar poucas vezes ao dia; o job criado fica agendado para o horário configurado.
+ * Sincroniza a fila de aniversariantes do mês a partir de hoje.
+ * Cada job fica agendado para o dia do aniversário no horário configurado.
  * @param {import('pg').Pool} pool
  */
 export async function runBirthdayMessageSync(pool) {
   const service = await import('../services/birthdayMessageService.js');
-  return service.syncBirthdayJobs(pool);
+  return service.syncBirthdayJobs(pool, null, { period: 'month' });
 }
 
 /**
