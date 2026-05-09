@@ -2041,16 +2041,34 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
     const { slugOrId } = req.params;
     console.log('[Public] Buscando vaga por slug/id:', slugOrId);
     
+    const publicJobSelect = `
+      SELECT js.*,
+             COALESCE(
+               NULLIF(c.settings->>'support_whatsapp', ''),
+               NULLIF(c.settings->>'whatsapp', ''),
+               NULLIF(c.phone, '')
+             ) AS support_whatsapp
+      FROM job_surveys js
+      LEFT JOIN companies c ON c.id = js.company_id
+    `;
+    const publicJobWhere = `(
+      COALESCE(js.visible_on_portal, true) = true
+      AND (
+        js.is_active = true
+        OR (js.is_active = false AND (js.published_at IS NOT NULL OR (js.slug IS NOT NULL AND TRIM(js.slug) <> '')))
+      )
+    )`;
+
     // Tentar buscar por slug (case-insensitive)
     let result = await pool.query(
-      `SELECT * FROM job_surveys WHERE LOWER(slug) = LOWER($1) AND ${jobSurveyPublicPortalSql}`,
+      `${publicJobSelect} WHERE LOWER(js.slug) = LOWER($1) AND ${publicJobWhere}`,
       [slugOrId]
     );
     
     // Se não encontrar por slug, tentar por ID
     if (result.rows.length === 0 && slugOrId.length === 36) {
       result = await pool.query(
-        `SELECT * FROM job_surveys WHERE id = $1 AND ${jobSurveyPublicPortalSql}`,
+        `${publicJobSelect} WHERE js.id = $1 AND ${publicJobWhere}`,
         [slugOrId]
       );
     }
@@ -2058,7 +2076,7 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
     // Se ainda não encontrar, tentar busca parcial no slug
     if (result.rows.length === 0) {
       result = await pool.query(
-        `SELECT * FROM job_surveys WHERE LOWER(slug) LIKE LOWER($1) AND ${jobSurveyPublicPortalSql}`,
+        `${publicJobSelect} WHERE LOWER(js.slug) LIKE LOWER($1) AND ${publicJobWhere}`,
         [`%${slugOrId}%`]
       );
     }

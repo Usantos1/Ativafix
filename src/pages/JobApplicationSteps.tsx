@@ -30,6 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { cn } from "@/lib/utils";
 
 /* =======================
    Tema consistente (Claro/Escuro) - Design Profissional
@@ -165,6 +166,7 @@ interface JobSurvey {
   salary_max?: number;
   has_commission?: boolean;
   commission_details?: string;
+  support_whatsapp?: string | null;
   benefits?: string[];
   requirements?: string[];
   slug: string;
@@ -220,6 +222,30 @@ const clampStepIndex = (step: number, totalSteps: number) => {
   if (!Number.isFinite(step)) return 0;
   return Math.min(Math.max(Math.trunc(step), 0), maxStep);
 };
+const DEFAULT_SUPPORT_WHATSAPP = '5519987680453';
+const normalizeWhatsAppLinkNumber = (value?: string | null) => {
+  const digits = onlyDigits(value || '');
+  if (!digits) return DEFAULT_SUPPORT_WHATSAPP;
+  if (digits.startsWith('55')) return digits;
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  return digits;
+};
+const WhatsAppLogo = ({ className = 'h-5 w-5' }: { className?: string }) => (
+  <span className={cn('inline-flex shrink-0 items-center justify-center', className)}>
+    <img
+      src="/whatsapp-logo.png"
+      alt=""
+      className="h-full w-full object-contain"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+        (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden');
+      }}
+    />
+    <span className="hidden h-full w-full rounded-full bg-white/95 text-[10px] font-bold leading-none text-green-600" aria-hidden>
+      W
+    </span>
+  </span>
+);
 
 export default function JobApplicationSteps() {
   const { slug } = useParams();
@@ -257,6 +283,8 @@ export default function JobApplicationSteps() {
   const [existingJobResponseId, setExistingJobResponseId] = useState<string | null>(null);
   // Estado para modal de confirmação do teste DISC
   const [showDiscTestModal, setShowDiscTestModal] = useState<boolean>(false);
+  const [showExitIntentModal, setShowExitIntentModal] = useState(false);
+  const exitIntentShownRef = React.useRef(false);
 
   // Forçar referência ao estado para evitar tree-shaking do Vite
   React.useEffect(() => {
@@ -570,12 +598,47 @@ export default function JobApplicationSteps() {
   const safeCurrentStep = clampStepIndex(currentStep, totalSteps);
   const activeStep = steps[safeCurrentStep] || steps[0];
   const progressPercentage = ((safeCurrentStep + 1) / totalSteps) * 100;
+  const hasStartedApplication = Boolean(
+    formData.name.trim() ||
+    formData.email.trim() ||
+    formData.phone.trim() ||
+    formData.whatsapp.trim() ||
+    Object.values(formData.responses || {}).some((value) => {
+      if (Array.isArray(value)) return value.length > 0;
+      return value !== undefined && value !== null && String(value).trim() !== '';
+    })
+  );
+  const supportWhatsAppNumber = useMemo(
+    () => normalizeWhatsAppLinkNumber(survey?.support_whatsapp),
+    [survey?.support_whatsapp]
+  );
+  const supportMessage = useMemo(() => {
+    const candidateName = formData.name.trim() || 'candidato(a)';
+    const jobTitle = survey?.title || survey?.position_title || 'vaga';
+    return encodeURIComponent(
+      `Olá! Sou ${candidateName} e estou preenchendo a candidatura para ${jobTitle}. Preciso de ajuda para finalizar.`
+    );
+  }, [formData.name, survey?.position_title, survey?.title]);
+  const supportWhatsAppUrl = `https://wa.me/${supportWhatsAppNumber}?text=${supportMessage}`;
 
   useEffect(() => {
     if (currentStep !== safeCurrentStep) {
       setCurrentStep(safeCurrentStep);
     }
   }, [currentStep, safeCurrentStep]);
+
+  useEffect(() => {
+    if (!survey || submitted || !hasStartedApplication) return;
+
+    const handleMouseLeave = (event: MouseEvent) => {
+      if (exitIntentShownRef.current || event.clientY > 12) return;
+      exitIntentShownRef.current = true;
+      setShowExitIntentModal(true);
+    };
+
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => document.removeEventListener('mouseleave', handleMouseLeave);
+  }, [hasStartedApplication, submitted, survey]);
 
   /* ---------- validação ---------- */
   const validateStep = (stepIndex: number) => {
@@ -1193,6 +1256,53 @@ export default function JobApplicationSteps() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showExitIntentModal} onOpenChange={setShowExitIntentModal}>
+        <DialogContent className="sm:max-w-[520px]" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-card-border))' }}>
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="rounded-full p-2" style={{ backgroundColor: 'hsl(var(--job-primary) / 0.1)' }}>
+                <WhatsAppLogo className="h-6 w-6" />
+              </div>
+              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--job-text))' }}>
+                Está com dificuldade para finalizar?
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-base pt-2" style={{ color: 'hsl(var(--job-text-muted))' }}>
+              Seu progresso foi salvo. Antes de sair, fale com nosso suporte pelo WhatsApp ou continue a candidatura de onde parou.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-3">
+            <div className="rounded-xl border p-4" style={{ backgroundColor: 'hsl(var(--job-badge))', borderColor: 'hsl(var(--job-card-border))' }}>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+                <div className="space-y-1 text-sm" style={{ color: 'hsl(var(--job-text-muted))' }}>
+                  <p><strong style={{ color: 'hsl(var(--job-text))' }}>Você já avançou {Math.round(progressPercentage)}%.</strong></p>
+                  <p>Se tiver dúvida em alguma pergunta, o suporte ajuda sem perder suas respostas.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowExitIntentModal(false)}
+              style={{ borderColor: 'hsl(var(--job-card-border))' }}
+            >
+              Continuar candidatura
+            </Button>
+            <Button
+              type="button"
+              onClick={() => window.open(supportWhatsAppUrl, '_blank', 'noopener,noreferrer')}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              <WhatsAppLogo className="mr-2 h-4 w-4" />
+              Falar no WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <div className="job-form-scroll" style={{ backgroundColor: 'hsl(var(--job-bg))' }}>
       <Helmet>
@@ -1257,6 +1367,15 @@ export default function JobApplicationSteps() {
         )}
         <style>{themeCSS}</style>
       </Helmet>
+
+      <Button
+        type="button"
+        onClick={() => window.open(supportWhatsAppUrl, '_blank', 'noopener,noreferrer')}
+        className="fixed bottom-4 right-4 z-40 h-12 rounded-full bg-green-600 px-4 text-white shadow-lg hover:bg-green-700 sm:bottom-6 sm:right-6"
+      >
+        <WhatsAppLogo className="mr-2 h-5 w-5" />
+        Ajuda no WhatsApp
+      </Button>
 
       {/* Header da vaga - Design Profissional com Gradiente */}
       <header 

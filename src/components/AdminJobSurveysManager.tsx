@@ -17,7 +17,7 @@ import { from } from '@/integrations/db/client';
 import { apiClient } from '@/integrations/api/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Eye, EyeOff, Edit, Trash2, ExternalLink, Download, Search, Copy, Clock, MapPin, DollarSign, Users, Briefcase, Star, Filter, UserX, Calendar, BarChart3, TrendingUp, Brain, Video, Loader2, Sparkles, Award, FileText, RefreshCw } from 'lucide-react';
+import { Plus, Eye, EyeOff, Edit, Trash2, ExternalLink, Download, Search, Copy, Clock, MapPin, DollarSign, Users, Briefcase, Star, Filter, UserX, Calendar, BarChart3, TrendingUp, Brain, Video, Loader2, Sparkles, Award, FileText, RefreshCw, MessageCircle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -1250,11 +1250,28 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
     approved: evaluations.filter(e => e.status === 'approved').length,
     rejected: evaluations.filter(e => e.status === 'rejected').length
   };
+  const filteredDrafts = drafts.filter((draft: any) => {
+    if (!draftSearchTerm) return true;
+    const search = draftSearchTerm.toLowerCase();
+    return (
+      draft.name?.toLowerCase().includes(search) ||
+      draft.email?.toLowerCase().includes(search) ||
+      draft.phone?.includes(search) ||
+      draft.whatsapp?.includes(search)
+    );
+  });
+  const draftAverageStep = drafts.length
+    ? Math.round(drafts.reduce((sum: number, draft: any) => sum + ((draft.current_step || 0) + 1), 0) / drafts.length)
+    : 0;
+  const completionRecoveryRate = responses.length + drafts.length > 0
+    ? Math.round((responses.length / (responses.length + drafts.length)) * 100)
+    : 0;
 
   if (selectedSurvey) {
     return (
-      <div className="space-y-6 overflow-auto max-h-[calc(100vh-200px)] pb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="space-y-6 overflow-auto max-h-[calc(100vh-200px)] pb-8 pr-1">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <Button 
               variant="outline" 
@@ -1317,12 +1334,13 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
             </Button>
           </div>
         </div>
+        </div>
 
         {/* Analytics Card */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <Card className="rounded-2xl border-border bg-card shadow-sm">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total de Visualizações</p>
@@ -1332,8 +1350,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="rounded-2xl border-border bg-card shadow-sm">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Candidaturas</p>
@@ -1343,8 +1361,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="rounded-2xl border-border bg-card shadow-sm">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Taxa de Conversão</p>
@@ -1354,8 +1372,8 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="rounded-2xl border-border bg-card shadow-sm">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Últimos 30 dias</p>
@@ -1372,77 +1390,82 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
 
         {/* Card de Leads Parciais */}
         {drafts.length > 0 && (
-          <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
-                    <Users className="h-5 w-5" />
+          <Card className="overflow-hidden rounded-2xl border-amber-200 bg-gradient-to-br from-amber-50 via-card to-card shadow-sm dark:border-amber-500/30 dark:from-amber-500/10 dark:via-card dark:to-card">
+            <CardHeader className="space-y-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                    <div className="rounded-full bg-amber-100 p-2 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200">
+                      <Users className="h-4 w-4" />
+                    </div>
                     Leads Parciais ({drafts.length})
                   </CardTitle>
-                  <CardDescription>
-                    Candidatos que começaram a preencher mas não finalizaram. Contate-os para recuperar!
+                  <CardDescription className="max-w-2xl text-foreground/70 dark:text-foreground/80">
+                    Candidatos que começaram a preencher mas não finalizaram. O formulário público agora mostra suporte via WhatsApp e um aviso antes de sair para reduzir esse volume.
                   </CardDescription>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // Exportar leads parciais
-                    const csv = [
-                      ['Nome', 'Email', 'Telefone', 'WhatsApp', 'Etapa', 'Última Atualização'].join(','),
-                      ...drafts.map((d: any) => [
-                        d.name || '',
-                        d.email || '',
-                        d.phone || '',
-                        d.whatsapp || '',
-                        d.current_step + 1,
-                        format(new Date(d.last_saved_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                      ].join(','))
-                    ].join('\n');
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `leads-parciais-${selectedSurvey?.title || 'vaga'}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-                    link.click();
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="rounded-full border-amber-300 bg-white/80 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                    Etapa média {draftAverageStep || 1}
+                  </Badge>
+                  <Badge variant="outline" className="rounded-full border-green-300 bg-white/80 text-green-800 dark:border-green-500/40 dark:bg-green-500/10 dark:text-green-100">
+                    {completionRecoveryRate}% finalizam
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full border-border bg-background"
+                    onClick={() => {
+                      // Exportar leads parciais
+                      const csv = [
+                        ['Nome', 'Email', 'Telefone', 'WhatsApp', 'Etapa', 'Última Atualização'].join(','),
+                        ...drafts.map((d: any) => [
+                          d.name || '',
+                          d.email || '',
+                          d.phone || '',
+                          d.whatsapp || '',
+                          d.current_step + 1,
+                          format(new Date(d.last_saved_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                        ].join(','))
+                      ].join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement('a');
+                      link.href = URL.createObjectURL(blob);
+                      link.download = `leads-parciais-${selectedSurvey?.title || 'vaga'}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                      link.click();
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar
+                  </Button>
+                </div>
               </div>
-              <div className="pt-4">
+              <div className="grid gap-3 rounded-2xl border border-amber-200/70 bg-white/70 p-3 dark:border-amber-500/20 dark:bg-background/40 lg:grid-cols-[1fr_auto] lg:items-center">
                 <div className="flex items-center gap-2">
                   <Search className="h-4 w-4" />
                   <Input
                     placeholder="Buscar leads parciais..."
                     value={draftSearchTerm}
                     onChange={(e) => setDraftSearchTerm(e.target.value)}
-                    className="max-w-sm"
+                    className="max-w-sm rounded-full border-border bg-background"
                   />
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-green-600" />
+                  Modal de saída e suporte WhatsApp ativos no link público
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div
                 ref={draftListRef}
-                className="space-y-2 max-h-96 overflow-y-auto overscroll-contain"
+                className="space-y-2 max-h-[22rem] overflow-y-auto overscroll-contain pr-1"
               >
-                {drafts
-                  .filter((draft: any) => {
-                    if (!draftSearchTerm) return true;
-                    const search = draftSearchTerm.toLowerCase();
-                    return (
-                      draft.name?.toLowerCase().includes(search) ||
-                      draft.email?.toLowerCase().includes(search) ||
-                      draft.phone?.includes(search) ||
-                      draft.whatsapp?.includes(search)
-                    );
-                  })
+                {filteredDrafts
                   .map((draft: any) => (
                     <div
                       key={draft.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-gray-800 hover:bg-muted/50 transition-colors"
+                      className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm transition-colors hover:bg-muted/30 lg:flex-row lg:items-center lg:justify-between"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -1464,7 +1487,7 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                           Última atualização: {format(new Date(draft.last_saved_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                         </div>
                       </div>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex flex-wrap gap-2 lg:ml-4 lg:justify-end">
                         <Button
                           variant="outline"
                           size="sm"
@@ -1586,8 +1609,9 @@ export const AdminJobSurveysManager = ({ surveyId }: AdminJobSurveysManagerProps
                             variant="outline"
                             size="sm"
                             onClick={() => window.open(`https://wa.me/55${draft.whatsapp.replace(/\D/g, '')}`, '_blank')}
-                            className="text-green-600 hover:text-green-700"
+                            className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-200 dark:hover:bg-green-500/20"
                           >
+                            <MessageCircle className="h-4 w-4 mr-1" />
                             WhatsApp
                           </Button>
                         )}
