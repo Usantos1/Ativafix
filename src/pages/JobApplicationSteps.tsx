@@ -550,7 +550,17 @@ export default function JobApplicationSteps() {
       const response = await fetch(`${API_URL}/public/vaga/${slug}`);
       
       if (!response.ok) {
-        console.error("Vaga não encontrada:", slug);
+        let errorData: any = null;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = null;
+        }
+        console.error("Erro ao buscar vaga:", {
+          slug,
+          status: response.status,
+          error: errorData?.error || response.statusText,
+        });
         navigate("/404");
         return;
       }

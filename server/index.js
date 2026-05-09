@@ -2042,14 +2042,8 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
     console.log('[Public] Buscando vaga por slug/id:', slugOrId);
     
     const publicJobSelect = `
-      SELECT js.*,
-             COALESCE(
-               NULLIF(c.settings->>'support_whatsapp', ''),
-               NULLIF(c.settings->>'whatsapp', ''),
-               NULLIF(c.phone, '')
-             ) AS support_whatsapp
+      SELECT js.*, NULL::text AS support_whatsapp
       FROM job_surveys js
-      LEFT JOIN companies c ON c.id = js.company_id
     `;
     const publicJobWhere = `(
       COALESCE(js.visible_on_portal, true) = true
@@ -2108,10 +2102,16 @@ app.get('/api/public/vaga/:slugOrId', async (req, res) => {
              ${normalizeJobTextSql('js.slug')} = $1
              OR ${normalizeJobTextSql('js.title')} = $1
              OR ${normalizeJobTextSql('js.position_title')} = $1
+             OR ${normalizeJobTextSql('js.slug')} LIKE $2
+             OR ${normalizeJobTextSql('js.title')} LIKE $2
+             OR ${normalizeJobTextSql('js.position_title')} LIKE $2
+             OR ${normalizeJobTextSql('js.slug')} LIKE $3
+             OR ${normalizeJobTextSql('js.title')} LIKE $3
+             OR ${normalizeJobTextSql('js.position_title')} LIKE $3
            )
          ORDER BY js.is_active DESC, js.created_at DESC
          LIMIT 1`,
-        [normalizedSlugOrId]
+        [normalizedSlugOrId, `${normalizedSlugOrId}-%`, `%${normalizedSlugOrId}%`]
       );
     }
     
