@@ -209,7 +209,7 @@ export async function syncBirthdayJobsForCompany(pool, companyId, options = {}) 
 
     const clientesResult = await client.query(
       `SELECT id, nome, whatsapp, telefone, telefone2, data_nascimento,
-              ${period === 'month' ? birthdayDateExpression : '$5::date'} AS birthday_source_date
+              to_char(${period === 'month' ? birthdayDateExpression : '$5::date'}, 'YYYY-MM-DD') AS birthday_source_date
        FROM clientes
        WHERE company_id = $1
          AND data_nascimento IS NOT NULL
@@ -367,7 +367,7 @@ export async function listBirthdayClients(pool, companyId, options = {}) {
        c.data_nascimento,
        EXTRACT(DAY FROM c.data_nascimento)::int  AS dia,
        EXTRACT(MONTH FROM c.data_nascimento)::int AS mes,
-       ${birthdayDateExpression} AS source_date,
+       to_char(${birthdayDateExpression}, 'YYYY-MM-DD') AS source_date,
        j.id     AS job_id,
        j.status AS job_status,
        j.scheduled_at,
