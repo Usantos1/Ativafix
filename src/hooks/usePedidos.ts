@@ -93,7 +93,7 @@ function mapDbToPedido(row: any, itens: any[]): Pedido {
 
 export function usePedidos() {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const userNome = profile?.display_name || user?.email || 'Usuário';
   const companyId = user?.company_id;
 
@@ -101,6 +101,7 @@ export function usePedidos() {
   const [loading, setLoading] = useState(true);
   const [pedidosFromStorage, setPedidosFromStorage] = useState(false);
   const [darEntradaId, setDarEntradaId] = useState<string | null>(null);
+  const [estornarId, setEstornarId] = useState<string | null>(null);
 
   const loadFromDb = useCallback(async () => {
     setLoading(true);
@@ -486,16 +487,157 @@ export function usePedidos() {
     [loadFromDb, pedidos, toast]
   );
 
+  const estornarPedido = useCallback(
+    async (pedido: Pedido) => {
+      if (!isAdmin) {
+        toast({
+          title: 'Acesso negado',
+          description: 'Apenas administradores podem estornar pedidos recebidos.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      setEstornarId(pedido.id);
+      const totalDespesa = totalCustoPedido(pedido.itens);
+      const billDescription = `Entrada de estoque - Pedido: ${pedido.nome}`;
+      const billDate = (pedido.receivedAt ?? new Date().toISOString()).split('T')[0];
+
+      try {
+        const produtosAtualizados: Array<{
+          item: PedidoItem;
+          quantidadeAntes: number;
+          quantidadeDepois: number;
+        }> = [];
+
+        for (const item of pedido.itens) {
+          const { data: prod, error: errFetch } = await from('produtos')
+            .select('id,quantidade')
+            .eq('id', item.produto_id)
+            .single();
+
+          if (errFetch || !prod) {
+            throw new Error(`Produto não encontrado: ${item.produto_nome}`);
+          }
+
+          const quantidadeAntes = Number((prod as any).quantidade ?? 0);
+          const quantidadeDepois = quantidadeAntes - item.quantidade;
+
+          if (quantidadeDepois < 0) {
+            throw new Error(
+              `Estoque insuficiente para estornar "${item.produto_nome}". Estoque atual: ${quantidadeAntes}.`
+            );
+          }
+
+          produtosAtualizados.push({ item, quantidadeAntes, quantidadeDepois });
+        }
+
+        for (const { item, quantidadeAntes, quantidadeDepois } of produtosAtualizados) {
+          const { error: errUpdate } = await from('produtos')
+            .update({ quantidade: quantidadeDepois })
+            .eq('id', item.produto_id)
+            .execute();
+          if (errUpdate) throw errUpdate;
+
+          const { error: errMov } = await from('produto_movimentacoes')
+            .insert({
+              produto_id: item.produto_id,
+              tipo: 'pedido_estorno',
+              motivo: `Estorno de ${formatQuantidadePedido(item.quantidade)} do pedido "${pedido.nome}"`,
+              quantidade_antes: quantidadeAntes,
+              quantidade_depois: quantidadeDepois,
+              quantidade_delta: -item.quantidade,
+              user_id: user?.id ?? null,
+              user_nome: userNome,
+            })
+            .execute();
+          if (errMov) throw errMov;
+        }
+
+        let billRemovida = false;
+        if (totalDespesa > 0) {
+          const { data: bills, error: errBillSelect } = await from('bills_to_pay')
+            .select('id,amount,supplier')
+            .eq('description', billDescription)
+            .eq('status', 'pago')
+            .eq('payment_date', billDate)
+            .execute();
+
+          if (errBillSelect) {
+            console.warn('Erro ao localizar despesa do pedido para estorno:', errBillSelect);
+          } else {
+            const supplier = pedido.fornecedor_nome ?? '';
+            const matchingBill = ((bills || []) as any[]).find(
+              (bill) =>
+                Math.abs(Number(bill.amount ?? 0) - totalDespesa) < 0.01 &&
+                (bill.supplier ?? '') === supplier
+            );
+
+            if (matchingBill?.id) {
+              const { error: errBillDelete } = await from('bills_to_pay')
+                .delete()
+                .eq('id', matchingBill.id)
+                .execute();
+              if (errBillDelete) {
+                console.warn('Erro ao remover despesa do pedido estornado:', errBillDelete);
+              } else {
+                billRemovida = true;
+              }
+            }
+          }
+        }
+
+        await from('pedido_itens').delete().eq('pedido_id', pedido.id).execute();
+        const { error: errPedidoDelete } = await from('pedidos')
+          .delete()
+          .eq('id', pedido.id)
+          .execute();
+        if (errPedidoDelete) throw errPedidoDelete;
+
+        await loadFromDb();
+        toast({
+          title: 'Pedido estornado',
+          description: `Estoque revertido e pedido removido.${totalDespesa > 0 && !billRemovida ? ' Confira a despesa no financeiro.' : ''}`,
+        });
+        return true;
+      } catch (e: any) {
+        const next = pedidos.filter((p) => p.id !== pedido.id);
+        if (next.length !== pedidos.length && pedidosFromStorage) {
+          savePedidosToStorage(next);
+          setPedidos(next);
+          toast({
+            title: 'Pedido removido',
+            description: 'O pedido foi removido apenas da lista local deste navegador.',
+          });
+          return true;
+        }
+
+        toast({
+          title: 'Erro ao estornar pedido',
+          description: e?.message || 'Não foi possível desfazer a entrada do pedido.',
+          variant: 'destructive',
+        });
+        return false;
+      } finally {
+        setEstornarId(null);
+      }
+    },
+    [isAdmin, loadFromDb, pedidos, pedidosFromStorage, toast, user?.id, userNome]
+  );
+
   return {
     pedidos,
     loading,
     pedidosFromStorage,
     darEntradaId,
+    estornarId,
+    canEstornarPedido: isAdmin,
     companyId,
     reload: loadFromDb,
     salvarPedido,
     darEntrada,
     excluirPedido,
+    estornarPedido,
   };
 }
 

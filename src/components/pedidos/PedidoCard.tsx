@@ -17,6 +17,7 @@ import {
   Calendar,
   PackageCheck,
   Building2,
+  RotateCcw,
 } from 'lucide-react';
 import { currencyFormatters } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -28,7 +29,10 @@ type Props = {
   onEdit: (p: Pedido) => void;
   onDarEntrada: (p: Pedido) => void;
   onExcluir: (id: string) => void;
+  onEstornar: (p: Pedido) => void;
   darEntradaLoadingId: string | null;
+  estornarLoadingId: string | null;
+  canEstornar: boolean;
 };
 
 export function PedidoCard({
@@ -36,11 +40,15 @@ export function PedidoCard({
   onEdit,
   onDarEntrada,
   onExcluir,
+  onEstornar,
   darEntradaLoadingId,
+  estornarLoadingId,
+  canEstornar,
 }: Props) {
   const total = totalCustoPedido(p.itens);
   const isLoading = darEntradaLoadingId === p.id;
-  const anyLoading = !!darEntradaLoadingId;
+  const isEstornando = estornarLoadingId === p.id;
+  const anyLoading = !!darEntradaLoadingId || !!estornarLoadingId;
 
   return (
     <Card
@@ -122,6 +130,24 @@ export function PedidoCard({
                 aria-label="Excluir pedido"
               >
                 <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          {p.recebido && canEstornar && (
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onEstornar(p)}
+                disabled={anyLoading}
+                className="min-h-[40px] sm:min-h-0 rounded-full touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                {isEstornando ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4 mr-1.5" />
+                )}
+                Estornar
               </Button>
             </div>
           )}

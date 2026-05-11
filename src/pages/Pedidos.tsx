@@ -27,10 +27,13 @@ export default function Pedidos() {
     loading,
     pedidosFromStorage,
     darEntradaId,
+    estornarId,
+    canEstornarPedido,
     companyId,
     salvarPedido,
     darEntrada,
     excluirPedido,
+    estornarPedido,
   } = usePedidos();
 
   const [showForm, setShowForm] = useState(false);
@@ -38,6 +41,7 @@ export default function Pedidos() {
   const [busca, setBusca] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [pedidoEntrada, setPedidoEntrada] = useState<Pedido | null>(null);
+  const [pedidoEstorno, setPedidoEstorno] = useState<Pedido | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
   const [showProductForm, setShowProductForm] = useState(false);
   const [produtoInicial, setProdutoInicial] = useState<Produto | null>(null);
@@ -87,7 +91,14 @@ export default function Pedidos() {
     if (ok) setPedidoEntrada(null);
   };
 
+  const confirmarEstorno = async () => {
+    if (!pedidoEstorno) return;
+    const ok = await estornarPedido(pedidoEstorno);
+    if (ok) setPedidoEstorno(null);
+  };
+
   const entradaTotal = pedidoEntrada ? totalCustoPedido(pedidoEntrada.itens) : 0;
+  const estornoTotal = pedidoEstorno ? totalCustoPedido(pedidoEstorno.itens) : 0;
 
   const abrirCadastroProduto = (nomeInicial: string, onCreated: (produto: ProdutoBusca) => void) => {
     setProdutoInicial({
@@ -257,7 +268,10 @@ export default function Pedidos() {
                 onEdit={abrirEdicao}
                 onDarEntrada={abrirPagamentoEntrada}
                 onExcluir={excluirPedido}
+                onEstornar={setPedidoEstorno}
                 darEntradaLoadingId={darEntradaId}
+                estornarLoadingId={estornarId}
+                canEstornar={canEstornarPedido}
               />
             ))}
           </div>
@@ -335,6 +349,49 @@ export default function Pedidos() {
             >
               {darEntradaId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Confirmar entrada
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pedidoEstorno} onOpenChange={(open) => !open && setPedidoEstorno(null)}>
+        <DialogContent className="max-w-md rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Estornar pedido recebido</DialogTitle>
+            <DialogDescription>
+              Esta ação remove o pedido, subtrai do estoque as quantidades que entraram por ele e tenta apagar a despesa gerada no financeiro.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="font-medium text-foreground">{pedidoEstorno?.nome}</p>
+              <p className="text-muted-foreground">
+                Total do pedido: <span className="font-semibold text-foreground">{currencyFormatters.brl(estornoTotal)}</span>
+              </p>
+              <p className="mt-2 text-xs text-destructive">
+                Confirme apenas se deseja desfazer a entrada desse pedido.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPedidoEstorno(null)}
+              disabled={!!estornarId}
+              className="w-full sm:w-auto min-h-[44px] rounded-full"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmarEstorno}
+              disabled={!pedidoEstorno || !!estornarId}
+              className="w-full sm:w-auto min-h-[44px] rounded-full"
+            >
+              {estornarId ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Confirmar estorno
             </Button>
           </DialogFooter>
         </DialogContent>
