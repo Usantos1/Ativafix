@@ -85,6 +85,16 @@ const INITIAL_FORM: ClienteFormData = {
   estado: '',
 };
 
+const normalizeDateInputValue = (value?: string | null) => {
+  if (!value) return '';
+  const text = String(value);
+  const isoDate = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoDate) return isoDate[1];
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+};
+
 const formatClienteEndereco = (cliente: Partial<Cliente>) => {
   const ruaNumero = [cliente.logradouro, cliente.numero].filter(Boolean).join(', ');
   const cidadeUf = [cliente.cidade, cliente.estado || cliente.uf].filter(Boolean).join('/');
@@ -408,7 +418,7 @@ export default function Clientes() {
       cpf_cnpj: cliente.cpf_cnpj || '',
       rg: cliente.rg,
       sexo: cliente.sexo,
-      data_nascimento: cliente.data_nascimento,
+      data_nascimento: normalizeDateInputValue(cliente.data_nascimento),
       telefone: cliente.telefone || '',
       telefone2: cliente.telefone2,
       whatsapp: cliente.whatsapp || '',
@@ -477,14 +487,18 @@ export default function Clientes() {
     setIsLoading(true);
     try {
       let clienteId: string;
+      const payload: Record<string, unknown> = {
+        ...formData,
+        data_nascimento: formData.data_nascimento || null,
+      };
+      if (payload.estado !== undefined) payload.uf = payload.estado;
+
       if (editingCliente) {
-        const payload: Record<string, unknown> = { ...formData };
-        if (payload.estado !== undefined) payload.uf = payload.estado;
         await updateCliente(editingCliente.id, payload as any);
         clienteId = editingCliente.id;
         toast({ title: 'Cliente atualizado!' });
       } else {
-        const newCliente = await createCliente(formData as any);
+        const newCliente = await createCliente(payload as any);
         clienteId = newCliente.id;
         toast({ title: 'Cliente cadastrado com sucesso!' });
         setSearchTerm(formData.nome.split(' ')[0]);

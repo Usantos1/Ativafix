@@ -107,6 +107,35 @@ function formatBirthday(dateValue) {
   }
 }
 
+function getMonthDayFromDateValue(dateValue) {
+  if (!dateValue) return null;
+
+  const text = String(dateValue);
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return {
+      month: Number(isoMatch[2]),
+      day: Number(isoMatch[3]),
+    };
+  }
+
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  };
+}
+
+function birthdayMatchesSourceDate(birthDateValue, sourceDateValue) {
+  const birthday = getMonthDayFromDateValue(birthDateValue);
+  const sourceDate = getMonthDayFromDateValue(sourceDateValue);
+  return !!birthday &&
+    !!sourceDate &&
+    birthday.month === sourceDate.month &&
+    birthday.day === sourceDate.day;
+}
+
 function resolveClientPhone(cliente) {
   return cliente?.whatsapp || cliente?.telefone || cliente?.telefone2 || '';
 }
@@ -495,6 +524,9 @@ export async function ensureBirthdayJobForClient(pool, companyId, clienteId, opt
     if (!cliente) {
       throw new Error('Cliente não encontrado.');
     }
+    if (!birthdayMatchesSourceDate(cliente.data_nascimento, finalSourceDate)) {
+      throw new Error('Cliente sem data de aniversário válida para a data selecionada.');
+    }
 
     const companyResult = await client.query(
       'SELECT name FROM companies WHERE id = $1',
@@ -579,7 +611,7 @@ export async function processDueBirthdayMessages(pool, batchSize = 25, companyId
       results.processed += 1;
 
       const clienteResult = await client.query(
-        `SELECT id, nome, situacao
+        `SELECT id, nome, situacao, data_nascimento
          FROM clientes
          WHERE id = $1 AND company_id = $2
          LIMIT 1`,
@@ -592,6 +624,20 @@ export async function processDueBirthdayMessages(pool, batchSize = 25, companyId
           `UPDATE birthday_message_jobs
            SET status = 'cancelado',
                skip_reason = COALESCE(skip_reason, 'Cliente indisponível'),
+               updated_at = now()
+           WHERE id = $1`,
+          [job.id]
+        );
+        await client.query('COMMIT');
+        results.cancelled += 1;
+        continue;
+      }
+
+      if (!birthdayMatchesSourceDate(cliente.data_nascimento, job.source_date)) {
+        await client.query(
+          `UPDATE birthday_message_jobs
+           SET status = 'cancelado',
+               skip_reason = 'Cliente sem aniversário válido para esta data',
                updated_at = now()
            WHERE id = $1`,
           [job.id]
