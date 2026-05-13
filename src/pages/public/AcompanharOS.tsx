@@ -5,9 +5,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Smartphone, User, Calendar, Clock, DollarSign, CheckCircle2, XCircle, AlertCircle, Wrench, Package } from 'lucide-react';
 import { dateFormatters, currencyFormatters } from '@/utils/formatters';
-import { STATUS_OS_LABELS, STATUS_OS_COLORS } from '@/types/assistencia';
+import { getStatusOSColor, getStatusOSLabel } from '@/types/assistencia';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.ativafix.com/api';
+
+type OrdemServicoPublic = OrdemServico & {
+  created_at?: string;
+  updated_at?: string;
+  data_faturamento?: string;
+};
+
+function hasTime(date?: string | null) {
+  return typeof date === 'string' && /[T\s]\d{2}:\d{2}/.test(date);
+}
+
+function normalizeHour(hour?: string | null) {
+  if (!hour) return null;
+  const match = hour.match(/(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : null;
+}
+
+function formatDateTime(
+  date?: string | null,
+  hour?: string | null,
+  fallbackDateTime?: string | null,
+  options: { useEmbeddedTime?: boolean; useFallbackTime?: boolean } = {}
+) {
+  const baseDate = date || fallbackDateTime;
+  if (!baseDate) return '-';
+  const { useEmbeddedTime = true, useFallbackTime = true } = options;
+
+  const dateLabel = dateFormatters.short(baseDate);
+  const timeLabel =
+    normalizeHour(hour) ||
+    (useEmbeddedTime && hasTime(baseDate) ? dateFormatters.time(baseDate) : null) ||
+    (useFallbackTime && hasTime(fallbackDateTime) ? dateFormatters.time(fallbackDateTime as string) : null) ||
+    '00:00';
+
+  return `${dateLabel} às ${timeLabel}`;
+}
 
 export default function AcompanharOS() {
   const { id } = useParams<{ id: string }>();
@@ -58,8 +94,8 @@ export default function AcompanharOS() {
   };
 
   const getStatusInfo = (status: string) => {
-    const label = STATUS_OS_LABELS[status as keyof typeof STATUS_OS_LABELS] || status;
-    const color = STATUS_OS_COLORS[status as keyof typeof STATUS_OS_COLORS] || 'bg-gray-500';
+    const label = getStatusOSLabel(status).toLocaleUpperCase('pt-BR');
+    const color = getStatusOSColor(status);
     return { label, color };
   };
 
@@ -91,6 +127,17 @@ export default function AcompanharOS() {
   }
 
   const statusInfo = getStatusInfo(os.status);
+  const osPublic = os as OrdemServicoPublic;
+  const isDeliveredStatus = ['entregue', 'entregue_faturada', 'entregue_sem_reparo', 'finalizada'].includes(os.status);
+  const finalDate =
+    osPublic.data_faturamento ||
+    os.data_entrega ||
+    os.data_saida ||
+    os.data_conclusao ||
+    (isDeliveredStatus ? osPublic.updated_at : null);
+  const finalDateLabel = os.status === 'entregue_faturada'
+    ? 'Data e Hora da Entrega/Faturamento'
+    : 'Data e Hora da Entrega';
 
   return (
     <div className="min-h-screen h-screen max-h-[100dvh] flex flex-col overflow-hidden bg-gradient-to-br from-green-50 to-green-100">
@@ -205,29 +252,48 @@ export default function AcompanharOS() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl">
                   <Calendar className="h-5 w-5 text-blue-600" />
                   <div>
                     <p className="text-xs text-muted-foreground">Data de Entrada</p>
-                    <p className="font-semibold">{dateFormatters.short(os.data_entrada)}</p>
+                    <p className="font-semibold">
+                      {formatDateTime(os.data_entrada, os.hora_entrada, null, {
+                        useEmbeddedTime: false,
+                        useFallbackTime: false,
+                      })}
+                    </p>
                   </div>
                 </div>
                 {os.previsao_entrega && (
-                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl">
                     <Clock className="h-5 w-5 text-orange-600" />
                     <div>
                       <p className="text-xs text-muted-foreground">Previsão de Entrega</p>
-                      <p className="font-semibold">{dateFormatters.short(os.previsao_entrega)}</p>
+                      <p className="font-semibold">
+                        {formatDateTime(os.previsao_entrega, os.hora_previsao, null, {
+                          useEmbeddedTime: false,
+                          useFallbackTime: false,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {finalDate && (
+                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">{finalDateLabel}</p>
+                      <p className="font-semibold">{formatDateTime(finalDate, null, osPublic.updated_at)}</p>
                     </div>
                   </div>
                 )}
                 {os.valor_total && (
-                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg md:col-span-2">
+                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl bg-green-50/70">
                     <DollarSign className="h-5 w-5 text-green-600" />
                     <div>
                       <p className="text-xs text-muted-foreground">Valor Total</p>
-                      <p className="font-bold text-xl text-green-600">{currencyFormatters.brl(os.valor_total)}</p>
+                      <p className="font-bold text-lg text-green-600">{currencyFormatters.brl(os.valor_total)}</p>
                     </div>
                   </div>
                 )}
