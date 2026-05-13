@@ -129,6 +129,7 @@ export default function AcompanharOS() {
   const statusInfo = getStatusInfo(os.status);
   const osPublic = os as OrdemServicoPublic;
   const isDeliveredStatus = ['entregue', 'entregue_faturada', 'entregue_sem_reparo', 'finalizada'].includes(os.status);
+  const isSuccessStatus = isDeliveredStatus || os.status === 'manutencao_finalizada' || os.status === 'manutenção_finalizada';
   const finalDate =
     osPublic.data_faturamento ||
     os.data_entrega ||
@@ -136,22 +137,24 @@ export default function AcompanharOS() {
     os.data_conclusao ||
     (isDeliveredStatus ? osPublic.updated_at : null);
   const finalDateLabel = os.status === 'entregue_faturada'
-    ? 'Data e Hora da Entrega/Faturamento'
-    : 'Data e Hora da Entrega';
+    ? 'Entrega/Faturamento'
+    : 'Entrega';
 
   return (
     <div className="min-h-screen h-screen max-h-[100dvh] flex flex-col overflow-hidden bg-gradient-to-br from-green-50 to-green-100">
       <div className="flex-1 min-h-0 max-h-full overflow-y-auto overflow-x-hidden py-8 px-4 [-webkit-overflow-scrolling:touch] overscroll-contain">
-        <div className="max-w-4xl mx-auto space-y-6 pb-8">
+        <div className="mx-auto w-full max-w-5xl space-y-6 pb-8">
         {/* Header */}
-        <Card className="border-2 border-green-300 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl md:text-3xl">Ordem de Serviço #{os.numero}</CardTitle>
+        <Card className="border-2 border-green-300 shadow-lg rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <CardTitle className="text-2xl font-bold leading-tight sm:text-2xl md:text-3xl">
+                  Ordem de Serviço #{os.numero}
+                </CardTitle>
                 <p className="text-green-100 text-sm mt-1">Acompanhe o status do seu aparelho</p>
               </div>
-              <Badge className={`${statusInfo.color} text-white text-lg px-4 py-2`}>
+              <Badge className={`${statusInfo.color} self-start whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold text-white sm:self-center md:text-base`}>
                 {statusInfo.label}
               </Badge>
             </div>
@@ -159,14 +162,14 @@ export default function AcompanharOS() {
         </Card>
 
         {/* Informações do Aparelho */}
-        <Card className="border-2 border-gray-300">
+        <Card className="border-2 border-gray-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 border-b-2 border-gray-200">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Smartphone className="h-5 w-5 text-blue-600" />
               Informações do Aparelho
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
+          <CardContent className="p-5 md:p-7">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div>
@@ -222,18 +225,18 @@ export default function AcompanharOS() {
         </Card>
 
         {/* Status e Progresso */}
-        <Card className="border-2 border-gray-300">
+        <Card className="border-2 border-gray-300 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 border-b-2 border-gray-200">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Package className="h-5 w-5 text-purple-600" />
               Status e Progresso
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
+          <CardContent className="p-5 md:p-7">
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-2xl">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${statusInfo.color} text-white`}>
+                  <div className={`p-2 rounded-xl ${statusInfo.color} text-white`}>
                     <Wrench className="h-5 w-5" />
                   </div>
                   <div>
@@ -241,21 +244,23 @@ export default function AcompanharOS() {
                     <p className="font-bold text-lg">{statusInfo.label}</p>
                   </div>
                 </div>
-                {os.status === 'finalizada' && (
+                {isSuccessStatus && (
                   <CheckCircle2 className="h-8 w-8 text-green-600" />
                 )}
                 {os.status === 'cancelada' && (
                   <XCircle className="h-8 w-8 text-red-600" />
                 )}
-                {os.status !== 'finalizada' && os.status !== 'cancelada' && (
+                {!isSuccessStatus && os.status !== 'cancelada' && (
                   <AlertCircle className="h-8 w-8 text-yellow-600" />
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="flex min-h-[88px] items-center gap-3 rounded-2xl border-2 border-gray-200 bg-white p-3 shadow-sm">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Data de Entrada</p>
                     <p className="font-semibold">
                       {formatDateTime(os.data_entrada, os.hora_entrada, null, {
@@ -266,9 +271,11 @@ export default function AcompanharOS() {
                   </div>
                 </div>
                 {os.previsao_entrega && (
-                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl">
-                    <Clock className="h-5 w-5 text-orange-600" />
-                    <div>
+                  <div className="flex min-h-[88px] items-center gap-3 rounded-2xl border-2 border-gray-200 bg-white p-3 shadow-sm">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50">
+                      <Clock className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Previsão de Entrega</p>
                       <p className="font-semibold">
                         {formatDateTime(os.previsao_entrega, os.hora_previsao, null, {
@@ -280,18 +287,22 @@ export default function AcompanharOS() {
                   </div>
                 )}
                 {finalDate && (
-                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl">
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    <div>
+                  <div className="flex min-h-[88px] items-center gap-3 rounded-2xl border-2 border-gray-200 bg-white p-3 shadow-sm">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">{finalDateLabel}</p>
                       <p className="font-semibold">{formatDateTime(finalDate, null, osPublic.updated_at)}</p>
                     </div>
                   </div>
                 )}
                 {os.valor_total && (
-                  <div className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-2xl bg-green-50/70">
-                    <DollarSign className="h-5 w-5 text-green-600" />
-                    <div>
+                  <div className="flex min-h-[88px] items-center gap-3 rounded-2xl border-2 border-green-200 bg-green-50/80 p-3 shadow-sm">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100">
+                      <DollarSign className="h-5 w-5 text-green-700" />
+                    </div>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Valor Total</p>
                       <p className="font-bold text-lg text-green-600">{currencyFormatters.brl(os.valor_total)}</p>
                     </div>
