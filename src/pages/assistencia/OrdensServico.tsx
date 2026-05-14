@@ -57,6 +57,55 @@ import {
 const formatClienteNome = (nome?: string | null) =>
   nome?.trim() ? nome.trim().toLocaleUpperCase('pt-BR') : '-';
 
+type ReabrirOSState = {
+  id: string;
+  motivo: string;
+  defeitoInformado: string;
+};
+
+const MOTIVOS_REABERTURA_PADRAO = [
+  'Cliente retornou informando que o defeito persistiu',
+  'Cliente informou novo defeito após retirada',
+  'Aparelho retornou para garantia do serviço',
+  'Serviço anterior não resolveu completamente',
+  'Peça apresentou falha após o reparo',
+  'Aparelho retornou com defeito intermitente',
+  'Necessário complementar análise técnica',
+  'Necessário realizar ajuste após o reparo',
+  'Cliente solicitou nova verificação',
+  'Reabertura para continuidade do atendimento',
+];
+
+const MOTIVOS_REABERTURA_STORAGE_KEY = 'ativafix_os_motivos_reabertura_modelos';
+
+const appendReaberturaTexto = (currentValue: string | undefined, text: string) => {
+  const current = (currentValue || '').trim();
+  return current ? `${current}\n${text}` : text;
+};
+
+const normalizeMotivoReabertura = (value: string) => value.trim().replace(/\s+/g, ' ');
+
+const loadMotivosReabertura = () => {
+  if (typeof window === 'undefined') return MOTIVOS_REABERTURA_PADRAO;
+  try {
+    const stored = window.localStorage.getItem(MOTIVOS_REABERTURA_STORAGE_KEY);
+    if (!stored) return MOTIVOS_REABERTURA_PADRAO;
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return MOTIVOS_REABERTURA_PADRAO;
+    const normalized = parsed
+      .map((item) => typeof item === 'string' ? normalizeMotivoReabertura(item) : '')
+      .filter(Boolean);
+    return normalized.length > 0 ? Array.from(new Set(normalized)) : MOTIVOS_REABERTURA_PADRAO;
+  } catch {
+    return MOTIVOS_REABERTURA_PADRAO;
+  }
+};
+
+const saveMotivosReabertura = (motivos: string[]) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(MOTIVOS_REABERTURA_STORAGE_KEY, JSON.stringify(motivos));
+};
+
 // Componente de linha da tabela otimizado — 1 clique seleciona, 2 cliques abre a OS
 const OSTableRow = memo(({ 
   os, 
@@ -273,7 +322,11 @@ export default function OrdensServico() {
   const [periodoCustomFim, setPeriodoCustomFim] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [showFiltroPopover, setShowFiltroPopover] = useState(false);
   const [osToDelete, setOsToDelete] = useState<string | null>(null);
-  const [osToReabrir, setOsToReabrir] = useState<{ id: string; motivo: string } | null>(null);
+  const [osToReabrir, setOsToReabrir] = useState<ReabrirOSState | null>(null);
+  const [motivosReaberturaModelos, setMotivosReaberturaModelos] = useState<string[]>(loadMotivosReabertura);
+  const [novoMotivoReabertura, setNovoMotivoReabertura] = useState('');
+  const [editingMotivoReabertura, setEditingMotivoReabertura] = useState<string | null>(null);
+  const [editingMotivoReaberturaValue, setEditingMotivoReaberturaValue] = useState('');
   const [page, setPage] = useState(1);
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
   
@@ -313,6 +366,38 @@ export default function OrdensServico() {
   const { clientes, getClienteById } = useClientes();
   const { getMarcaById, getModeloById } = useMarcasModelos();
   const { getConfigByStatus } = useConfiguracaoStatus();
+
+  useEffect(() => {
+    saveMotivosReabertura(motivosReaberturaModelos);
+  }, [motivosReaberturaModelos]);
+
+  const addMotivoReaberturaModelo = () => {
+    const normalized = normalizeMotivoReabertura(novoMotivoReabertura);
+    if (!normalized) return;
+    setMotivosReaberturaModelos(prev => prev.includes(normalized) ? prev : [...prev, normalized]);
+    setNovoMotivoReabertura('');
+  };
+
+  const startEditMotivoReaberturaModelo = (motivo: string) => {
+    setEditingMotivoReabertura(motivo);
+    setEditingMotivoReaberturaValue(motivo);
+  };
+
+  const saveEditMotivoReaberturaModelo = (motivo: string) => {
+    const normalized = normalizeMotivoReabertura(editingMotivoReaberturaValue);
+    if (!normalized) return;
+    setMotivosReaberturaModelos(prev => Array.from(new Set(prev.map(item => item === motivo ? normalized : item))));
+    setEditingMotivoReabertura(null);
+    setEditingMotivoReaberturaValue('');
+  };
+
+  const removeMotivoReaberturaModelo = (motivo: string) => {
+    setMotivosReaberturaModelos(prev => prev.filter(item => item !== motivo));
+    if (editingMotivoReabertura === motivo) {
+      setEditingMotivoReabertura(null);
+      setEditingMotivoReaberturaValue('');
+    }
+  };
 
   // Buscar totais dos itens (staleTime reduz refetch em massa e ajuda a evitar 429)
   const { data: todosItens = [] } = useQuery({
@@ -1037,7 +1122,11 @@ export default function OrdensServico() {
                                 onNavigate={navigate}
                                 onFinalizar={handleFinalizar}
                                 onEntregue={handleEntregue}
-                                onReabrir={(os: any) => setOsToReabrir({ id: os.id, motivo: '' })}
+                                onReabrir={(os: any) => setOsToReabrir({
+                                  id: os.id,
+                                  motivo: '',
+                                  defeitoInformado: os.descricao_problema || '',
+                                })}
                                 onDelete={setOsToDelete}
                                 getConfigByStatus={getConfigByStatus}
                               />
@@ -1422,15 +1511,115 @@ export default function OrdensServico() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reabrir OS</DialogTitle>
-            <DialogDescription>Informe o motivo da reabertura.</DialogDescription>
+            <DialogDescription>Informe o motivo da reabertura e o defeito relatado pelo cliente.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Motivo da Reabertura</Label>
+              <div className="flex min-h-7 items-center justify-between gap-2">
+                <Label>Motivo da Reabertura</Label>
+                <Popover modal>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-6 rounded-full border-border bg-background px-2 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      Motivos prontos
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="z-[110] w-80 rounded-2xl border-border bg-card p-2 shadow-lg"
+                    onWheel={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between gap-2 px-2 pb-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Sugestões de motivo</p>
+                      <span className="text-[10px] text-muted-foreground">clique para adicionar</span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto overscroll-contain pr-2 scrollbar-thin">
+                      <div className="grid gap-1">
+                        {motivosReaberturaModelos.map((motivo) => (
+                          <div key={motivo} className="flex items-center gap-1 rounded-xl hover:bg-muted">
+                            {editingMotivoReabertura === motivo ? (
+                              <>
+                                <Input
+                                  value={editingMotivoReaberturaValue}
+                                  onChange={(e) => setEditingMotivoReaberturaValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') saveEditMotivoReaberturaModelo(motivo);
+                                    if (e.key === 'Escape') {
+                                      setEditingMotivoReabertura(null);
+                                      setEditingMotivoReaberturaValue('');
+                                    }
+                                  }}
+                                  className="h-8 rounded-xl border-border bg-background text-xs"
+                                  autoFocus
+                                />
+                                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0" onClick={() => saveEditMotivoReaberturaModelo(motivo)}>
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0" onClick={() => { setEditingMotivoReabertura(null); setEditingMotivoReaberturaValue(''); }}>
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setOsToReabrir(osToReabrir ? {
+                                    ...osToReabrir,
+                                    motivo: appendReaberturaTexto(osToReabrir.motivo, motivo),
+                                  } : null)}
+                                  className="min-w-0 flex-1 rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
+                                >
+                                  {motivo}
+                                </button>
+                                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0 text-muted-foreground hover:text-foreground" onClick={() => startEditMotivoReaberturaModelo(motivo)} title="Editar motivo">
+                                  <Edit className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15" onClick={() => removeMotivoReaberturaModelo(motivo)} title="Remover motivo">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
+                      <Input
+                        value={novoMotivoReabertura}
+                        onChange={(e) => setNovoMotivoReabertura(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addMotivoReaberturaModelo();
+                          }
+                        }}
+                        placeholder="Novo motivo..."
+                        className="h-8 rounded-xl border-border bg-background text-xs"
+                      />
+                      <Button type="button" variant="outline" size="sm" className="h-8 rounded-full border-border px-2 text-xs" onClick={addMotivoReaberturaModelo}>
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <Textarea
                 placeholder="Descreva o motivo..."
                 value={osToReabrir?.motivo || ''}
                 onChange={(e) => setOsToReabrir(osToReabrir ? { ...osToReabrir, motivo: e.target.value } : null)}
+                rows={4}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Defeito informado pelo cliente</Label>
+              <Textarea
+                placeholder="Descreva o defeito relatado pelo cliente..."
+                value={osToReabrir?.defeitoInformado || ''}
+                onChange={(e) => setOsToReabrir(osToReabrir ? { ...osToReabrir, defeitoInformado: e.target.value } : null)}
                 rows={4}
               />
             </div>
@@ -1439,13 +1628,19 @@ export default function OrdensServico() {
             <Button variant="outline" onClick={() => setOsToReabrir(null)}>Cancelar</Button>
             <Button
               onClick={async () => {
-                if (osToReabrir && osToReabrir.motivo.trim()) {
+                if (osToReabrir && osToReabrir.motivo.trim() && osToReabrir.defeitoInformado.trim()) {
                   try {
                     const osReabrir = ordens.find(o => o.id === osToReabrir.id);
+                    const reaberturaTexto = [
+                      `Reabertura em ${dateFormatters.short(new Date().toISOString())}`,
+                      `Motivo: ${osToReabrir.motivo.trim()}`,
+                      `Defeito informado pelo cliente: ${osToReabrir.defeitoInformado.trim()}`,
+                    ].join('\n');
                     await updateOS(osToReabrir.id, {
                       status: 'aberta',
                       situacao: 'aberta',
-                      observacoes_internas: osToReabrir.motivo + (osReabrir?.observacoes_internas ? `\n\n${osReabrir.observacoes_internas}` : ''),
+                      descricao_problema: osToReabrir.defeitoInformado.trim(),
+                      observacoes_internas: reaberturaTexto + (osReabrir?.observacoes_internas ? `\n\n${osReabrir.observacoes_internas}` : ''),
                     });
                     toast({ title: 'OS Reaberta', description: `OS #${osReabrir?.numero} reaberta.` });
                     setOsToReabrir(null);
@@ -1453,7 +1648,7 @@ export default function OrdensServico() {
                     toast({ title: 'Erro', description: 'Não foi possível reabrir.', variant: 'destructive' });
                   }
                 } else {
-                  toast({ title: 'Atenção', description: 'Informe o motivo.', variant: 'destructive' });
+                  toast({ title: 'Atenção', description: 'Informe o motivo e o defeito relatado pelo cliente.', variant: 'destructive' });
                 }
               }}
             >
