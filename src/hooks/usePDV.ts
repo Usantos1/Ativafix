@@ -1671,6 +1671,10 @@ export interface RegisterPagamentoOSParams {
   cliente_id?: string | null;
   valor: number;
   forma_pagamento: string;
+  condicao_pagamento?: 'avista' | 'parcelado' | 'padrao' | string | null;
+  total_original?: number;
+  total_final?: number;
+  desconto_aplicado?: number;
   tipo: 'adiantamento' | 'pagamento_final';
   observacao?: string;
 }
@@ -1797,12 +1801,34 @@ export function useRegisterPagamentoOS() {
         sale_id: sale.id,
         valor: params.valor,
         forma_pagamento: params.forma_pagamento,
+        condicao_pagamento: params.condicao_pagamento || null,
+        total_original: params.total_original ?? params.valor,
+        total_final: params.total_final ?? params.valor,
+        desconto_aplicado: params.desconto_aplicado ?? 0,
         tipo: params.tipo,
         observacao: params.observacao || null,
         created_by: user?.id || null,
       })
       .execute();
-    if (errOP) throw errOP;
+    if (errOP) {
+      const msg = String((errOP as any)?.error || (errOP as any)?.message || '');
+      if (msg.includes('does not exist') || msg.includes('column')) {
+        const { error: fallbackErr } = await from('os_pagamentos')
+          .insert({
+            ordem_servico_id: params.ordem_servico_id,
+            sale_id: sale.id,
+            valor: params.valor,
+            forma_pagamento: params.forma_pagamento,
+            tipo: params.tipo,
+            observacao: params.observacao || null,
+            created_by: user?.id || null,
+          })
+          .execute();
+        if (fallbackErr) throw fallbackErr;
+      } else {
+        throw errOP;
+      }
+    }
 
     return { sale: { ...sale, id: sale.id } as Sale, payment: payment as Payment };
   }, [createSale, user?.id, profile]);

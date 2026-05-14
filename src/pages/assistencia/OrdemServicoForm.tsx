@@ -140,6 +140,159 @@ const PROBLEMAS_VEICULO_STORAGE_KEY = 'ativafix_os_problemas_veiculo_modelos';
 const CONDICOES_APARELHO_STORAGE_KEY = 'ativafix_os_condicoes_aparelho_modelos';
 const CONDICOES_VEICULO_STORAGE_KEY = 'ativafix_os_condicoes_veiculo_modelos';
 
+const RESOLUTION_PROBLEMA_CONSTATADO_MODELOS = [
+  'Tela quebrada',
+  'Tela sem imagem',
+  'Tela com manchas',
+  'Touch não funciona',
+  'Aparelho não liga',
+  'Aparelho reiniciando',
+  'Aparelho molhado',
+  'Aparelho oxidado',
+  'Bateria estufada',
+  'Bateria descarregando rápido',
+  'Conector de carga danificado',
+  'Câmera não funciona',
+  'Microfone não funciona',
+  'Alto-falante não funciona',
+  'Botão power não funciona',
+  'Face ID não funciona',
+  'Biometria não funciona',
+  'Flex danificado',
+  'Placa com indício de curto',
+  'Tampa traseira quebrada',
+  'Aparelho sem sinal',
+  'Wi-Fi não funciona',
+  'Bluetooth não funciona',
+  'Sensor de proximidade não funciona',
+  'Aparelho com marcas de queda',
+];
+
+const RESOLUTION_SERVICO_EXECUTADO_MODELOS = [
+  'Troca de tela realizada',
+  'Troca de bateria realizada',
+  'Troca do conector de carga realizada',
+  'Troca da câmera realizada',
+  'Troca do alto-falante realizada',
+  'Troca do microfone realizada',
+  'Troca da tampa traseira realizada',
+  'Troca do botão power realizada',
+  'Troca do flex realizada',
+  'Reparo no flex realizado',
+  'Reparo em placa realizado',
+  'Limpeza interna realizada',
+  'Limpeza por oxidação realizada',
+  'Ressolda de componente realizada',
+  'Atualização de software realizada',
+  'Restauração do sistema realizada',
+  'Reencaixe de componentes realizado',
+  'Substituição de peça danificada',
+  'Testes gerais realizados',
+  'Aparelho testado e aprovado',
+  'Serviço finalizado com sucesso',
+  'Aparelho sem possibilidade de reparo',
+  'Cliente não autorizou o reparo',
+];
+
+const RESOLUTION_INFO_TECNICA_MODELOS = [
+  'Aparelho entrou com marcas de uso',
+  'Aparelho entrou com tela quebrada',
+  'Aparelho entrou com tampa traseira danificada',
+  'Aparelho entrou sem parafusos',
+  'Aparelho entrou com sinais de oxidação',
+  'Aparelho entrou com peça removida',
+  'Aparelho não foi possível testar antes do reparo',
+  'Cliente informou que o aparelho caiu',
+  'Cliente informou que o aparelho molhou',
+  'Cliente informou que o aparelho parou de carregar',
+  'Cliente informou que o aparelho não liga',
+  'Foi identificado indício de oxidação na placa',
+  'Foi identificado indício de queda',
+  'Foi identificado flex danificado',
+  'Foi identificado conector danificado',
+  'Foi identificado componente com possível curto',
+  'Peças internas com marcas de violação',
+  'Aparelho já aparenta ter sido aberto anteriormente',
+  'Serviço depende de análise complementar',
+  'Necessário testar aparelho após substituição da peça',
+  'Aguardando autorização do cliente',
+  'Aguardando chegada de peça',
+  'Cliente ciente dos riscos do procedimento',
+  'Aparelho entregue para análise avançada',
+];
+
+const RESOLUTION_PROBLEMA_STORAGE_KEY = 'ativafix_os_resolution_problema_constatado_modelos';
+const RESOLUTION_SERVICO_STORAGE_KEY = 'ativafix_os_resolution_servico_executado_modelos';
+const RESOLUTION_INFO_TECNICA_STORAGE_KEY = 'ativafix_os_resolution_info_tecnica_modelos';
+
+const RESOLUTION_TEMPLATE_TYPES = ['problema_constatado', 'servico_executado', 'observacoes_internas'] as const;
+type ResolutionTemplateType = typeof RESOLUTION_TEMPLATE_TYPES[number];
+type ResolutionTemplateField = ResolutionTemplateType;
+
+const RESOLUTION_TEMPLATE_DEFAULTS: Record<ResolutionTemplateType, string[]> = {
+  problema_constatado: RESOLUTION_PROBLEMA_CONSTATADO_MODELOS,
+  servico_executado: RESOLUTION_SERVICO_EXECUTADO_MODELOS,
+  observacoes_internas: RESOLUTION_INFO_TECNICA_MODELOS,
+};
+
+const RESOLUTION_TEMPLATE_STORAGE_KEYS: Record<ResolutionTemplateType, string> = {
+  problema_constatado: RESOLUTION_PROBLEMA_STORAGE_KEY,
+  servico_executado: RESOLUTION_SERVICO_STORAGE_KEY,
+  observacoes_internas: RESOLUTION_INFO_TECNICA_STORAGE_KEY,
+};
+
+const RESOLUTION_TEMPLATE_LABELS: Record<ResolutionTemplateType, { button: string; title: string; placeholder: string }> = {
+  problema_constatado: {
+    button: 'Problemas padrão',
+    title: 'Problemas constatados',
+    placeholder: 'Novo problema...',
+  },
+  servico_executado: {
+    button: 'Serviços padrão',
+    title: 'Serviços executados',
+    placeholder: 'Novo serviço...',
+  },
+  observacoes_internas: {
+    button: 'Anotações padrão',
+    title: 'Anotações internas',
+    placeholder: 'Nova anotação...',
+  },
+};
+
+type OSPriceCondition = 'avista' | 'parcelado' | 'padrao';
+
+const getOSItemCashUnitPrice = (item: Partial<ItemOS>) => {
+  const valorVista = Number((item as any).valor_vista ?? 0);
+  if (valorVista > 0) return valorVista;
+  const qty = Number(item.quantidade || 1) || 1;
+  const unit = Number(item.valor_unitario || 0);
+  const desconto = Number(item.desconto || 0);
+  return Math.max(0, unit - desconto / qty);
+};
+
+const getOSItemInstallmentUnitPrice = (item: Partial<ItemOS>) => {
+  const valorParcelado = Number((item as any).valor_parcelado ?? 0);
+  if (valorParcelado > 0) return valorParcelado;
+  return Number(item.valor_unitario || 0);
+};
+
+const getOSItemsTotalByCondition = (items: Partial<ItemOS>[], condition: OSPriceCondition) => {
+  return items.reduce((acc, item) => {
+    const qty = Number(item.quantidade || 0);
+    const unit = condition === 'avista'
+      ? getOSItemCashUnitPrice(item)
+      : getOSItemInstallmentUnitPrice(item);
+    return acc + Math.max(0, qty * unit);
+  }, 0);
+};
+
+const getPaymentConditionFromMethod = (method: string): OSPriceCondition => {
+  const normalized = String(method || '').toLowerCase();
+  if (normalized.includes('pix') || normalized.includes('dinheiro')) return 'avista';
+  if (normalized.includes('parcel')) return 'parcelado';
+  return 'padrao';
+};
+
 const normalizeProblemTemplate = (value: string) => value.trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 
 const loadProblemTemplates = (storageKey: string, fallback: string[]) => {
@@ -162,6 +315,35 @@ const saveProblemTemplates = (storageKey: string, templates: string[]) => {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(storageKey, JSON.stringify(templates));
 };
+
+const normalizeTextTemplate = (value: string) => value.trim().replace(/\s+/g, ' ');
+
+const loadTextTemplates = (storageKey: string, fallback: string[]) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) return fallback;
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return fallback;
+    const normalized = parsed
+      .map((item) => typeof item === 'string' ? normalizeTextTemplate(item) : '')
+      .filter(Boolean);
+    return normalized.length > 0 ? Array.from(new Set(normalized)) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const getCompanyScopedStorageKey = (storageKey: string, companyId?: string | null) =>
+  `${storageKey}_${companyId || 'sem_empresa'}`;
+
+const appendQuickText = (currentValue: string | undefined, text: string) => {
+  const current = (currentValue || '').trim();
+  return current ? `${current}\n${text}` : text;
+};
+
+const getResolutionTemplateStorageSignature = (storageKeys: Record<ResolutionTemplateType, string>) =>
+  RESOLUTION_TEMPLATE_TYPES.map(type => storageKeys[type]).join('|');
 
 interface OSMovimentacao {
   id: string;
@@ -460,6 +642,35 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
   const [condicoesVeiculoModelos, setCondicoesVeiculoModelos] = useState<string[]>(() =>
     loadProblemTemplates(CONDICOES_VEICULO_STORAGE_KEY, CONDICOES_VEICULO_MODELOS)
   );
+  const resolutionTemplateStorageKeys = useMemo(
+    () => RESOLUTION_TEMPLATE_TYPES.reduce((acc, type) => {
+      acc[type] = getCompanyScopedStorageKey(RESOLUTION_TEMPLATE_STORAGE_KEYS[type], user?.company_id);
+      return acc;
+    }, {} as Record<ResolutionTemplateType, string>),
+    [user?.company_id]
+  );
+  const [resolutionTemplates, setResolutionTemplates] = useState<Record<ResolutionTemplateType, string[]>>(() =>
+    RESOLUTION_TEMPLATE_TYPES.reduce((acc, type) => {
+      acc[type] = loadTextTemplates(
+        getCompanyScopedStorageKey(RESOLUTION_TEMPLATE_STORAGE_KEYS[type], user?.company_id),
+        RESOLUTION_TEMPLATE_DEFAULTS[type]
+      );
+      return acc;
+    }, {} as Record<ResolutionTemplateType, string[]>)
+  );
+  const [newResolutionTemplate, setNewResolutionTemplate] = useState<Record<ResolutionTemplateType, string>>({
+    problema_constatado: '',
+    servico_executado: '',
+    observacoes_internas: '',
+  });
+  const [editingResolutionTemplate, setEditingResolutionTemplate] = useState<{
+    type: ResolutionTemplateType;
+    original: string;
+    value: string;
+  } | null>(null);
+  const [resolutionTemplateStorageSignature, setResolutionTemplateStorageSignature] = useState(() =>
+    getResolutionTemplateStorageSignature(resolutionTemplateStorageKeys)
+  );
   const [novoProblemaModelo, setNovoProblemaModelo] = useState('');
   const [editingProblemaModelo, setEditingProblemaModelo] = useState<string | null>(null);
   const [editingProblemaModeloValue, setEditingProblemaModeloValue] = useState('');
@@ -538,6 +749,27 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
   useEffect(() => {
     saveProblemTemplates(CONDICOES_VEICULO_STORAGE_KEY, condicoesVeiculoModelos);
   }, [condicoesVeiculoModelos]);
+
+  useEffect(() => {
+    setResolutionTemplates(RESOLUTION_TEMPLATE_TYPES.reduce((acc, type) => {
+      acc[type] = loadTextTemplates(
+        resolutionTemplateStorageKeys[type],
+        RESOLUTION_TEMPLATE_DEFAULTS[type]
+      );
+      return acc;
+    }, {} as Record<ResolutionTemplateType, string[]>));
+    setResolutionTemplateStorageSignature(getResolutionTemplateStorageSignature(resolutionTemplateStorageKeys));
+    setEditingResolutionTemplate(null);
+  }, [resolutionTemplateStorageKeys]);
+
+  useEffect(() => {
+    if (resolutionTemplateStorageSignature !== getResolutionTemplateStorageSignature(resolutionTemplateStorageKeys)) {
+      return;
+    }
+    RESOLUTION_TEMPLATE_TYPES.forEach((type) => {
+      saveProblemTemplates(resolutionTemplateStorageKeys[type], resolutionTemplates[type]);
+    });
+  }, [resolutionTemplateStorageKeys, resolutionTemplateStorageSignature, resolutionTemplates]);
 
   // Estados do formulário (Oficina Mecânica: padrão veículo; Assistência: celular)
   const [formData, setFormData] = useState<OrdemServicoFormData>({
@@ -666,6 +898,8 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
     descricao: '',
     quantidade: 1,
     valor_unitario: 0,
+    valor_vista: 0,
+    valor_parcelado: 0,
     valor_minimo: 0,
     desconto: 0,
     garantia: 90,
@@ -1311,7 +1545,9 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
       if (!osNumero && currentOS?.numero) osNumero = currentOS.numero;
 
       // Calcular dados do item
-      const valorTotal = (itemForm.quantidade * itemForm.valor_unitario) - itemForm.desconto;
+      const valorVistaUnit = Number(itemForm.valor_vista || itemForm.valor_unitario || 0);
+      const valorParceladoUnit = Number(itemForm.valor_parcelado || itemForm.valor_unitario || 0);
+      const valorTotal = Math.max(0, itemForm.quantidade * valorParceladoUnit);
       const isCreatingItem = !editingItem;
       const resolvedColaboradorId = isCreatingItem ? (user?.id || '') : (itemForm.colaborador_id || '');
       const colaborador = resolvedColaboradorId ? getColaboradorById(resolvedColaboradorId) : null;
@@ -1327,7 +1563,9 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         produto_id: itemForm.produto_id ?? null,
         descricao: itemForm.descricao,
         quantidade: Number(itemForm.quantidade),
-        valor_unitario: Number(itemForm.valor_unitario),
+        valor_unitario: valorParceladoUnit,
+        valor_vista: valorVistaUnit,
+        valor_parcelado: valorParceladoUnit,
         valor_minimo: Number(itemForm.valor_minimo || 0),
         desconto: Number(itemForm.desconto),
         garantia: Number(itemForm.garantia || 90),
@@ -1473,6 +1711,8 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         descricao: '',
         quantidade: 1,
         valor_unitario: 0,
+        valor_vista: 0,
+        valor_parcelado: 0,
         valor_minimo: 0,
         desconto: 0,
         garantia: 90,
@@ -1542,6 +1782,8 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
       descricao: item.descricao,
       quantidade: item.quantidade,
       valor_unitario: item.valor_unitario,
+      valor_vista: getOSItemCashUnitPrice(item),
+      valor_parcelado: getOSItemInstallmentUnitPrice(item),
       valor_minimo: item.valor_minimo || 0,
       desconto: item.desconto,
       garantia: item.garantia || 0,
@@ -1566,6 +1808,28 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
   const [imprimirCupomAposPagamento, setImprimirCupomAposPagamento] = useState(true);
   const [pagamentoToCancel, setPagamentoToCancel] = useState<PagamentoOSAPI | null>(null);
   const [isCancellingPagamento, setIsCancellingPagamento] = useState(false);
+  const totalVistaOS = useMemo(() => getOSItemsTotalByCondition(itens, 'avista'), [itens]);
+  const totalParceladoOS = useMemo(() => getOSItemsTotalByCondition(itens, 'parcelado'), [itens]);
+  const condicaoPagamentoOS = useMemo(
+    () => getPaymentConditionFromMethod(pagamentoOSForm.forma_pagamento),
+    [pagamentoOSForm.forma_pagamento],
+  );
+  const totalSelecionadoOS = condicaoPagamentoOS === 'avista' ? totalVistaOS : totalParceladoOS;
+  const saldoSelecionadoOS = Math.max(0, totalSelecionadoOS - totalPagoAPI);
+  const descontoCondicaoOS = Math.max(0, totalParceladoOS - totalSelecionadoOS);
+
+  const openPagamentoOSDialog = useCallback((tipo: 'adiantamento' | 'pagamento_final' = 'pagamento_final') => {
+    const forma = pagamentoOSForm.forma_pagamento || 'dinheiro';
+    const condicao = getPaymentConditionFromMethod(forma);
+    const totalCondicao = condicao === 'avista' ? totalVistaOS : totalParceladoOS;
+    const saldo = Math.max(0, totalCondicao - totalPagoAPI);
+    setPagamentoOSForm(prev => ({
+      ...prev,
+      tipo,
+      valor: saldo > 0 ? saldo.toFixed(2) : '',
+    }));
+    setShowPagamentoOSDialog(true);
+  }, [pagamentoOSForm.forma_pagamento, totalPagoAPI, totalParceladoOS, totalVistaOS]);
 
   // Remover item — reversão de estoque é feita no hook useItensOSSupabase (evitar dupla reversão)
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
@@ -1614,6 +1878,10 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
         cliente_id: selectedCliente?.id || currentOS?.cliente_id || null,
         valor: valorNum,
         forma_pagamento: pagamentoOSForm.forma_pagamento,
+        condicao_pagamento: condicaoPagamentoOS,
+        total_original: totalParceladoOS,
+        total_final: valorNum,
+        desconto_aplicado: descontoCondicaoOS,
         tipo: pagamentoOSForm.tipo,
         observacao: pagamentoOSForm.observacao || undefined,
       });
@@ -1718,12 +1986,16 @@ export default function OrdemServicoForm({ osId, onClose, isModal = false }: Ord
 
     // Produto com grade sempre como peça para exibir seletor de grade e dar baixa correta
     const tipoItem = temGrade ? 'peca' : (produto.tipo === 'peca' ? 'peca' : (produto.tipo === 'produto' ? 'peca' : 'servico'));
+    const valorVista = Number(produto.valor_venda || (produto as any).valor_dinheiro_pix || (produto as any).valor_vista || produto.preco_venda || 0);
+    const valorParcelado = Number((produto as any).valor_parcelado_6x || (produto as any).valor_parcelado || valorVista);
 
     setItemForm(prev => ({
       ...prev,
       produto_id: produto.id,
       descricao: produto.nome || produto.descricao || '',
-      valor_unitario: produto.valor_dinheiro_pix || produto.valor_venda || produto.preco_venda || 0,
+      valor_unitario: valorParcelado,
+      valor_vista: valorVista,
+      valor_parcelado: valorParcelado,
       garantia: garantiaProduto,
       tipo: tipoItem,
       quantidade: 1,
@@ -3524,6 +3796,151 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
     }
   }, [editingCondicaoModelo, setActiveCondicoesModelos]);
 
+  const applyResolutionTemplate = useCallback((field: ResolutionTemplateField, modelo: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: appendQuickText(prev[field], modelo),
+    }));
+  }, []);
+
+  const addResolutionTemplate = useCallback((type: ResolutionTemplateType) => {
+    const normalized = normalizeTextTemplate(newResolutionTemplate[type]);
+    if (!normalized) return;
+    setResolutionTemplates(prev => ({
+      ...prev,
+      [type]: prev[type].includes(normalized) ? prev[type] : [...prev[type], normalized],
+    }));
+    setNewResolutionTemplate(prev => ({ ...prev, [type]: '' }));
+  }, [newResolutionTemplate]);
+
+  const startEditResolutionTemplate = useCallback((type: ResolutionTemplateType, modelo: string) => {
+    setEditingResolutionTemplate({ type, original: modelo, value: modelo });
+  }, []);
+
+  const saveEditResolutionTemplate = useCallback(() => {
+    if (!editingResolutionTemplate) return;
+    const normalized = normalizeTextTemplate(editingResolutionTemplate.value);
+    if (!normalized) return;
+    setResolutionTemplates(prev => ({
+      ...prev,
+      [editingResolutionTemplate.type]: Array.from(
+        new Set(prev[editingResolutionTemplate.type].map(item =>
+          item === editingResolutionTemplate.original ? normalized : item
+        ))
+      ),
+    }));
+    setEditingResolutionTemplate(null);
+  }, [editingResolutionTemplate]);
+
+  const removeResolutionTemplate = useCallback((type: ResolutionTemplateType, modelo: string) => {
+    setResolutionTemplates(prev => ({
+      ...prev,
+      [type]: prev[type].filter(item => item !== modelo),
+    }));
+    if (editingResolutionTemplate?.type === type && editingResolutionTemplate.original === modelo) {
+      setEditingResolutionTemplate(null);
+    }
+  }, [editingResolutionTemplate]);
+
+  const renderResolutionTemplatesPopover = (type: ResolutionTemplateType, field: ResolutionTemplateField) => {
+    const labels = RESOLUTION_TEMPLATE_LABELS[type];
+    const templates = resolutionTemplates[type] || [];
+
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-6 rounded-full border-border bg-background px-2 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            {labels.button}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-80 rounded-2xl border-border bg-card p-2 shadow-lg">
+          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+            <p className="text-xs font-semibold text-muted-foreground">{labels.title}</p>
+            <span className="text-[10px] text-muted-foreground">clique para adicionar</span>
+          </div>
+          <div className="max-h-64 overflow-y-auto pr-2 scrollbar-thin">
+            {templates.length > 0 ? (
+              <div className="grid gap-1">
+                {templates.map((modelo) => {
+                  const isEditingTemplate =
+                    editingResolutionTemplate?.type === type &&
+                    editingResolutionTemplate.original === modelo;
+
+                  return (
+                    <div key={modelo} className="flex items-center gap-1 rounded-xl hover:bg-muted">
+                      {isEditingTemplate ? (
+                        <>
+                          <Input
+                            value={editingResolutionTemplate.value}
+                            onChange={(e) => setEditingResolutionTemplate(prev =>
+                              prev ? { ...prev, value: e.target.value } : prev
+                            )}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEditResolutionTemplate();
+                              if (e.key === 'Escape') setEditingResolutionTemplate(null);
+                            }}
+                            className="h-8 rounded-xl border-border bg-background text-xs"
+                            autoFocus
+                          />
+                          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0" onClick={saveEditResolutionTemplate}>
+                            <Check className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0" onClick={() => setEditingResolutionTemplate(null)}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => applyResolutionTemplate(field, modelo)}
+                            className="min-w-0 flex-1 rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
+                          >
+                            {modelo}
+                          </button>
+                          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0 text-muted-foreground hover:text-foreground" onClick={() => startEditResolutionTemplate(type, modelo)} title="Editar modelo">
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15" onClick={() => removeResolutionTemplate(type, modelo)} title="Remover modelo">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="px-2 py-3 text-xs text-muted-foreground">Nenhum modelo cadastrado.</p>
+            )}
+          </div>
+          <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
+            <Input
+              value={newResolutionTemplate[type]}
+              onChange={(e) => setNewResolutionTemplate(prev => ({ ...prev, [type]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addResolutionTemplate(type);
+                }
+              }}
+              placeholder={labels.placeholder}
+              className="h-8 rounded-xl border-border bg-background text-xs"
+            />
+            <Button type="button" variant="outline" size="sm" className="h-8 rounded-full border-border px-2 text-xs" onClick={() => addResolutionTemplate(type)}>
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
   const content = (
     <div className={cn("w-full h-full flex flex-col")}>
         {/* Tabs principais */}
@@ -4855,7 +5272,10 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                 <CardContent className="pt-3 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="problema-constatado" className="text-sm font-medium">Problema Constatado</Label>
+                      <div className="flex min-h-7 items-center justify-between gap-2">
+                        <Label htmlFor="problema-constatado" className="text-sm font-medium">Problema Constatado</Label>
+                        {renderResolutionTemplatesPopover('problema_constatado', 'problema_constatado')}
+                      </div>
                       <Textarea
                         id="problema-constatado"
                         value={formData.problema_constatado || ''}
@@ -4870,7 +5290,10 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="servico-executado">Serviço Executado</Label>
+                      <div className="flex min-h-7 items-center justify-between gap-2">
+                        <Label htmlFor="servico-executado">Serviço Executado</Label>
+                        {renderResolutionTemplatesPopover('servico_executado', 'servico_executado')}
+                      </div>
                       <Textarea
                         id="servico-executado"
                         value={formData.servico_executado || ''}
@@ -4924,14 +5347,22 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                   <CardTitle className="text-sm md:text-base font-semibold">Informações Técnicas Internas</CardTitle>
                   <CardDescription className="text-xs">Anotações internas que não aparecem para o cliente</CardDescription>
                 </CardHeader>
-                <CardContent className="pt-3">
+                <CardContent className="pt-3 space-y-2">
+                  <div className="flex min-h-7 items-center justify-between gap-2">
+                    <Label htmlFor="informacoes-tecnicas-internas" className="text-sm font-medium">Informações Técnicas Internas</Label>
+                    {renderResolutionTemplatesPopover('observacoes_internas', 'observacoes_internas')}
+                  </div>
                   <Textarea
+                    id="informacoes-tecnicas-internas"
                     value={formData.observacoes_internas || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, observacoes_internas: e.target.value }))}
                     placeholder="Ex: faltando parafuso, câmera não funciona, placa oxidada, peças removidas..."
                     className="resize-none w-full min-h-[120px]"
                     rows={5}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Caracteres: {(formData.observacoes_internas || '').length}
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -6123,7 +6554,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     <CardTitle className="text-base">Peças e Serviços</CardTitle>
                     <Button onClick={() => {
                       setEditingItem(null);
-                      setItemForm({ tipo: 'servico', produto_id: undefined, descricao: '', quantidade: 1, valor_unitario: 0, valor_minimo: 0, desconto: 0, garantia: 90, colaborador_id: user?.id || '', fornecedor_id: '', fornecedor_nome: '', com_aro: '', grade_cor: '' });
+                      setItemForm({ tipo: 'servico', produto_id: undefined, descricao: '', quantidade: 1, valor_unitario: 0, valor_vista: 0, valor_parcelado: 0, valor_minimo: 0, desconto: 0, garantia: 90, colaborador_id: user?.id || '', fornecedor_id: '', fornecedor_nome: '', com_aro: '', grade_cor: '' });
                       setShowAddItem(true);
                     }} size="sm" className="gap-2">
                       <Plus className="h-4 w-4" />
@@ -6142,7 +6573,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                       <Button 
                         onClick={() => {
                           setEditingItem(null);
-                          setItemForm({ tipo: 'servico', produto_id: undefined, descricao: '', quantidade: 1, valor_unitario: 0, valor_minimo: 0, desconto: 0, garantia: 90, colaborador_id: user?.id || '', fornecedor_id: '', fornecedor_nome: '', com_aro: '', grade_cor: '' });
+                          setItemForm({ tipo: 'servico', produto_id: undefined, descricao: '', quantidade: 1, valor_unitario: 0, valor_vista: 0, valor_parcelado: 0, valor_minimo: 0, desconto: 0, garantia: 90, colaborador_id: user?.id || '', fornecedor_id: '', fornecedor_nome: '', com_aro: '', grade_cor: '' });
                           setShowAddItem(true);
                         }}
                         className="gap-2"
@@ -6161,7 +6592,8 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                                 <TableHead>Tipo</TableHead>
                             <TableHead>Descrição</TableHead>
                             <TableHead className="text-right">Qtd</TableHead>
-                            <TableHead className="text-right">Valor Unit.</TableHead>
+                            <TableHead className="text-right">À vista</TableHead>
+                            <TableHead className="text-right">Parcelado 6x</TableHead>
                             <TableHead className="text-right">Valor Mín.</TableHead>
                             <TableHead className="text-right">Desconto</TableHead>
                             <TableHead className="text-right">Garantia</TableHead>
@@ -6183,7 +6615,8 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                               </TableCell>
                               <TableCell>{item.descricao}</TableCell>
                               <TableCell className="text-right">{item.quantidade}</TableCell>
-                              <TableCell className="text-right">{currencyFormatters.brl(item.valor_unitario)}</TableCell>
+                              <TableCell className="text-right">{currencyFormatters.brl(getOSItemCashUnitPrice(item))}</TableCell>
+                              <TableCell className="text-right">{currencyFormatters.brl(getOSItemInstallmentUnitPrice(item))}</TableCell>
                               <TableCell className="text-right">{currencyFormatters.brl(item.valor_minimo || 0)}</TableCell>
                               <TableCell className="text-right">{currencyFormatters.brl(item.desconto)}</TableCell>
                               <TableCell className="text-right">{item.garantia ? `${item.garantia} dias` : '-'}</TableCell>
@@ -6230,9 +6663,19 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     </ScrollArea>
                   )}
                   
-                  <div className="mt-4 p-4 bg-muted/50 rounded-lg flex justify-between items-center">
-                    <span className="font-medium">Total:</span>
-                    <span className="text-2xl font-bold">{currencyFormatters.brl(total)}</span>
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <span className="text-sm text-muted-foreground">Total à vista Pix/dinheiro</span>
+                      <p className="text-xl font-bold text-green-700">{currencyFormatters.brl(getOSItemsTotalByCondition(itens, 'avista'))}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Total parcelado até 6x</span>
+                      <p className="text-xl font-bold">{currencyFormatters.brl(getOSItemsTotalByCondition(itens, 'parcelado'))}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Total padrão atual</span>
+                      <p className="text-xl font-bold">{currencyFormatters.brl(total)}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -6244,7 +6687,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
             <TabsContent value="financeiro" className="flex-1 min-h-0 overflow-auto scrollbar-thin space-y-2 mt-2 p-2">
 
               {/* Saldo Pendente em Destaque — usa totais da API (pagamentos rastreáveis) */}
-              {total - totalPagoAPI > 0 && (
+              {saldoSelecionadoOS > 0 && (
                 <Card className="border-2 border-orange-500 bg-orange-50/50">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
@@ -6253,12 +6696,12 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                         <div>
                           <p className="text-sm font-medium text-orange-900">Saldo Pendente</p>
                           <p className="text-2xl font-bold text-orange-600">
-                            {currencyFormatters.brl(total - totalPagoAPI)}
+                            {currencyFormatters.brl(saldoSelecionadoOS)}
                           </p>
                         </div>
                       </div>
                       <Button 
-                        onClick={() => setShowPagamentoOSDialog(true)}
+                        onClick={() => openPagamentoOSDialog('pagamento_final')}
                         className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
                         size="lg"
                       >
@@ -6270,11 +6713,17 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                 </Card>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 px-2 flex-shrink-0">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 px-2 flex-shrink-0">
                 <Card className="m-2">
                   <CardContent className="pt-4">
-                    <p className="text-sm text-muted-foreground">Valor Total</p>
-                    <p className="text-3xl font-bold">{currencyFormatters.brl(total)}</p>
+                    <p className="text-sm text-muted-foreground">Total à vista</p>
+                    <p className="text-3xl font-bold text-green-700">{currencyFormatters.brl(totalVistaOS)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="m-2">
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-muted-foreground">Total parcelado</p>
+                    <p className="text-3xl font-bold">{currencyFormatters.brl(totalParceladoOS)}</p>
                   </CardContent>
                 </Card>
                 <Card className="m-2">
@@ -6286,8 +6735,8 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                 <Card className="m-2">
                   <CardContent className="pt-4">
                     <p className="text-sm text-muted-foreground">Saldo Restante</p>
-                    <p className={cn("text-3xl font-bold", total - totalPagoAPI > 0 ? "text-orange-600" : "text-green-600")}>
-                      {currencyFormatters.brl(total - totalPagoAPI)}
+                    <p className={cn("text-3xl font-bold", saldoSelecionadoOS > 0 ? "text-orange-600" : "text-green-600")}>
+                      {currencyFormatters.brl(saldoSelecionadoOS)}
                     </p>
                   </CardContent>
                 </Card>
@@ -6298,7 +6747,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">Pagamentos (documentos rastreáveis, somam no caixa)</CardTitle>
                     <Button 
-                      onClick={() => setShowPagamentoOSDialog(true)}
+                      onClick={() => openPagamentoOSDialog('pagamento_final')}
                       size="sm"
                       className="gap-2"
                     >
@@ -6318,7 +6767,7 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                         Registre o primeiro pagamento para começar a controlar o financeiro desta OS. Cada pagamento gera uma venda e soma no caixa.
                       </p>
                       <Button 
-                        onClick={() => setShowPagamentoOSDialog(true)}
+                        onClick={() => openPagamentoOSDialog('pagamento_final')}
                         className="gap-2"
                       >
                         <Plus className="h-4 w-4" />
@@ -6754,7 +7203,9 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                             <p className="font-medium">{prod.nome}</p>
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-xs text-muted-foreground">
-                                {currencyFormatters.brl(prod.valor_venda || prod.preco_venda || 0)}
+                                À vista {currencyFormatters.brl((prod as any).valor_dinheiro_pix || (prod as any).valor_vista || prod.valor_venda || prod.preco_venda || 0)}
+                                {' · '}
+                                Parcelado {currencyFormatters.brl((prod as any).valor_parcelado_6x || (prod as any).valor_parcelado || prod.valor_venda || prod.preco_venda || 0)}
                               </p>
                               {(prod as any).estoque_grade?.itens && Object.keys((prod as any).estoque_grade.itens).length > 0 && (
                                 <Badge variant="secondary" className="text-xs">Grade</Badge>
@@ -6898,17 +7349,38 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Valor Unitário</Label>
+                  <Label>À vista Pix/dinheiro</Label>
                   <Input
                     type="number"
                     step="0.01"
-                    value={itemForm.valor_unitario || ''}
-                    onChange={(e) => setItemForm(prev => ({ ...prev, valor_unitario: parseFloat(e.target.value) || 0 }))}
+                    value={itemForm.valor_vista || ''}
+                    onChange={(e) => setItemForm(prev => ({ ...prev, valor_vista: parseFloat(e.target.value) || 0 }))}
                     placeholder="0,00"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Parcelado até 6x sem juros</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={itemForm.valor_parcelado || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      setItemForm(prev => ({
+                        ...prev,
+                        valor_parcelado: value,
+                        valor_unitario: value,
+                        valor_vista: Number(prev.valor_vista || 0) > 0 ? prev.valor_vista : value,
+                      }));
+                    }}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Valor Mínimo</Label>
                   <Input
@@ -6925,7 +7397,16 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     type="number"
                     step="0.01"
                     value={itemForm.desconto || ''}
-                    onChange={(e) => setItemForm(prev => ({ ...prev, desconto: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      const desconto = parseFloat(e.target.value) || 0;
+                      setItemForm(prev => ({
+                        ...prev,
+                        desconto,
+                        valor_vista: desconto > 0
+                          ? Math.max(0, Number(prev.valor_parcelado || prev.valor_unitario || 0) - (desconto / Math.max(1, Number(prev.quantidade || 1))))
+                          : prev.valor_vista,
+                      }));
+                    }}
                     placeholder="0,00"
                   />
                 </div>
@@ -7121,10 +7602,15 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
               </div>
 
               <div className="p-4 bg-muted/50 rounded-lg flex justify-between items-center">
-                <span className="font-medium">Total do Item:</span>
-                <span className="text-xl font-bold">
-                  {currencyFormatters.brl((itemForm.quantidade * itemForm.valor_unitario) - itemForm.desconto)}
-                </span>
+                <span className="font-medium">Totais do Item:</span>
+                <div className="text-right">
+                  <div className="text-sm text-green-700 font-semibold">
+                    À vista: {currencyFormatters.brl(itemForm.quantidade * Number(itemForm.valor_vista || itemForm.valor_unitario || 0))}
+                  </div>
+                  <div className="text-xl font-bold">
+                    Parcelado: {currencyFormatters.brl(itemForm.quantidade * Number(itemForm.valor_parcelado || itemForm.valor_unitario || 0))}
+                  </div>
+                </div>
               </div>
             </div>
             </ScrollArea>
@@ -7263,7 +7749,16 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                     return active.some(pm => pm.code === code) ? code : (active[0]?.code ?? '');
                   })()
                 }
-                onValueChange={(v) => setPagamentoOSForm(prev => ({ ...prev, forma_pagamento: v as FormaPagamento }))}
+                onValueChange={(v) => {
+                  const condicao = getPaymentConditionFromMethod(v);
+                  const totalCondicao = condicao === 'avista' ? totalVistaOS : totalParceladoOS;
+                  const saldo = Math.max(0, totalCondicao - totalPagoAPI);
+                  setPagamentoOSForm(prev => ({
+                    ...prev,
+                    forma_pagamento: v as FormaPagamento,
+                    valor: prev.tipo === 'pagamento_final' && saldo > 0 ? saldo.toFixed(2) : prev.valor,
+                  }));
+                }}
                 disabled={paymentMethods.filter(pm => pm.is_active).length === 0}
               >
                 <SelectTrigger className="rounded-xl border-border bg-background text-foreground">
@@ -7281,11 +7776,41 @@ ${os.previsao_entrega ? `*Previsão Entrega:* ${dateFormatters.short(os.previsao
                 </p>
               )}
             </div>
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-sm">
+              <p className="font-medium">Como o cliente vai pagar?</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-muted-foreground">Total à vista</span>
+                  <p className="font-semibold text-green-700">{currencyFormatters.brl(totalVistaOS)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Total parcelado</span>
+                  <p className="font-semibold">{currencyFormatters.brl(totalParceladoOS)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Forma selecionada</span>
+                  <p className="font-semibold">
+                    {condicaoPagamentoOS === 'avista' ? 'À vista Pix/dinheiro' : condicaoPagamentoOS === 'parcelado' ? 'Parcelado até 6x' : 'Padrão cartão/débito'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Valor final sugerido</span>
+                  <p className="font-semibold">{currencyFormatters.brl(saldoSelecionadoOS)}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O campo de valor continua editável para ajustes manuais antes de registrar.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
               <Select
                 value={pagamentoOSForm.tipo}
-                onValueChange={(v: 'adiantamento' | 'pagamento_final') => setPagamentoOSForm(prev => ({ ...prev, tipo: v }))}
+                onValueChange={(v: 'adiantamento' | 'pagamento_final') => setPagamentoOSForm(prev => ({
+                  ...prev,
+                  tipo: v,
+                  valor: v === 'pagamento_final' && saldoSelecionadoOS > 0 ? saldoSelecionadoOS.toFixed(2) : prev.valor,
+                }))}
               >
                 <SelectTrigger className="rounded-xl border-border bg-background text-foreground">
                   <SelectValue />

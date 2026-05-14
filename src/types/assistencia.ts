@@ -559,6 +559,8 @@ export interface ItemOS {
   descricao: string;
   quantidade: number;
   valor_unitario: number;
+  valor_vista?: number | null;
+  valor_parcelado?: number | null;
   valor_minimo?: number;
   desconto: number;
   valor_total: number;
@@ -601,6 +603,10 @@ export interface PagamentoOS {
   ordem_servico_id: string;
   valor: number;
   forma_pagamento: FormaPagamento;
+  condicao_pagamento?: 'avista' | 'parcelado' | 'padrao' | string | null;
+  total_original?: number | null;
+  total_final?: number | null;
+  desconto_aplicado?: number | null;
   parcelas?: number;
   data_pagamento: string;
   observacao?: string;

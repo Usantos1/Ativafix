@@ -58,6 +58,8 @@ export function useItensOSSupabase(osId: string) {
         descricao: data.descricao,
         quantidade: data.quantidade,
         valor_unitario: data.valor_unitario,
+        valor_vista: data.valor_vista ?? data.valor_unitario,
+        valor_parcelado: data.valor_parcelado ?? data.valor_unitario,
         valor_minimo: data.valor_minimo || 0,
         desconto: data.desconto || 0,
         valor_total: data.valor_total,
@@ -82,7 +84,7 @@ export function useItensOSSupabase(osId: string) {
 
       // Se falhar por coluna inexistente (migration não rodada), tenta sem campos opcionais
       if (error && isColumnMissing) {
-        console.warn('[useItensOS] Coluna(s) inexistente(s). Execute as migrations (fornecedor, com_aro, grade_cor). Tentando inserir sem esses campos.');
+        console.warn('[useItensOS] Coluna(s) inexistente(s). Execute as migrations de os_items. Tentando inserir sem campos opcionais.');
         const fallback: any = {
           ordem_servico_id: osId,
           produto_id: data.produto_id || null,
@@ -140,13 +142,13 @@ export function useItensOSSupabase(osId: string) {
   // Só enviar colunas que existem na base (fornecedor_* pode não existir se a migração 005 não foi aplicada)
   const allowedUpdateKeys = [
     'tipo', 'produto_id', 'descricao', 'quantidade', 'valor_unitario', 'valor_minimo',
-    'desconto', 'valor_total', 'garantia', 'colaborador_id', 'colaborador_nome', 'com_aro', 'grade_cor'
+    'valor_vista', 'valor_parcelado', 'desconto', 'valor_total', 'garantia', 'colaborador_id', 'colaborador_nome', 'com_aro', 'grade_cor'
   ];
 
   // Atualizar item (remove undefined, garante números e UUID válidos, evita colunas inexistentes)
   const updateItem = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<ItemOS> }): Promise<ItemOS> => {
-      const numericKeys = ['quantidade', 'valor_unitario', 'valor_minimo', 'desconto', 'valor_total', 'garantia'];
+      const numericKeys = ['quantidade', 'valor_unitario', 'valor_vista', 'valor_parcelado', 'valor_minimo', 'desconto', 'valor_total', 'garantia'];
       const payload: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(data)) {
         if (value === undefined) continue;
@@ -160,11 +162,25 @@ export function useItensOSSupabase(osId: string) {
           payload[key] = value;
         }
       }
-      const { data: updated, error } = await from('os_items')
+      let { data: updated, error } = await from('os_items')
         .eq('id', id)
         .update(payload)
         .select()
         .single();
+
+      const errorMsg = (error && (typeof (error as any).error === 'string' ? (error as any).error : (error as any).message)) || '';
+      if (error && String(errorMsg).includes('does not exist')) {
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.valor_vista;
+        delete fallbackPayload.valor_parcelado;
+        const fallbackResult = await from('os_items')
+          .eq('id', id)
+          .update(fallbackPayload)
+          .select()
+          .single();
+        updated = fallbackResult.data;
+        error = fallbackResult.error;
+      }
 
       if (error) throw error;
       return updated as ItemOS;

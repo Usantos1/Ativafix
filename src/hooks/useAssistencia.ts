@@ -1138,6 +1138,10 @@ export interface PagamentoOSAPI {
   sale_id: string;
   valor: number;
   forma_pagamento: string;
+  condicao_pagamento?: string | null;
+  total_original?: number | null;
+  total_final?: number | null;
+  desconto_aplicado?: number | null;
   tipo: string;
   observacao?: string | null;
   created_at: string;

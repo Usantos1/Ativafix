@@ -52,6 +52,29 @@ const FALLBACK_PAYMENT_METHODS: { id: string; code: string; name: string; is_act
   { id: '_cartao', code: 'cartao_debito', name: 'Cartão (débito/crédito)', is_active: true, accepts_installments: true, max_installments: 12 },
 ];
 
+type OSPriceCondition = 'avista' | 'parcelado';
+
+const getOSItemUnitPriceForPDV = (item: any, condition: OSPriceCondition) => {
+  const quantidade = Math.max(1, Number(item?.quantidade || 1));
+  const valorUnitario = Number(item?.valor_unitario || 0);
+  const desconto = Number(item?.desconto || 0);
+
+  if (condition === 'avista') {
+    const valorVista = Number(item?.valor_vista || 0);
+    if (valorVista > 0) return valorVista;
+    return Math.max(0, valorUnitario - desconto / quantidade);
+  }
+
+  const valorParcelado = Number(item?.valor_parcelado || 0);
+  return valorParcelado > 0 ? valorParcelado : valorUnitario;
+};
+
+const getOSItemsTotalForPDV = (itens: any[] = [], condition: OSPriceCondition) =>
+  itens.reduce((sum, item) => {
+    const quantidade = Number(item?.quantidade || 0);
+    return sum + Math.max(0, quantidade * getOSItemUnitPriceForPDV(item, condition));
+  }, 0);
+
 export default function NovaVenda() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -228,6 +251,14 @@ export default function NovaVenda() {
   const [osList, setOsList] = useState<any[]>([]);
   const [isLoadingOS, setIsLoadingOS] = useState(false);
   const [osSearch, setOsSearch] = useState('');
+  const [showOSPriceConditionDialog, setShowOSPriceConditionDialog] = useState(false);
+  const [selectedOSPriceCondition, setSelectedOSPriceCondition] = useState<OSPriceCondition>('avista');
+  const [pendingOSImport, setPendingOSImport] = useState<{
+    mode: 'auto' | 'modal';
+    osId?: string;
+    os?: any;
+    numero?: string | number | null;
+  } | null>(null);
 
   // Estados para orçamento
   const [showOrcamentoModal, setShowOrcamentoModal] = useState(false);
@@ -469,7 +500,7 @@ export default function NovaVenda() {
   }, [clientes]);
 
   // Função para importar OS automaticamente
-  const handleImportarOS = useCallback(async (osId: string) => {
+  const handleImportarOS = useCallback(async (osId: string, priceCondition: OSPriceCondition = 'avista') => {
     try {
       console.log('[NovaVenda] Importando OS:', osId);
       
@@ -541,15 +572,15 @@ export default function NovaVenda() {
           produto_codigo_barras: produto?.codigo_barras || undefined,
           produto_tipo: itemOS.tipo === 'peca' ? 'produto' : 'produto',
           quantidade: Number(itemOS.quantidade) || 1,
-          valor_unitario: Number(itemOS.valor_unitario) || 0,
-          desconto: Number(itemOS.desconto || 0),
-          observacao: `OS #${os.numero}`,
+          valor_unitario: getOSItemUnitPriceForPDV(itemOS, priceCondition),
+          desconto: 0,
+          observacao: `OS #${os.numero} · ${priceCondition === 'avista' ? 'À vista Pix/dinheiro' : 'Parcelado até 6x'}`,
         }, novaVenda.id);
       }
 
       toast({
         title: 'OS importada com sucesso!',
-        description: `OS #${os.numero} foi importada para o PDV.`,
+        description: `OS #${os.numero} foi importada para o PDV com preço ${priceCondition === 'avista' ? 'à vista' : 'parcelado'}.`,
       });
 
       // Navegar para editar a venda
@@ -572,13 +603,15 @@ export default function NovaVenda() {
       
       if (osIdParaImportar) {
         console.log('[NovaVenda] Importando OS:', osIdParaImportar, 'Número:', osNumeroParaImportar);
-        handleImportarOS(osIdParaImportar);
+        setSelectedOSPriceCondition('avista');
+        setPendingOSImport({ mode: 'auto', osId: osIdParaImportar, numero: osNumeroParaImportar });
+        setShowOSPriceConditionDialog(true);
         // Limpar após importar
         localStorage.removeItem('pdv_import_os_id');
         localStorage.removeItem('pdv_import_os_numero');
       }
     }
-  }, [isEditing, id, handleImportarOS]);
+  }, [isEditing, id]);
 
   // Função auxiliar para normalizar tipo do produto
   const normalizeProdutoTipo = (tipo: any): 'produto' | 'servico' | undefined => {
@@ -869,8 +902,31 @@ export default function NovaVenda() {
     loadOSParaFaturar();
   };
 
+  const handleRequestFaturarOS = (os: any) => {
+    setSelectedOSPriceCondition('avista');
+    setPendingOSImport({ mode: 'modal', os, numero: os?.numero });
+    setShowOSPriceConditionDialog(true);
+  };
+
+  const handleConfirmOSPriceCondition = async () => {
+    if (!pendingOSImport) return;
+
+    const pending = pendingOSImport;
+    setShowOSPriceConditionDialog(false);
+    setPendingOSImport(null);
+
+    if (pending.mode === 'modal' && pending.os) {
+      await handleFaturarOS(pending.os, selectedOSPriceCondition);
+      return;
+    }
+
+    if (pending.osId) {
+      await handleImportarOS(pending.osId, selectedOSPriceCondition);
+    }
+  };
+
   // Faturar OS selecionada
-  const handleFaturarOS = async (os: any) => {
+  const handleFaturarOS = async (os: any, priceCondition: OSPriceCondition = 'avista') => {
     try {
       setIsLoadingOS(true);
 
@@ -959,8 +1015,8 @@ export default function NovaVenda() {
         }
         
         const quantidade = Number(itemOS.quantidade) || 1;
-        const valorUnitario = Number(itemOS.valor_unitario) || 0;
-        const desconto = Number(itemOS.desconto || 0);
+        const valorUnitario = getOSItemUnitPriceForPDV(itemOS, priceCondition);
+        const desconto = 0;
         const produto = itemOS.produto_id ? produtos.find((p: any) => p.id === itemOS.produto_id) : null;
         
         console.log(`Adicionando item: ${itemOS.descricao}`);
@@ -980,7 +1036,7 @@ export default function NovaVenda() {
             quantidade: quantidade,
             valor_unitario: valorUnitario,
             desconto: desconto,
-            observacao: `OS #${os.numero}`,
+            observacao: `OS #${os.numero} · ${priceCondition === 'avista' ? 'À vista Pix/dinheiro' : 'Parcelado até 6x'}`,
           }, novaVenda.id);
           itemsAdded++;
           
@@ -1074,7 +1130,7 @@ export default function NovaVenda() {
 
       toast({
         title: 'OS faturada com sucesso!',
-        description: `OS #${os.numero} foi vinculada à venda #${novaVenda.numero}`,
+        description: `OS #${os.numero} foi vinculada à venda #${novaVenda.numero} com preço ${priceCondition === 'avista' ? 'à vista' : 'parcelado'}.`,
       });
 
       setShowFaturarOSModal(false);
@@ -3639,6 +3695,78 @@ _PrimeCamp Assistência Técnica_`;
         }}
       />
 
+      {/* Modal de escolha da condição comercial da OS */}
+      <Dialog open={showOSPriceConditionDialog} onOpenChange={(open) => {
+        setShowOSPriceConditionDialog(open);
+        if (!open) setPendingOSImport(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Como o cliente vai pagar?</DialogTitle>
+            <DialogDescription>
+              Escolha a condição comercial antes de importar a OS
+              {pendingOSImport?.numero ? ` #${pendingOSImport.numero}` : ''} para o PDV.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Condição de valor</Label>
+              <Select
+                value={selectedOSPriceCondition}
+                onValueChange={(value: OSPriceCondition) => setSelectedOSPriceCondition(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="avista">À vista Pix/dinheiro</SelectItem>
+                  <SelectItem value="parcelado">Parcelado até 6x sem juros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {pendingOSImport?.os?.itens?.length > 0 && (
+              <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Total à vista</span>
+                  <span className="font-semibold text-green-700">
+                    {currencyFormatters.brl(getOSItemsTotalForPDV(pendingOSImport.os.itens, 'avista'))}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Total parcelado</span>
+                  <span className="font-semibold">
+                    {currencyFormatters.brl(getOSItemsTotalForPDV(pendingOSImport.os.itens, 'parcelado'))}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3 border-t pt-2">
+                  <span className="font-medium">Valor que irá para o PDV</span>
+                  <span className="font-bold">
+                    {currencyFormatters.brl(getOSItemsTotalForPDV(pendingOSImport.os.itens, selectedOSPriceCondition))}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowOSPriceConditionDialog(false);
+                setPendingOSImport(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmOSPriceCondition}>
+              Importar para o PDV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Modal de Faturar OS */}
       <Dialog open={showFaturarOSModal} onOpenChange={setShowFaturarOSModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -3708,7 +3836,7 @@ _PrimeCamp Assistência Técnica_`;
                             </div>
                           </div>
                           <Button
-                            onClick={() => handleFaturarOS(os)}
+                            onClick={() => handleRequestFaturarOS(os)}
                             disabled={isLoadingOS}
                           >
                             <FileText className="h-4 w-4 mr-2" />
