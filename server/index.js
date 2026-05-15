@@ -2650,12 +2650,10 @@ app.get('/api/public/sorteio/:token', async (req, res) => {
         r.winning_customer_id,
         c.nome AS customer_name,
         c.telefone AS customer_phone,
-        c.whatsapp AS customer_whatsapp,
-        co.name AS company_name
+        c.whatsapp AS customer_whatsapp
       FROM public.raffle_coupons rc
       JOIN public.raffles r ON r.id = rc.raffle_id
       LEFT JOIN public.clientes c ON c.id = rc.customer_id
-      LEFT JOIN public.companies co ON co.id = rc.company_id
       WHERE rc.tracking_token = $1
       LIMIT 1
     `, [token]);
@@ -2665,6 +2663,14 @@ app.get('/api/public/sorteio/:token', async (req, res) => {
     }
 
     const base = baseResult.rows[0];
+    let companyName = 'Empresa';
+    try {
+      const companyResult = await pool.query('SELECT name FROM public.companies WHERE id = (SELECT company_id FROM public.raffle_coupons WHERE tracking_token = $1 LIMIT 1) LIMIT 1', [token]);
+      companyName = companyResult.rows[0]?.name || companyName;
+    } catch (companyError) {
+      console.warn('[Public] Não foi possível buscar empresa do sorteio:', companyError.message);
+    }
+
     const couponsResult = await pool.query(`
       SELECT coupon_number, status, prize_position, prize_type, prize_description, prize_value
       FROM public.raffle_coupons
@@ -2704,7 +2710,7 @@ app.get('/api/public/sorteio/:token', async (req, res) => {
           draw_date: base.draw_date,
           draw_executed_at: base.draw_executed_at,
           status: base.raffle_status,
-          company_name: base.company_name || 'Empresa',
+          company_name: companyName,
         },
         participant: {
           id: base.customer_id,
@@ -2728,7 +2734,7 @@ app.get('/api/public/sorteio/:token', async (req, res) => {
           prize_type: row.prize_type,
           prize_description: row.prize_description,
           prize_value: row.prize_value,
-          is_current_participant: row.customer_id && base.customer_id && row.customer_id === base.customer_id,
+          is_current_participant: row.customer_id && base.customer_id && String(row.customer_id) === String(base.customer_id),
         })),
       },
     });

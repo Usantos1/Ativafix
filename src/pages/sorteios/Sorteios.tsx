@@ -299,13 +299,17 @@ export default function Sorteios() {
     );
 
     for (const group of missingGroups) {
-      await from('raffle_coupons')
+      const { error } = await from('raffle_coupons')
         .update({ tracking_token: group.token, updated_at: new Date().toISOString() })
         .eq('company_id', companyId)
         .eq('raffle_id', group.raffleId)
         .eq('customer_id', group.customerId)
         .is('tracking_token', null)
         .execute();
+      if (error) {
+        console.warn('[Sorteio] Não foi possível preencher token de acompanhamento:', error);
+        groups.delete(`${group.raffleId}:${group.customerId}`);
+      }
     }
 
     return rows.map((coupon) => {
