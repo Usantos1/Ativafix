@@ -3379,6 +3379,7 @@ app.post('/api/query/:table', async (req, res) => {
       'configuracoes_empresa', 'company_settings',
       'cupom_config',
       'os_pagamentos', 'os_config_status',
+      'raffle_settings', 'raffles', 'raffle_coupons', 'raffle_message_logs', 'raffle_audit_logs',
       // Devoluções e inventário
       'refunds', 'refund_items',
       // Pedidos de compra (isolamento por empresa)

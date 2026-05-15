@@ -15,6 +15,7 @@ import {
   RefreshCw,
   ShoppingCart,
   Target,
+  Trophy,
   TrendingUp,
   UserCircle,
   Users,
@@ -66,6 +67,7 @@ export const iconMap: Record<string, LucideIcon> = {
   activity: Activity,
   cake: Cake,
   'message-circle': MessageCircle,
+  trophy: Trophy,
 };
 
 const PDV_NAV_ITEMS: NavigationItem[] = [
@@ -129,6 +131,7 @@ export const relatoriosItemsBase: NavigationItem[] = [
   { label: 'Financeiro', description: 'Visão financeira com DRE, contas e fluxo', path: '/financeiro', icon: BarChart3, permission: 'financeiro.view', exact: false, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
   { label: 'Pós-venda', description: 'Automação e histórico de acompanhamento ao cliente', path: '/pos-venda', icon: MessageCircle, permission: 'pos_venda.view', exact: true, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
   { label: 'Aniversariantes', description: 'Mensagens automáticas de aniversário no WhatsApp', path: '/aniversariantes', icon: Cake, permission: ['aniversariantes.view', 'pos_venda.view'], exact: true, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
+  { label: 'Sorteios', description: 'Números da sorte, cupons gerados e auditoria mensal', path: '/sorteios', icon: Trophy, permission: 'sorteios.view', exact: false, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['pdv', 'financeiro', 'global'] },
   { label: 'Painel de Alertas', description: 'Configurar e acompanhar alertas automáticos', path: '/painel-alertas', icon: Activity, permission: 'alertas.view', exact: false, section: 'relatorios', groupLabel: 'Relatórios', contexts: ['financeiro', 'global'] },
 ];
 

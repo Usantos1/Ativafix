@@ -3,6 +3,7 @@ import { from } from '@/integrations/db/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { authAPI } from '@/integrations/auth/api-client';
 import { getApiUrl } from '@/utils/apiUrl';
+import { cancelRaffleCouponsForSale, generateRaffleCoupons } from '@/utils/raffleService';
 import {
   Sale, SaleFormData, SaleItem, SaleItemFormData,
   Payment, PaymentFormData,
@@ -371,6 +372,19 @@ export function useSales() {
       // Log de auditoria
       await logAudit('update', 'sale', id, sale, updatedSale, 'Venda finalizada', user);
 
+      await generateRaffleCoupons({
+        companyId: updatedSale.company_id || user?.company_id || null,
+        customerId: updatedSale.cliente_id || null,
+        saleId: updatedSale.id,
+        serviceOrderId: updatedSale.ordem_servico_id || null,
+        orderType: updatedSale.ordem_servico_id ? 'service_order' : 'sale',
+        totalAmount: Number(updatedSale.total || total || 0),
+        userId: user?.id || null,
+        saleNumber: updatedSale.numero,
+        customerName: updatedSale.cliente_nome,
+        customerPhone: updatedSale.cliente_telefone,
+      });
+
       // Baixar estoque dos produtos vendidos e registrar movimentações
       if (items) {
         const userNome = profile?.display_name || user?.email || 'Sistema';
@@ -606,6 +620,13 @@ export function useSales() {
 
         // Log de auditoria
         await logAudit('cancel', 'sale', id, saleAtual, updatedSale, `Venda cancelada: ${reason || 'Sem motivo'}`, user);
+
+        await cancelRaffleCouponsForSale({
+          companyId: updatedSale.company_id || user?.company_id || null,
+          saleId: id,
+          userId: user?.id || null,
+          reason: reason || 'Venda cancelada',
+        });
 
         // Atualizar estado local
         setSales(prev => {

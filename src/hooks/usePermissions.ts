@@ -112,6 +112,18 @@ export const SYSTEM_MODULES: PermissionModule[] = [
     ],
   },
   {
+    key: 'sorteios', label: 'Sorteios', description: 'Sistema de sorteio mensal e números da sorte',
+    permissions: [
+      { key: 'sorteios.view', label: 'Visualizar sorteios' },
+      { key: 'sorteios.config', label: 'Configurar sorteios' },
+      { key: 'sorteios.generate', label: 'Gerar cupons' },
+      { key: 'sorteios.cancel', label: 'Cancelar cupons' },
+      { key: 'sorteios.draw', label: 'Executar sorteio manual' },
+      { key: 'sorteios.audit', label: 'Visualizar auditoria' },
+      { key: 'sorteios.export', label: 'Exportar relatórios' },
+    ],
+  },
+  {
     key: 'alertas', label: 'Alertas', description: 'Painel de alertas automáticos',
     permissions: [
       { key: 'alertas.view', label: 'Visualizar alertas' },

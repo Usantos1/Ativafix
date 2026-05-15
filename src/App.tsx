@@ -81,6 +81,7 @@ import FluxoDeCaixa from "./pages/financeiro/FluxoDeCaixa";
 import PainelAlertasConfig from "./pages/painel-alertas/PainelAlertasConfig";
 import PainelAlertasCategoria from "./pages/painel-alertas/PainelAlertasCategoria";
 import PainelAlertasHistorico from "./pages/painel-alertas/PainelAlertasHistorico";
+import Sorteios from "./pages/sorteios/Sorteios";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -272,6 +273,8 @@ const App = () => {
               <Route path="/pdv/configuracao-status" element={<PermissionRoute permission="os.config.status"><AssistenciaConfiguracaoStatus /></PermissionRoute>} />
               <Route path="/pos-venda" element={<PermissionRoute permission="pos_venda.view"><FollowupPosVendaConfig /></PermissionRoute>} />
               <Route path="/aniversariantes" element={<PermissionRoute permission={["aniversariantes.view", "pos_venda.view"]}><AniversariantesConfig /></PermissionRoute>} />
+              <Route path="/sorteios" element={<PermissionRoute permission="sorteios.view"><Sorteios /></PermissionRoute>} />
+              <Route path="/sorteios/:tab" element={<PermissionRoute permission="sorteios.view"><Sorteios /></PermissionRoute>} />
               <Route path="/pdv/followup-pos-venda" element={<PermissionRoute permission="pos_venda.view"><Navigate to="/pos-venda" replace /></PermissionRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
