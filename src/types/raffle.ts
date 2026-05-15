@@ -22,6 +22,9 @@ export interface RaffleSettings {
   auto_draw_enabled: boolean;
   send_coupon_message_enabled: boolean;
   send_winner_message_enabled: boolean;
+  seller_prize_enabled?: boolean;
+  seller_prize_value?: number;
+  seller_prize_requires_no_absence?: boolean;
   coupon_message_template: string;
   winner_message_template: string;
   prize_description: string;

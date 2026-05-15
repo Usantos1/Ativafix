@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS public.raffle_settings (
   auto_draw_enabled BOOLEAN NOT NULL DEFAULT false,
   send_coupon_message_enabled BOOLEAN NOT NULL DEFAULT false,
   send_winner_message_enabled BOOLEAN NOT NULL DEFAULT false,
+  seller_prize_enabled BOOLEAN NOT NULL DEFAULT false,
+  seller_prize_value NUMERIC(12,2) NOT NULL DEFAULT 50,
+  seller_prize_requires_no_absence BOOLEAN NOT NULL DEFAULT true,
   coupon_message_template TEXT NOT NULL DEFAULT 'Olá, {cliente}! Obrigado por comprar na {empresa}. Você recebeu seus números da sorte: {numeros_da_sorte}. O sorteio será realizado no dia {data_sorteio} às {horario_sorteio}. Acompanhe o resultado por aqui: {link_acompanhamento}. Boa sorte!',
   winner_message_template TEXT NOT NULL DEFAULT 'Parabéns, {cliente}! O seu número da sorte {numero_sorteado} ganhou o {posicao_premio} do sorteio {nome_sorteio} da {empresa}. Prêmio: {premio}. Validade: {validade_premio}. Retirada: {retirada_premio}. Obrigado por comprar com a gente!',
   prize_description TEXT NOT NULL DEFAULT 'Vale-compra',
@@ -133,7 +136,10 @@ ALTER TABLE public.raffle_settings
   ADD COLUMN IF NOT EXISTS prize_value NUMERIC(12,2) NOT NULL DEFAULT 100,
   ADD COLUMN IF NOT EXISTS prize_validity_days INTEGER NOT NULL DEFAULT 7,
   ADD COLUMN IF NOT EXISTS prize_redeem_instructions TEXT NOT NULL DEFAULT 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
-  ADD COLUMN IF NOT EXISTS prize_tiers JSONB NOT NULL DEFAULT '[{"position":1,"type":"voucher","description":"Vale-compra","value":100},{"position":2,"type":"voucher","description":"Vale-compra","value":70},{"position":3,"type":"voucher","description":"Vale-compra","value":30}]'::jsonb;
+  ADD COLUMN IF NOT EXISTS prize_tiers JSONB NOT NULL DEFAULT '[{"position":1,"type":"voucher","description":"Vale-compra","value":100},{"position":2,"type":"voucher","description":"Vale-compra","value":70},{"position":3,"type":"voucher","description":"Vale-compra","value":30}]'::jsonb,
+  ADD COLUMN IF NOT EXISTS seller_prize_enabled BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS seller_prize_value NUMERIC(12,2) NOT NULL DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS seller_prize_requires_no_absence BOOLEAN NOT NULL DEFAULT true;
 
 ALTER TABLE public.raffles
   ADD COLUMN IF NOT EXISTS prize_description TEXT,

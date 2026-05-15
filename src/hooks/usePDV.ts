@@ -1867,8 +1867,14 @@ export function useRegisterPagamentoOS() {
         .update({ status: 'cancelled' })
         .eq('id', saleId)
         .execute();
+      await cancelRaffleCouponsForSale({
+        companyId: user?.company_id || null,
+        saleId,
+        userId: user?.id || null,
+        reason: 'Pagamento/devolução de OS cancelado',
+      });
     }
-  }, [user?.id]);
+  }, [user?.company_id, user?.id]);
 
   return { registerPagamentoOS, cancelPagamentoOS };
 }

@@ -3,6 +3,7 @@ import { from } from '@/integrations/db/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrdemServico, StatusOS } from '@/types/assistencia';
 import { useCallback } from 'react';
+import { cancelRaffleCouponsForServiceOrder } from '@/utils/raffleService';
 
 // Função auxiliar para registrar logs de auditoria
 async function logAuditOS(
@@ -370,6 +371,15 @@ export function useOrdensServicoSupabase() {
         .update(updates);
 
       if (error) throw error;
+
+      if (updates.situacao === 'cancelada' || status === 'cancelada') {
+        await cancelRaffleCouponsForServiceOrder({
+          companyId: user?.company_id || null,
+          serviceOrderId: id,
+          userId: user?.id || null,
+          reason: 'OS cancelada',
+        });
+      }
 
       // Enviar status para API externa (não bloquear se falhar)
       if (osData) {

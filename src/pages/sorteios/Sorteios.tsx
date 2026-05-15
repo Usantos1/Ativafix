@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ModernLayout } from '@/components/ModernLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import { from } from '@/integrations/db/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { currencyFormatters, dateFormatters } from '@/utils/formatters';
-import { executeManualRaffle, getOrCreateCurrentRaffle, replaceRaffleTemplateVariables } from '@/utils/raffleService';
+import { cancelRaffleCouponManually, cancelRaffleManually, executeManualRaffle, getOrCreateCurrentRaffle, replaceRaffleTemplateVariables } from '@/utils/raffleService';
 import { useValuesVisibility } from '@/hooks/useValuesVisibility';
 import { MASKED_VALUE } from '@/components/dashboard/FinancialCards';
 import type { Raffle, RaffleAuditLog, RaffleCoupon, RafflePrizeTier, RaffleSettings } from '@/types/raffle';
@@ -74,6 +75,8 @@ const raffleStatusLabel: Record<string, string> = {
   cancelled: 'Cancelado',
 };
 
+const validTabs = new Set(['visao-geral', 'configuracoes', 'cupons', 'participantes', 'auditoria']);
+
 const DEFAULT_PRIZE_TIERS: RafflePrizeTier[] = [
   { position: 1, type: 'voucher', description: 'Vale-compra', value: 100 },
   { position: 2, type: 'voucher', description: 'Vale-compra', value: 70 },
@@ -119,6 +122,13 @@ const createTrackingToken = () => {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
 };
 
+const toBoolean = (value: unknown, fallback = false) => {
+  if (typeof value === 'boolean') return value;
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string') return ['true', '1', 'sim', 'yes'].includes(value.trim().toLowerCase());
+  return Boolean(value);
+};
+
 const emptySettings = (companyId?: string | null): Partial<RaffleSettings> => ({
   company_id: companyId || null,
   is_active: false,
@@ -131,6 +141,9 @@ const emptySettings = (companyId?: string | null): Partial<RaffleSettings> => ({
   auto_draw_enabled: false,
   send_coupon_message_enabled: true,
   send_winner_message_enabled: true,
+  seller_prize_enabled: false,
+  seller_prize_value: 50,
+  seller_prize_requires_no_absence: true,
   coupon_message_template: DEFAULT_COUPON_TEMPLATE,
   winner_message_template: DEFAULT_WINNER_TEMPLATE,
   prize_description: 'Vale-compra',
@@ -142,16 +155,20 @@ const emptySettings = (companyId?: string | null): Partial<RaffleSettings> => ({
 });
 
 export default function Sorteios() {
+  const { tab } = useParams<{ tab?: string }>();
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [valuesVisible] = useValuesVisibility();
   const companyId = user?.company_id || null;
-  const [activeTab, setActiveTab] = useState('visao-geral');
+  const [activeTab, setActiveTab] = useState(() => (tab && validTabs.has(tab) ? tab : 'visao-geral'));
   const [settings, setSettings] = useState<Partial<RaffleSettings>>(() => emptySettings(companyId));
   const [raffles, setRaffles] = useState<Raffle[]>([]);
   const [coupons, setCoupons] = useState<RaffleCoupon[]>([]);
   const [auditLogs, setAuditLogs] = useState<RaffleAuditLog[]>([]);
   const [clientesMap, setClientesMap] = useState<Record<string, any>>({});
+  const [vendedoresMap, setVendedoresMap] = useState<Record<string, string>>({});
+  const [couponSearch, setCouponSearch] = useState('');
   const [companyName, setCompanyName] = useState('Empresa');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -164,6 +181,11 @@ export default function Sorteios() {
     const year = now.getFullYear();
     return raffles.find((r) => r.reference_month === month && r.reference_year === year) || raffles[0];
   }, [raffles]);
+
+  useEffect(() => {
+    const nextTab = tab && validTabs.has(tab) ? tab : 'visao-geral';
+    setActiveTab(nextTab);
+  }, [tab]);
 
   const validCoupons = useMemo(() => coupons.filter((c) => c.status === 'valid' || c.status === 'winner'), [coupons]);
   const eligibleAmountByRaffle = useMemo(() => {
@@ -188,6 +210,22 @@ export default function Sorteios() {
     });
   }, [clientesMap, validCoupons]);
 
+  const filteredCoupons = useMemo(() => {
+    const term = couponSearch.trim().toLowerCase();
+    if (!term) return coupons;
+    const digits = term.replace(/\D+/g, '');
+    return coupons.filter((coupon) => {
+      const cliente = coupon.customer_id ? clientesMap[coupon.customer_id] : null;
+      const vendedor = coupon.generated_by_user_id ? vendedoresMap[coupon.generated_by_user_id] : '';
+      return (
+        String(coupon.coupon_number).includes(digits || term) ||
+        String(cliente?.nome || '').toLowerCase().includes(term) ||
+        String(vendedor || '').toLowerCase().includes(term) ||
+        String(coupon.tracking_token || '').toLowerCase().includes(term)
+      );
+    });
+  }, [clientesMap, couponSearch, coupons, vendedoresMap]);
+
   const loadData = async () => {
     setIsLoading(true);
     try {
@@ -211,6 +249,9 @@ export default function Sorteios() {
             ...settingsData,
             coupon_message_template: ensureCouponTrackingVariables(settingsData.coupon_message_template),
             winner_message_template: ensureWinnerPrizeVariables(settingsData.winner_message_template),
+            seller_prize_enabled: toBoolean(settingsData.seller_prize_enabled),
+            seller_prize_value: Number(settingsData.seller_prize_value || 50),
+            seller_prize_requires_no_absence: toBoolean(settingsData.seller_prize_requires_no_absence, true),
             prize_description: settingsData.prize_description || 'Vale-compra',
             prize_value: Number(settingsData.prize_value || 100),
             prize_validity_days: Number(settingsData.prize_validity_days || 7),
@@ -252,6 +293,54 @@ export default function Sorteios() {
         setClientesMap(Object.fromEntries((clientes || []).map((c: any) => [c.id, c])));
       } else {
         setClientesMap({});
+      }
+
+      const sellerIds = Array.from(new Set(couponsData.map((c) => c.generated_by_user_id).filter(Boolean))) as string[];
+      const saleIds = Array.from(new Set(couponsData.map((c) => c.sale_id).filter(Boolean))) as string[];
+      let salesMap: Record<string, { vendedor_id?: string | null; vendedor_nome?: string | null }> = {};
+      if (saleIds.length > 0) {
+        const { data: sales } = await from('sales')
+          .select('id, vendedor_id, vendedor_nome')
+          .in('id', saleIds)
+          .execute();
+        salesMap = Object.fromEntries((sales || []).map((sale: any) => [sale.id, sale]));
+        (sales || []).forEach((sale: any) => {
+          if (sale.vendedor_id) sellerIds.push(sale.vendedor_id);
+        });
+      }
+      const uniqueSellerIds = Array.from(new Set(sellerIds));
+      if (uniqueSellerIds.length > 0 || Object.keys(salesMap).length > 0) {
+        const [profilesResult, usersResult] = uniqueSellerIds.length > 0
+          ? await Promise.all([
+              from('profiles')
+                .select('user_id, display_name, full_name')
+                .in('user_id', uniqueSellerIds)
+                .execute(),
+              from('users')
+                .select('id, display_name, email')
+                .in('id', uniqueSellerIds)
+                .execute(),
+            ])
+          : [{ data: [] }, { data: [] }];
+        const nextMap: Record<string, string> = {};
+        Object.values(salesMap).forEach((sale: any) => {
+          if (sale.vendedor_id && sale.vendedor_nome) nextMap[sale.vendedor_id] = sale.vendedor_nome;
+        });
+        (usersResult.data || []).forEach((seller: any) => {
+          nextMap[seller.id] = nextMap[seller.id] || seller.display_name || seller.email || 'Vendedor';
+        });
+        (profilesResult.data || []).forEach((seller: any) => {
+          nextMap[seller.user_id] = seller.display_name || seller.full_name || nextMap[seller.user_id] || 'Vendedor';
+        });
+        couponsData = couponsData.map((coupon) => {
+          if (coupon.generated_by_user_id || !coupon.sale_id) return coupon;
+          const sale = salesMap[coupon.sale_id];
+          return sale?.vendedor_id ? { ...coupon, generated_by_user_id: sale.vendedor_id } : coupon;
+        });
+        setCoupons(couponsData);
+        setVendedoresMap(nextMap);
+      } else {
+        setVendedoresMap({});
       }
 
       const { data: logs } = await from('raffle_audit_logs')
@@ -342,6 +431,9 @@ export default function Sorteios() {
         auto_draw_enabled: !!settings.auto_draw_enabled,
         send_coupon_message_enabled: !!settings.send_coupon_message_enabled,
         send_winner_message_enabled: !!settings.send_winner_message_enabled,
+        seller_prize_enabled: settings.seller_prize_enabled === true,
+        seller_prize_value: Number(settings.seller_prize_value || 50),
+        seller_prize_requires_no_absence: settings.seller_prize_requires_no_absence !== false,
         coupon_message_template: couponMessageTemplate,
         winner_message_template: winnerMessageTemplate,
         prize_description: settings.prize_description || 'Vale-compra',
@@ -417,6 +509,49 @@ export default function Sorteios() {
       toast({ title: 'Erro ao sortear', description: error?.message || 'Tente novamente.', variant: 'destructive' });
     } finally {
       setIsDrawing(false);
+    }
+  };
+
+  const handleCancelCoupon = async (coupon: RaffleCoupon) => {
+    if (coupon.status === 'winner') {
+      toast({ title: 'Cupom vencedor', description: 'Cupom vencedor não pode ser cancelado por aqui.', variant: 'destructive' });
+      return;
+    }
+    if (coupon.status === 'cancelled') return;
+    const reason = window.prompt(`Motivo para cancelar o cupom #${coupon.coupon_number}:`, 'Cancelado manualmente');
+    if (reason === null) return;
+    try {
+      await cancelRaffleCouponManually({
+        companyId,
+        couponId: coupon.id,
+        userId: user?.id || null,
+        reason: reason || 'Cancelado manualmente',
+      });
+      toast({ title: 'Cupom cancelado' });
+      await loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro ao cancelar cupom', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    }
+  };
+
+  const handleCancelRaffle = async (raffle: Raffle) => {
+    if (raffle.status === 'drawn') {
+      toast({ title: 'Sorteio já realizado', description: 'Sorteio realizado não pode ser cancelado por aqui.', variant: 'destructive' });
+      return;
+    }
+    const reason = window.prompt(`Motivo para cancelar o sorteio "${raffle.name}":`, 'Sorteio cancelado manualmente');
+    if (reason === null) return;
+    try {
+      await cancelRaffleManually({
+        raffleId: raffle.id,
+        companyId,
+        userId: user?.id || null,
+        reason: reason || 'Sorteio cancelado manualmente',
+      });
+      toast({ title: 'Sorteio cancelado' });
+      await loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro ao cancelar sorteio', description: error?.message || 'Tente novamente.', variant: 'destructive' });
     }
   };
 
@@ -578,7 +713,13 @@ export default function Sorteios() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value);
+          navigate(value === 'visao-geral' ? '/sorteios' : `/sorteios/${value}`);
+        }}
+      >
         <TabsList className="flex h-auto flex-wrap rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-50 via-lime-50 to-amber-50 p-1 shadow-sm dark:border-emerald-900 dark:from-emerald-950/50 dark:via-lime-950/30 dark:to-amber-950/30">
           <TabsTrigger className="rounded-full px-3 py-1.5 text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow" value="visao-geral">Sorteios Mensais</TabsTrigger>
           <TabsTrigger className="rounded-full px-3 py-1.5 text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow" value="configuracoes">Configurações</TabsTrigger>
@@ -647,14 +788,25 @@ export default function Sorteios() {
                             : '-'}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            onClick={() => handleDraw(raffle)}
-                            disabled={isDrawing || raffle.status === 'drawn' || raffle.status === 'cancelled'}
-                            className="rounded-full"
-                          >
-                            Sortear na mão
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleDraw(raffle)}
+                              disabled={isDrawing || raffle.status === 'drawn' || raffle.status === 'cancelled'}
+                              className="rounded-full"
+                            >
+                              Sortear na mão
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCancelRaffle(raffle)}
+                              disabled={raffle.status === 'drawn' || raffle.status === 'cancelled'}
+                              className="rounded-full"
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -842,6 +994,45 @@ export default function Sorteios() {
                 </label>
               </div>
 
+              <div className="rounded-lg border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label>Prêmio para vendedor do cliente ganhador</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Ative se o vendedor que atendeu o cliente vencedor também deve concorrer ao bônus interno.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!settings.seller_prize_enabled}
+                    onCheckedChange={(v) => setSettings((p) => ({
+                      ...p,
+                      seller_prize_enabled: v === true,
+                      seller_prize_value: Number(p.seller_prize_value || 50),
+                      seller_prize_requires_no_absence: p.seller_prize_requires_no_absence ?? true,
+                    }))}
+                  />
+                </div>
+                {settings.seller_prize_enabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Valor do prêmio do vendedor</Label>
+                      <CurrencyInput
+                        showCurrency
+                        value={Number(settings.seller_prize_value || 50)}
+                        onChange={(value) => setSettings((p) => ({ ...p, seller_prize_value: value || 0 }))}
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 rounded-lg border p-3">
+                      <Switch
+                        checked={settings.seller_prize_requires_no_absence ?? true}
+                        onCheckedChange={(v) => setSettings((p) => ({ ...p, seller_prize_requires_no_absence: v }))}
+                      />
+                      <span className="text-sm">Exigir nenhuma falta no mês</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label>Modelo da mensagem de cupom</Label>
                 <Textarea rows={6} value={settings.coupon_message_template || ''} onChange={(e) => setSettings((p) => ({ ...p, coupon_message_template: e.target.value }))} />
@@ -934,15 +1125,33 @@ export default function Sorteios() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Ticket className="h-5 w-5" /> Cupons Gerados</CardTitle>
-              <CardDescription>Cupons cancelados permanecem no histórico e não participam do sorteio.</CardDescription>
+              <CardDescription>
+                Cupons cancelados permanecem no histórico.
+                {settings.seller_prize_enabled
+                  ? ` Vendedor do cupom vencedor: bônus de ${currencyFormatters.brl(Number(settings.seller_prize_value || 50))}${settings.seller_prize_requires_no_absence ?? true ? ' se não tiver faltas no mês.' : '.'}`
+                  : ' Prêmio para vendedor desativado nas configurações.'}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Input
+                  value={couponSearch}
+                  onChange={(e) => setCouponSearch(e.target.value)}
+                  placeholder="Pesquisar por cupom, cliente, vendedor ou token"
+                  className="max-w-md rounded-full"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {filteredCoupons.length} de {coupons.length} cupom(ns)
+                </span>
+              </div>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Número</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Telefone</TableHead>
+                    <TableHead>Vendedor</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead>Valor base</TableHead>
                     <TableHead>Data</TableHead>
@@ -951,14 +1160,16 @@ export default function Sorteios() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {coupons.map((coupon) => {
+                  {filteredCoupons.map((coupon) => {
                     const cliente = coupon.customer_id ? clientesMap[coupon.customer_id] : null;
+                    const vendedor = coupon.generated_by_user_id ? vendedoresMap[coupon.generated_by_user_id] : null;
                     const trackingUrl = getTrackingUrl(coupon.tracking_token);
                     return (
                       <TableRow key={coupon.id}>
                         <TableCell className="font-bold">#{coupon.coupon_number}</TableCell>
                         <TableCell>{cliente?.nome || '-'}</TableCell>
                         <TableCell>{valuesVisible ? (cliente?.whatsapp || cliente?.telefone || '-') : maskPhone(cliente?.whatsapp || cliente?.telefone)}</TableCell>
+                        <TableCell>{vendedor || '-'}</TableCell>
                         <TableCell>{coupon.order_type === 'service_order' ? 'Ordem de Serviço' : 'Venda'}</TableCell>
                         <TableCell>{valuesVisible ? currencyFormatters.brl(coupon.eligible_amount) : MASKED_VALUE}</TableCell>
                         <TableCell>{dateFormatters.short(coupon.generated_at)}</TableCell>
@@ -966,6 +1177,15 @@ export default function Sorteios() {
                         <TableCell className="text-right">
                           {trackingUrl ? (
                             <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full px-3 text-xs"
+                                disabled={coupon.status !== 'valid'}
+                                onClick={() => handleCancelCoupon(coupon)}
+                              >
+                                Cancelar
+                              </Button>
                               <Button size="sm" variant="outline" className="rounded-full" onClick={() => copyTrackingLink(coupon.tracking_token)}>
                                 <Copy className="h-3.5 w-3.5" />
                               </Button>
@@ -976,17 +1196,29 @@ export default function Sorteios() {
                               </Button>
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Sem link</span>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full px-3 text-xs"
+                                disabled={coupon.status !== 'valid'}
+                                onClick={() => handleCancelCoupon(coupon)}
+                              >
+                                Cancelar
+                              </Button>
+                              <span className="self-center text-xs text-muted-foreground">Sem link</span>
+                            </div>
                           )}
                         </TableCell>
                       </TableRow>
                     );
                   })}
-                  {coupons.length === 0 && (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum cupom gerado.</TableCell></TableRow>
+                  {filteredCoupons.length === 0 && (
+                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhum cupom encontrado.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

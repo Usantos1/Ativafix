@@ -578,6 +578,134 @@ export async function cancelRaffleCouponsForSale(params: {
   }
 }
 
+export async function cancelRaffleCouponsForServiceOrder(params: {
+  companyId?: string | null;
+  serviceOrderId: string;
+  userId?: string | null;
+  reason?: string;
+}) {
+  try {
+    const { data: winnerCoupons } = await from('raffle_coupons')
+      .select('id')
+      .eq('service_order_id', params.serviceOrderId)
+      .eq('status', 'winner')
+      .execute();
+    if (winnerCoupons && winnerCoupons.length > 0) {
+      await logRaffleAudit({
+        companyId: params.companyId,
+        serviceOrderId: params.serviceOrderId,
+        userId: params.userId,
+        action: 'coupon_cancel_blocked_winner',
+        origin: 'system',
+        metadata: { reason: params.reason },
+      });
+      return { cancelled: 0, blocked: true };
+    }
+
+    const { data: updated } = await from('raffle_coupons')
+      .update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: params.reason || 'OS cancelada/devolvida',
+      })
+      .eq('service_order_id', params.serviceOrderId)
+      .eq('status', 'valid')
+      .select()
+      .execute();
+
+    await logRaffleAudit({
+      companyId: params.companyId,
+      serviceOrderId: params.serviceOrderId,
+      userId: params.userId,
+      action: 'coupon_cancelled',
+      origin: 'system',
+      newData: updated || [],
+      metadata: { reason: params.reason },
+    });
+
+    return { cancelled: updated?.length || 0 };
+  } catch (error) {
+    console.warn('[Sorteio] Erro ao cancelar cupons da OS:', error);
+    return { cancelled: 0, error };
+  }
+}
+
+export async function cancelRaffleCouponManually(params: {
+  companyId?: string | null;
+  couponId: string;
+  userId?: string | null;
+  reason?: string;
+}) {
+  const { data: coupon } = await from('raffle_coupons').select('*').eq('id', params.couponId).maybeSingle();
+  if (!coupon) throw new Error('Cupom não encontrado.');
+  if (coupon.status === 'winner') throw new Error('Cupom vencedor não pode ser cancelado sem refazer o sorteio administrativamente.');
+  if (coupon.status === 'cancelled') return { coupon };
+
+  const { data: updated, error } = await from('raffle_coupons')
+    .update({
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+      cancellation_reason: params.reason || 'Cancelado manualmente',
+    })
+    .eq('id', params.couponId)
+    .select()
+    .single();
+  if (error) throw error;
+
+  await logRaffleAudit({
+    companyId: params.companyId || coupon.company_id,
+    raffleId: coupon.raffle_id,
+    couponId: params.couponId,
+    customerId: coupon.customer_id,
+    saleId: coupon.sale_id,
+    serviceOrderId: coupon.service_order_id,
+    userId: params.userId,
+    action: 'coupon_cancelled_manual',
+    origin: 'user',
+    oldData: coupon,
+    newData: updated,
+    metadata: { reason: params.reason },
+  });
+
+  return { coupon: updated };
+}
+
+export async function cancelRaffleManually(params: {
+  raffleId: string;
+  companyId?: string | null;
+  userId?: string | null;
+  reason?: string;
+}) {
+  const { data: raffle } = await from('raffles').select('*').eq('id', params.raffleId).maybeSingle();
+  if (!raffle) throw new Error('Sorteio não encontrado.');
+  if (raffle.status === 'drawn') throw new Error('Sorteio já realizado não pode ser cancelado por aqui.');
+  if (raffle.status === 'cancelled') return { raffle };
+
+  const { data: updated, error } = await from('raffles')
+    .update({
+      status: 'cancelled',
+      cancelled_reason: params.reason || 'Cancelado manualmente',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.raffleId)
+    .select()
+    .single();
+  if (error) throw error;
+
+  await logRaffleAudit({
+    companyId: params.companyId || raffle.company_id,
+    raffleId: params.raffleId,
+    userId: params.userId,
+    action: 'raffle_cancelled',
+    origin: 'user',
+    oldData: raffle,
+    newData: updated,
+    metadata: { reason: params.reason },
+  });
+
+  return { raffle: updated };
+}
+
 export async function executeManualRaffle(params: {
   raffleId: string;
   companyId?: string | null;

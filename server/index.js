@@ -2701,29 +2701,29 @@ app.post('/api/public/sorteio/consultar', async (req, res) => {
     const phoneDigits = publicRaffleOnlyDigits(req.body?.phone);
     const nameKey = publicRaffleNormalizeName(req.body?.name);
 
-    if (cpfDigits.length < 11) {
-      return res.status(400).json({ error: 'Informe um CPF válido.' });
+    if (nameKey.length < 2) {
+      return res.status(400).json({ error: 'Informe pelo menos o primeiro nome.' });
     }
 
-    if (phoneDigits.length < 4 && nameKey.length < 3) {
-      return res.status(400).json({ error: 'Informe o celular ou o nome junto com o CPF.' });
+    if (cpfDigits.length < 11 && phoneDigits.length < 4) {
+      return res.status(400).json({ error: 'Informe CPF ou celular junto com o primeiro nome.' });
     }
 
     const customersResult = await pool.query(`
       SELECT id, nome, telefone, whatsapp
       FROM public.clientes c
-      WHERE regexp_replace(coalesce(c.cpf_cnpj, ''), '\\D', '', 'g') = $1
+      WHERE ${publicRaffleNameSql('c.nome')} LIKE $3 || '%'
         AND (
           (
+            $1 <> ''
+            AND regexp_replace(coalesce(c.cpf_cnpj, ''), '\\D', '', 'g') = $1
+          )
+          OR (
             $2 <> ''
             AND (
               right(regexp_replace(coalesce(c.telefone, ''), '\\D', '', 'g'), length($2)) = $2
               OR right(regexp_replace(coalesce(c.whatsapp, ''), '\\D', '', 'g'), length($2)) = $2
             )
-          )
-          OR (
-            $3 <> ''
-            AND ${publicRaffleNameSql('c.nome')} LIKE '%' || $3 || '%'
           )
         )
       LIMIT 5

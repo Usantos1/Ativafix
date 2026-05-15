@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,26 @@ const statusLabels: Record<string, string> = {
 
 const onlyDigits = (value: string) => value.replace(/\D+/g, '');
 
+const formatCpf = (value: string) => {
+  const digits = onlyDigits(value).slice(0, 11);
+  return digits
+    .replace(/^(\d{3})(\d)/, '$1.$2')
+    .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+};
+
+const formatPhone = (value: string) => {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length <= 10) {
+    return digits
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/^(\(\d{2}\) \d{4})(\d)/, '$1-$2');
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/^(\(\d{2}\) \d{5})(\d)/, '$1-$2');
+};
+
 const statusClassNames: Record<string, string> = {
   open: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   closed: 'border-slate-200 bg-slate-50 text-slate-700',
@@ -64,6 +84,24 @@ export default function ConsultaSorteio() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SearchResult | null>(null);
+
+  const displayRaffles = useMemo(() => {
+    const byId = new Map<string, PublicRaffle>();
+    raffles.forEach((raffle) => byId.set(raffle.id, raffle));
+    (result?.participations || []).forEach((participation) => {
+      if (byId.has(participation.raffle_id)) return;
+      byId.set(participation.raffle_id, {
+        id: participation.raffle_id,
+        name: participation.raffle_name,
+        draw_date: participation.draw_date,
+        draw_executed_at: participation.draw_executed_at,
+        status: participation.status,
+        total_coupons: participation.total_coupons,
+        company_name: participation.company_name,
+      });
+    });
+    return Array.from(byId.values());
+  }, [raffles, result?.participations]);
 
   useEffect(() => {
     const loadRaffles = async () => {
@@ -83,12 +121,12 @@ export default function ConsultaSorteio() {
     setError(null);
     setResult(null);
 
-    if (onlyDigits(cpf).length < 11) {
-      setError('Informe o CPF para consultar seus números.');
+    if (name.trim().length < 2) {
+      setError('Informe pelo menos o primeiro nome cadastrado.');
       return;
     }
-    if (onlyDigits(phone).length < 4 && name.trim().length < 3) {
-      setError('Informe também o celular ou o nome cadastrado.');
+    if (onlyDigits(cpf).length < 11 && onlyDigits(phone).length < 4) {
+      setError('Informe CPF ou celular junto com o primeiro nome.');
       return;
     }
 
@@ -113,8 +151,8 @@ export default function ConsultaSorteio() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#bbf7d0,transparent_30%),radial-gradient(circle_at_bottom_right,#fed7aa,transparent_26%),linear-gradient(135deg,#f0fdf4_0%,#ffffff_48%,#fff7ed_100%)] px-3 py-5 sm:px-5 sm:py-8">
-      <div className="mx-auto w-full max-w-7xl space-y-6">
+    <div className="h-screen max-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#bbf7d0,transparent_30%),radial-gradient(circle_at_bottom_right,#fed7aa,transparent_26%),linear-gradient(135deg,#f0fdf4_0%,#ffffff_48%,#fff7ed_100%)] px-3 py-5 [-webkit-overflow-scrolling:touch] sm:px-5 sm:py-8">
+      <div className="mx-auto w-full max-w-7xl space-y-6 pb-10">
         <section className="relative overflow-hidden rounded-[2.25rem] border border-emerald-200 bg-gradient-to-br from-emerald-800 via-emerald-500 to-lime-400 p-5 text-white shadow-2xl shadow-emerald-900/15 sm:p-8">
           <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/20 blur-3xl" />
           <div className="absolute -bottom-24 left-1/2 h-72 w-72 rounded-full bg-lime-200/20 blur-3xl" />
@@ -133,7 +171,7 @@ export default function ConsultaSorteio() {
                   Encontre seus números da sorte em poucos segundos
                 </h1>
                 <p className="max-w-2xl text-base font-medium leading-relaxed text-white/90 sm:text-lg">
-                  Consulte com segurança pelo CPF e confirme com celular ou nome cadastrado. Depois acompanhe o resultado do sorteio em tempo real.
+                  Consulte com segurança usando primeiro nome + CPF ou primeiro nome + celular. Depois acompanhe o resultado do sorteio em tempo real.
                 </p>
               </div>
               <div className="grid max-w-3xl gap-3 sm:grid-cols-3">
@@ -162,11 +200,11 @@ export default function ConsultaSorteio() {
               <div className="mt-4 space-y-3">
                 <div className="flex gap-3 rounded-2xl bg-white/15 p-3">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-                  <p className="text-sm font-medium">Digite seu CPF.</p>
+                  <p className="text-sm font-medium">Digite seu primeiro nome.</p>
                 </div>
                 <div className="flex gap-3 rounded-2xl bg-white/15 p-3">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-                  <p className="text-sm font-medium">Confirme com celular ou nome.</p>
+                  <p className="text-sm font-medium">Confirme com CPF ou celular.</p>
                 </div>
                 <div className="flex gap-3 rounded-2xl bg-white/15 p-3">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
@@ -186,7 +224,7 @@ export default function ConsultaSorteio() {
                 </span>
                 <span>
                   Buscar meus números
-                  <span className="mt-1 block text-sm font-medium text-slate-500">Use uma das combinações abaixo.</span>
+                  <span className="mt-1 block text-sm font-medium text-slate-500">Use primeiro nome + CPF ou primeiro nome + celular.</span>
                 </span>
               </CardTitle>
             </CardHeader>
@@ -194,13 +232,13 @@ export default function ConsultaSorteio() {
               <div className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-black text-emerald-800">
                   <LockKeyhole className="h-4 w-4" />
-                  CPF obrigatório
+                  Primeiro nome obrigatório
                 </div>
-                <Label className="text-xs font-bold uppercase tracking-wide text-emerald-900/70">CPF</Label>
+                <Label className="text-xs font-bold uppercase tracking-wide text-emerald-900/70">Primeiro nome</Label>
                 <Input
-                  value={cpf}
-                  onChange={(e) => setCpf(e.target.value)}
-                  placeholder="000.000.000-00"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex.: Elizangela"
                   className="mt-2 h-12 rounded-full border-emerald-200 bg-white px-5 text-base font-semibold"
                 />
               </div>
@@ -208,11 +246,11 @@ export default function ConsultaSorteio() {
               <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch">
                 <div className="rounded-3xl border bg-white p-4 shadow-sm">
                   <Badge variant="outline" className="mb-3 rounded-full">Opção 1</Badge>
-                  <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Celular</Label>
+                  <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">CPF</Label>
                   <Input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="(00) 00000-0000"
+                    value={cpf}
+                    onChange={(e) => setCpf(formatCpf(e.target.value))}
+                    placeholder="000.000.000-00"
                     className="mt-2 h-12 rounded-full px-5 text-base"
                   />
                 </div>
@@ -221,11 +259,11 @@ export default function ConsultaSorteio() {
                 </div>
                 <div className="rounded-3xl border bg-white p-4 shadow-sm">
                   <Badge variant="outline" className="mb-3 rounded-full">Opção 2</Badge>
-                  <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Nome cadastrado</Label>
+                  <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Celular</Label>
                   <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex.: Maria Silva"
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    placeholder="(00) 00000-0000"
                     className="mt-2 h-12 rounded-full px-5 text-base"
                   />
                 </div>
@@ -304,14 +342,14 @@ export default function ConsultaSorteio() {
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Carregando sorteios...
                 </div>
-              ) : raffles.length === 0 ? (
+              ) : displayRaffles.length === 0 ? (
                 <div className="rounded-3xl border border-dashed bg-slate-50 p-6 text-center">
                   <Ticket className="mx-auto mb-3 h-8 w-8 text-slate-400" />
                   <p className="font-black text-slate-700">Nenhum sorteio disponível</p>
                   <p className="mt-1 text-sm text-slate-500">Quando uma campanha for publicada, ela aparecerá aqui.</p>
                 </div>
               ) : (
-                raffles.map((raffle) => (
+                displayRaffles.map((raffle) => (
                   <div key={raffle.id} className="rounded-3xl border bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
                     <p className="text-lg font-black text-slate-950">{raffle.name}</p>
                     <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
