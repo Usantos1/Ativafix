@@ -16,7 +16,7 @@ import { from } from '@/integrations/db/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { currencyFormatters, dateFormatters } from '@/utils/formatters';
-import { executeManualRaffle, getOrCreateCurrentRaffle } from '@/utils/raffleService';
+import { executeManualRaffle, getOrCreateCurrentRaffle, replaceRaffleTemplateVariables } from '@/utils/raffleService';
 import type { Raffle, RaffleAuditLog, RaffleCoupon, RaffleSettings } from '@/types/raffle';
 
 const DEFAULT_COUPON_TEMPLATE =
@@ -24,6 +24,18 @@ const DEFAULT_COUPON_TEMPLATE =
 
 const DEFAULT_WINNER_TEMPLATE =
   'Parabéns, {cliente}! 🎉\n\nO seu número da sorte {numero_sorteado} foi o ganhador do sorteio {nome_sorteio} da {empresa}.\n\nPrêmio: {premio}.\nValidade: {validade_premio}.\nRetirada: {retirada_premio}.\n\nObrigado por comprar com a gente!';
+
+const renderWhatsAppFormattedText = (text: string) =>
+  text.split(/(\*[^*\n]+\*)/g).map((part, index) => {
+    if (/^\*[^*\n]+\*$/.test(part)) {
+      return (
+        <strong key={`${part}-${index}`} className="font-semibold">
+          {part.slice(1, -1)}
+        </strong>
+      );
+    }
+    return part;
+  });
 
 const ensureWinnerPrizeVariables = (template?: string | null) => {
   let message = template || DEFAULT_WINNER_TEMPLATE;
@@ -37,6 +49,13 @@ const ensureWinnerPrizeVariables = (template?: string | null) => {
     message += '\nRetirada: {retirada_premio}.';
   }
   return message;
+};
+
+const raffleStatusLabel: Record<string, string> = {
+  open: 'Aberto',
+  closed: 'Encerrado',
+  drawn: 'Sorteado',
+  cancelled: 'Cancelado',
 };
 
 const emptySettings = (companyId?: string | null): Partial<RaffleSettings> => ({
@@ -70,9 +89,11 @@ export default function Sorteios() {
   const [coupons, setCoupons] = useState<RaffleCoupon[]>([]);
   const [auditLogs, setAuditLogs] = useState<RaffleAuditLog[]>([]);
   const [clientesMap, setClientesMap] = useState<Record<string, any>>({});
+  const [companyName, setCompanyName] = useState('Empresa');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [previewType, setPreviewType] = useState<'coupon' | 'winner'>('winner');
 
   const currentRaffle = useMemo(() => {
     const now = new Date();
@@ -104,6 +125,16 @@ export default function Sorteios() {
         .eq('company_id', companyId)
         .maybeSingle()
         .execute();
+
+      if (companyId) {
+        const { data: company } = await from('companies')
+          .select('name')
+          .eq('id', companyId)
+          .maybeSingle()
+          .execute();
+        setCompanyName(company?.name || 'Empresa');
+      }
+
       setSettings(settingsData
         ? {
             ...settingsData,
@@ -278,6 +309,60 @@ export default function Sorteios() {
     return clientesMap[customerId]?.nome || customerId;
   };
 
+  const winnerPreview = useMemo(() => {
+    const prizeValue = Number(settings.prize_value ?? 100);
+    const validityDays = Number(settings.prize_validity_days ?? 7);
+    const prizeText = `${settings.prize_description || 'Vale-compra'} de ${currencyFormatters.brl(prizeValue)}`;
+    return replaceRaffleTemplateVariables(
+      ensureWinnerPrizeVariables(settings.winner_message_template),
+      {
+        cliente: 'Maria Silva',
+        numero_sorteado: 127,
+        nome_sorteio: currentRaffle?.name || settings.campaign_name || 'Sorteio Mensal',
+        empresa: companyName,
+        telefone: '(99) 99999-9999',
+        data_sorteio: dateFormatters.short(new Date().toISOString()),
+        premio: prizeText,
+        premio_valor: currencyFormatters.brl(prizeValue),
+        validade_premio: `${validityDays} dias`,
+        retirada_premio: settings.prize_redeem_instructions || 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
+        valor_total_compras: currencyFormatters.brl(100),
+      },
+    );
+  }, [
+    currentRaffle?.name,
+    companyName,
+    settings.campaign_name,
+    settings.prize_description,
+    settings.prize_redeem_instructions,
+    settings.prize_validity_days,
+    settings.prize_value,
+    settings.winner_message_template,
+  ]);
+
+  const couponPreview = useMemo(() => {
+    return replaceRaffleTemplateVariables(settings.coupon_message_template || DEFAULT_COUPON_TEMPLATE, {
+      cliente: 'Maria Silva',
+      telefone: '(99) 99999-9999',
+      valor_total: currencyFormatters.brl(58),
+      quantidade_cupons: 5,
+      numeros_da_sorte: '100, 101, 102, 103, 104',
+      data_sorteio: dateFormatters.short(currentRaffle?.draw_date || new Date().toISOString()),
+      nome_sorteio: currentRaffle?.name || settings.campaign_name || 'Sorteio Mensal',
+      empresa: companyName,
+      numero_os: '1234',
+      numero_venda: '5678',
+    });
+  }, [
+    currentRaffle?.draw_date,
+    currentRaffle?.name,
+    companyName,
+    settings.campaign_name,
+    settings.coupon_message_template,
+  ]);
+
+  const activePreview = previewType === 'coupon' ? couponPreview : winnerPreview;
+
   const content = (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -290,7 +375,36 @@ export default function Sorteios() {
             Sistema de sorteio mensal com números da sorte por venda ou OS faturada.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Card className="rounded-full border shadow-sm">
+              <CardContent className="flex min-h-9 items-center gap-2 px-3 py-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground">Sorteio atual</span>
+                <span className="max-w-[220px] truncate text-xs font-semibold">{currentRaffle?.name || 'Ainda não criado'}</span>
+                <Badge variant={currentRaffle?.status === 'drawn' ? 'default' : 'outline'} className="shrink-0 rounded-full px-2 py-0 text-[10px]">
+                  {currentRaffle?.status ? raffleStatusLabel[currentRaffle.status] || currentRaffle.status : 'Sem sorteio'}
+                </Badge>
+              </CardContent>
+            </Card>
+            <Card className="rounded-full border shadow-sm">
+              <CardContent className="flex min-h-9 items-center gap-2 px-3 py-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground">Cupons</span>
+                <span className="text-xs font-bold">{validCoupons.length}</span>
+              </CardContent>
+            </Card>
+            <Card className="rounded-full border shadow-sm">
+              <CardContent className="flex min-h-9 items-center gap-2 px-3 py-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground">Participantes</span>
+                <span className="text-xs font-bold">{participants.length}</span>
+              </CardContent>
+            </Card>
+            <Card className="rounded-full border shadow-sm">
+              <CardContent className="flex min-h-9 items-center gap-2 px-3 py-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground">Elegível</span>
+                <span className="text-xs font-bold">{currencyFormatters.brl(currentRaffle?.eligible_sales_amount || 0)}</span>
+              </CardContent>
+            </Card>
+          </div>
           {!currentRaffle && settings.id && (
             <Button onClick={handleCreateCurrentRaffle} disabled={isSaving}>
               Criar sorteio do mês
@@ -302,43 +416,13 @@ export default function Sorteios() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Sorteio atual</p>
-            <p className="font-semibold truncate">{currentRaffle?.name || 'Ainda não criado'}</p>
-            <Badge variant={currentRaffle?.status === 'drawn' ? 'default' : 'outline'} className="mt-2">
-              {currentRaffle?.status || 'sem sorteio'}
-            </Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Cupons válidos</p>
-            <p className="text-2xl font-bold">{validCoupons.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Participantes</p>
-            <p className="text-2xl font-bold">{participants.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Valor elegível</p>
-            <p className="text-2xl font-bold">{currencyFormatters.brl(currentRaffle?.eligible_sales_amount || 0)}</p>
-          </CardContent>
-        </Card>
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="visao-geral">Sorteios Mensais</TabsTrigger>
-          <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
-          <TabsTrigger value="cupons">Cupons Gerados</TabsTrigger>
-          <TabsTrigger value="participantes">Clientes Participantes</TabsTrigger>
-          <TabsTrigger value="auditoria">Relatórios e Auditoria</TabsTrigger>
+        <TabsList className="flex h-auto flex-wrap rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-50 via-lime-50 to-amber-50 p-1 shadow-sm dark:border-emerald-900 dark:from-emerald-950/50 dark:via-lime-950/30 dark:to-amber-950/30">
+          <TabsTrigger className="rounded-full px-3 py-1.5 text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow" value="visao-geral">Sorteios Mensais</TabsTrigger>
+          <TabsTrigger className="rounded-full px-3 py-1.5 text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow" value="configuracoes">Configurações</TabsTrigger>
+          <TabsTrigger className="rounded-full px-3 py-1.5 text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow" value="cupons">Cupons Gerados</TabsTrigger>
+          <TabsTrigger className="rounded-full px-3 py-1.5 text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow" value="participantes">Clientes Participantes</TabsTrigger>
+          <TabsTrigger className="rounded-full px-3 py-1.5 text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow" value="auditoria">Relatórios e Auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral" className="space-y-3">
@@ -399,7 +483,8 @@ export default function Sorteios() {
         </TabsContent>
 
         <TabsContent value="configuracoes">
-          <Card>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          <Card className="xl:col-span-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Configurações do Sorteio</CardTitle>
               <CardDescription>Configuração por empresa. Venda/OS só gera cupom se estiver ativo e houver cliente com telefone válido.</CardDescription>
@@ -531,6 +616,73 @@ export default function Sorteios() {
               </Button>
             </CardContent>
           </Card>
+
+          <div className="xl:sticky xl:top-20 xl:col-span-4 self-start">
+            <Card className="flex h-[calc(100vh-9rem)] min-h-[560px] w-full min-w-0 overflow-hidden rounded-[1.5rem] border bg-white shadow-sm dark:bg-slate-950">
+              <div className="flex min-h-0 w-full flex-col">
+              <CardHeader className="space-y-1.5 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">Prévia no WhatsApp</CardTitle>
+                  <div className="inline-flex shrink-0 rounded-full border bg-background p-0.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={previewType === 'coupon' ? 'default' : 'ghost'}
+                      className="h-6 rounded-full px-2.5 text-[11px]"
+                      onClick={() => setPreviewType('coupon')}
+                    >
+                      Cupom
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={previewType === 'winner' ? 'default' : 'ghost'}
+                      className="h-6 rounded-full px-2.5 text-[11px]"
+                      onClick={() => setPreviewType('winner')}
+                    >
+                      Ganhador
+                    </Button>
+                  </div>
+                </div>
+                <CardDescription className="text-xs">Como as mensagens automáticas serão enviadas.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex min-h-0 flex-1 items-center justify-center px-4 pb-4 pt-0">
+                <div className="relative aspect-[9/19] h-full max-h-[calc(100vh-15rem)] min-h-[430px] rounded-[2rem] bg-slate-950 p-1.5 shadow-xl ring-1 ring-slate-800">
+                  <div className="absolute left-1/2 top-2.5 z-10 h-1.5 w-16 -translate-x-1/2 rounded-full bg-slate-800" />
+                  <div className="flex h-full flex-col overflow-hidden rounded-[1.6rem] bg-[#efeae2]">
+                    <div className="flex items-center gap-2 bg-[#075e54] px-3 py-2.5 text-white">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">MS</div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold">Maria Silva</p>
+                        <p className="text-[11px] text-white/75">online</p>
+                      </div>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.35)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.35)_50%,rgba(255,255,255,0.35)_75%,transparent_75%,transparent)] bg-[length:28px_28px] px-2.5 py-3">
+                      <div className="mb-2 text-center">
+                        <span className="rounded-full bg-white/80 px-2.5 py-0.5 text-[10px] text-slate-500 shadow-sm">Hoje</span>
+                      </div>
+                      <div className="ml-auto max-w-[88%] rounded-2xl rounded-tr-sm bg-[#dcf8c6] px-2.5 py-2 text-[11px] leading-snug text-slate-900 shadow-sm">
+                        <p className="whitespace-pre-wrap break-words line-clamp-[14]">
+                          {renderWhatsAppFormattedText(activePreview || 'Configure a mensagem para ver a prévia.')}
+                        </p>
+                        <div className="mt-1 flex justify-end gap-1 text-[10px] text-slate-500">
+                          <span>20:00</span>
+                          <span className="text-[#34b7f1]">✓✓</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-[#f0f2f5] px-2.5 py-1.5">
+                      <div className="truncate rounded-full bg-white px-3 py-1.5 text-[11px] text-slate-500">
+                        {previewType === 'coupon' ? 'Mensagem automática de cupom' : 'Mensagem automática do ganhador'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              </div>
+            </Card>
+          </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="cupons">

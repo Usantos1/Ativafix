@@ -85,6 +85,16 @@ export const replaceRaffleTemplateVariables = (
   );
 };
 
+async function getCompanyName(companyId?: string | null) {
+  if (!companyId) return 'Empresa';
+  const { data } = await from('companies')
+    .select('name')
+    .eq('id', companyId)
+    .maybeSingle()
+    .execute();
+  return data?.name || 'Empresa';
+}
+
 export async function getOrCreateCurrentRaffle(settings: RaffleSettings, companyId?: string | null): Promise<Raffle | null> {
   const now = new Date();
   const { referenceMonth, referenceYear, startDate, endDate } = getMonthRange(now);
@@ -263,6 +273,7 @@ export async function generateRaffleCoupons(input: GenerateRaffleCouponsInput) {
     if (!input.companyId || !input.customerId || totalAmount <= 0) {
       return { generated: 0, reason: 'missing_company_customer_or_amount' };
     }
+    const companyName = input.companyName || await getCompanyName(input.companyId);
 
     let customerName = input.customerName || '';
     let customerPhone = input.customerPhone || '';
@@ -391,7 +402,7 @@ export async function generateRaffleCoupons(input: GenerateRaffleCouponsInput) {
         numeros_da_sorte: numbers,
         data_sorteio: formatDateBR(raffle.draw_date),
         nome_sorteio: raffle.name,
-        empresa: input.companyName || 'Ativa FIX',
+        empresa: companyName,
         numero_os: input.serviceOrderNumber || '',
         numero_venda: input.saleNumber || '',
         cpf: customerCpf,
@@ -476,6 +487,7 @@ export async function executeManualRaffle(params: {
   if (!raffle || raffle.status === 'drawn' || raffle.status === 'cancelled') {
     throw new Error('Sorteio indisponível para execução.');
   }
+  const companyName = await getCompanyName(params.companyId || raffle.company_id);
 
   const { data: coupons } = await from('raffle_coupons')
     .select('*')
@@ -531,7 +543,7 @@ export async function executeManualRaffle(params: {
           cliente: customer?.nome || '',
           numero_sorteado: winner.coupon_number,
           nome_sorteio: raffle.name,
-          empresa: 'Ativa FIX',
+          empresa: companyName,
           telefone: phone,
           data_sorteio: formatDateBR(new Date()),
           premio: formatPrize({
