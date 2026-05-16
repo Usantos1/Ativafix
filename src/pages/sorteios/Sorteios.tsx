@@ -1406,9 +1406,27 @@ export default function Sorteios() {
                         <TableCell>{raffle.total_participants}</TableCell>
                         <TableCell>{formatRaffleDrawDateTime(raffle.draw_date)}</TableCell>
                         <TableCell>
-                          {raffleWinners.length > 0
-                            ? raffleWinners.map((winner) => `${winner.prize_position || 1}º #${winner.coupon_number} · ${winner.prize_type === 'product' ? (winner.prize_description || 'Produto') : currencyFormatters.brl(Number(winner.prize_value || 0))}`).join(' | ')
-                            : '-'}
+                          {raffleWinners.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {raffleWinners.map((winner) => {
+                                const cliente = winner.customer_id ? clientesMap[winner.customer_id] : null;
+                                const phone = maskPhone(cliente?.whatsapp || cliente?.telefone);
+                                const prize = winner.prize_type === 'product'
+                                  ? (winner.prize_description || 'Produto')
+                                  : currencyFormatters.brl(Number(winner.prize_value || 0));
+                                return (
+                                  <div key={`${winner.prize_position}-${winner.coupon_number}`} className="text-xs leading-tight">
+                                    <p className="font-semibold">
+                                      {winner.prize_position || 1}º #{winner.coupon_number} · {prize}
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                      {cliente?.nome || 'Cliente'}{phone !== '-' ? ` (${phone})` : ''}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
