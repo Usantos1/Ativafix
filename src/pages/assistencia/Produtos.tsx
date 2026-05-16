@@ -125,6 +125,14 @@ const ProdutoTableRow = memo(({
 
   const unidadeResumo = useMemo(() => {
     const unidades = produto.estoque_unidades || [];
+    const unidadesComEstoque = unidades.filter((item) => (item.available_quantity || 0) > 0);
+    const todasAtivas = unidades.length > 1 && unidades.every((item) => item.is_active_branch);
+    if (todasAtivas) {
+      return {
+        principal: `${unidadesComEstoque.length || unidades.length} unidade(s)`,
+        outras: 0,
+      };
+    }
     const ativa = unidades.find((item) => item.is_active_branch) || unidades[0];
     const outrasComEstoque = unidades.filter((item) => !item.is_active_branch && (item.available_quantity || 0) > 0);
     return {

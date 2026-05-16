@@ -224,7 +224,7 @@ export function useProdutosPaginated(options: UseProdutosPaginatedOptions = {}) 
       }
 
       let rows = data || [];
-      if (activeBranchId && activeBranchId !== 'all' && rows.length > 0) {
+      if (activeBranchId && rows.length > 0) {
         const productIds = rows.map((row: any) => row.id).filter(Boolean);
         const { data: stocks, error: stockError } = await dbFrom('product_stocks')
           .select('product_id,branch_id,quantity,reserved_quantity,minimum_quantity')
@@ -249,12 +249,18 @@ export function useProdutosPaginated(options: UseProdutosPaginatedOptions = {}) 
           });
           rows = rows.map((row: any) => {
             const productStocks = stocksByProduct.get(row.id) || [];
-            const stock = productStocks.find((item) => item.branch_id === activeBranchId);
-            const quantity = stock ? Number(stock.quantity || 0) - Number(stock.reserved_quantity || 0) : 0;
+            const isAllBranches = activeBranchId === 'all';
+            const stock = isAllBranches ? null : productStocks.find((item) => item.branch_id === activeBranchId);
+            const quantity = isAllBranches
+              ? productStocks.reduce((sum, item) => sum + Number(item.quantity || 0) - Number(item.reserved_quantity || 0), 0)
+              : stock ? Number(stock.quantity || 0) - Number(stock.reserved_quantity || 0) : 0;
+            const minimumQuantity = isAllBranches
+              ? productStocks.reduce((sum, item) => sum + Number(item.minimum_quantity || 0), 0)
+              : stock ? Number(stock.minimum_quantity || 0) : 0;
             return {
               ...row,
               quantidade: quantity,
-              estoque_minimo: stock ? Number(stock.minimum_quantity || 0) : 0,
+              estoque_minimo: minimumQuantity,
               estoque_unidades: productStocks.map((item) => ({
                 branch_id: item.branch_id,
                 branch_name: branchNames.get(item.branch_id) || 'Unidade',
@@ -262,7 +268,7 @@ export function useProdutosPaginated(options: UseProdutosPaginatedOptions = {}) 
                 reserved_quantity: Number(item.reserved_quantity || 0),
                 available_quantity: Number(item.quantity || 0) - Number(item.reserved_quantity || 0),
                 minimum_quantity: Number(item.minimum_quantity || 0),
-                is_active_branch: item.branch_id === activeBranchId,
+                is_active_branch: isAllBranches || item.branch_id === activeBranchId,
               })),
             };
           });
