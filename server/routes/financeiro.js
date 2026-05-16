@@ -61,6 +61,8 @@ router.get('/dashboard', async (req, res) => {
   try {
     const companyId = req.companyId;
     const { startDate, endDate } = req.query;
+    const branchFilter = req.branchId && req.branchScope !== 'all' ? ' AND branch_id = $4' : '';
+    const branchParams = req.branchId && req.branchScope !== 'all' ? [req.branchId] : [];
     
     // Calcular período (últimos 30 dias se não especificado)
     const end = endDate ? new Date(endDate) : new Date();
@@ -88,7 +90,7 @@ router.get('/dashboard', async (req, res) => {
           COALESCE(AVG(CASE WHEN sale_origin = 'PDV' AND status IN ('paid', 'partial') THEN total END), 0) as ticket_medio_pdv,
           COALESCE(AVG(CASE WHEN sale_origin = 'OS' AND status IN ('paid', 'partial') THEN total END), 0) as ticket_medio_os
         FROM public.sales
-        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3
+        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3${branchFilter}
       `;
     } else {
       kpisQuery = `
@@ -101,11 +103,11 @@ router.get('/dashboard', async (req, res) => {
           COALESCE(AVG(CASE WHEN ordem_servico_id IS NULL AND status IN ('paid', 'partial') THEN total END), 0) as ticket_medio_pdv,
           COALESCE(AVG(CASE WHEN ordem_servico_id IS NOT NULL AND status IN ('paid', 'partial') THEN total END), 0) as ticket_medio_os
         FROM public.sales
-        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3
+        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3${branchFilter}
       `;
     }
     
-    const kpisResult = await pool.query(kpisQuery, [companyId, start, end]);
+    const kpisResult = await pool.query(kpisQuery, [companyId, start, end, ...branchParams]);
     const kpis = kpisResult.rows[0];
     
     // Top 10 produtos — filtrar por company_id (isolamento entre empresas)
@@ -119,14 +121,14 @@ router.get('/dashboard', async (req, res) => {
       FROM public.sale_items si
       INNER JOIN public.sales s ON si.sale_id = s.id
       INNER JOIN public.produtos p ON si.produto_id = p.id
-      WHERE s.company_id = $1 AND s.created_at >= $2 AND s.created_at <= $3
+      WHERE s.company_id = $1 AND s.created_at >= $2 AND s.created_at <= $3${branchFilter ? ' AND s.branch_id = $4' : ''}
         AND s.status IN ('paid', 'partial')
       GROUP BY p.id, p.nome
       ORDER BY receita_total DESC
       LIMIT 10
     `;
     
-    const topProdutosResult = await pool.query(topProdutosQuery, [companyId, start, end]);
+    const topProdutosResult = await pool.query(topProdutosQuery, [companyId, start, end, ...branchParams]);
     
     // Top 10 vendedores - usar vendedor_id se cashier_user_id/technician_id não existirem
     let topVendedoresQuery;
@@ -156,7 +158,7 @@ router.get('/dashboard', async (req, res) => {
         FROM public.sales s
         INNER JOIN public.users u ON ${joinCondition}
         LEFT JOIN public.profiles pr ON u.id = pr.user_id
-        WHERE s.company_id = $1 AND s.created_at >= $2 AND s.created_at <= $3
+        WHERE s.company_id = $1 AND s.created_at >= $2 AND s.created_at <= $3${branchFilter ? ' AND s.branch_id = $4' : ''}
           AND s.status IN ('paid', 'partial')
         GROUP BY u.id, pr.display_name, u.email
         ORDER BY total_vendido DESC
@@ -173,7 +175,7 @@ router.get('/dashboard', async (req, res) => {
         FROM public.sales s
         INNER JOIN public.users u ON s.vendedor_id = u.id
         LEFT JOIN public.profiles pr ON u.id = pr.user_id
-        WHERE s.company_id = $1 AND s.created_at >= $2 AND s.created_at <= $3
+        WHERE s.company_id = $1 AND s.created_at >= $2 AND s.created_at <= $3${branchFilter ? ' AND s.branch_id = $4' : ''}
           AND s.status IN ('paid', 'partial')
         GROUP BY u.id, pr.display_name, u.email
         ORDER BY total_vendido DESC
@@ -183,7 +185,7 @@ router.get('/dashboard', async (req, res) => {
     
     let topVendedoresResult;
     try {
-      topVendedoresResult = await pool.query(topVendedoresQuery, [companyId, start, end]);
+      topVendedoresResult = await pool.query(topVendedoresQuery, [companyId, start, end, ...branchParams]);
     } catch (err) {
       console.warn('[Financeiro] Erro ao buscar top vendedores:', err.message);
       topVendedoresResult = { rows: [] };
@@ -199,7 +201,7 @@ router.get('/dashboard', async (req, res) => {
           SUM(CASE WHEN sale_origin = 'OS' THEN total ELSE 0 END) as total_os,
           SUM(total) as total_geral
         FROM public.sales
-        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3
+        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3${branchFilter}
           AND status IN ('paid', 'partial')
         GROUP BY DATE(created_at)
         ORDER BY data ASC
@@ -212,14 +214,14 @@ router.get('/dashboard', async (req, res) => {
           SUM(CASE WHEN ordem_servico_id IS NOT NULL THEN total ELSE 0 END) as total_os,
           SUM(total) as total_geral
         FROM public.sales
-        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3
+        WHERE company_id = $1 AND created_at >= $2 AND created_at <= $3${branchFilter}
           AND status IN ('paid', 'partial')
         GROUP BY DATE(created_at)
         ORDER BY data ASC
       `;
     }
     
-    const tendenciaResult = await pool.query(tendenciaQuery, [companyId, start, end]);
+    const tendenciaResult = await pool.query(tendenciaQuery, [companyId, start, end, ...branchParams]);
     
     // Recomenda├º├╡es cr├¡ticas (├║ltimas 5) - opcional, não quebrar se tabela não existir
     let recomendacoesResult = { rows: [] };

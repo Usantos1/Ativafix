@@ -94,6 +94,7 @@ export interface PrevisaoVendas {
 // Helper para fazer requisições autenticadas
 async function fetchFinanceiro(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('auth_token');
+  const activeBranchId = localStorage.getItem('active_branch_id');
   
   if (!token) {
     throw new Error('Token de autenticação não encontrado');
@@ -104,6 +105,7 @@ async function fetchFinanceiro(endpoint: string, options: RequestInit = {}) {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      ...(activeBranchId ? { 'X-Branch-Id': activeBranchId } : {}),
       ...options.headers,
     },
   });
@@ -118,10 +120,10 @@ async function fetchFinanceiro(endpoint: string, options: RequestInit = {}) {
 
 // Hook: Dashboard Executivo
 export function useDashboardExecutivo(startDate?: string, endDate?: string) {
-  const { user } = useAuth();
+  const { user, activeBranchId } = useAuth();
   
   return useQuery({
-    queryKey: ['financeiro', 'dashboard', startDate, endDate],
+    queryKey: ['financeiro', 'dashboard', activeBranchId, startDate, endDate],
     queryFn: async (): Promise<DashboardExecutivo> => {
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
