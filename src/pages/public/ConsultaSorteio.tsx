@@ -11,6 +11,8 @@ import { currencyFormatters } from '@/utils/formatters';
 
 type PublicWinner = {
   coupon_number: number;
+  customer_name?: string | null;
+  phone_masked?: string | null;
   prize_position?: number | null;
   prize_type?: string | null;
   prize_description?: string | null;
@@ -431,6 +433,10 @@ export default function ConsultaSorteio() {
                               <div key={`${raffle.id}-${winner.prize_position}-${winner.coupon_number}`} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
                                 <p className="font-black text-slate-950">
                                   {winner.prize_position || 1}º prêmio: número {winner.coupon_number}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-slate-700">
+                                  Ganhador: {winner.customer_name || 'Cliente'}
+                                  {winner.phone_masked ? ` (${winner.phone_masked})` : ''}
                                 </p>
                                 {formatPrize(winner) && (
                                   <p className="mt-1 text-sm font-semibold text-slate-600">{formatPrize(winner)}</p>

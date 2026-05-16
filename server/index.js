@@ -2852,6 +2852,12 @@ app.get('/api/public/sorteios', async (req, res) => {
           SELECT json_agg(
             json_build_object(
               'coupon_number', winners.coupon_number,
+              'customer_name', COALESCE(customers.nome, 'Cliente'),
+              'phone_masked',
+                CASE
+                  WHEN regexp_replace(coalesce(customers.whatsapp, customers.telefone, ''), '\\D', '', 'g') = '' THEN NULL
+                  ELSE '****-' || right(regexp_replace(coalesce(customers.whatsapp, customers.telefone, ''), '\\D', '', 'g'), 4)
+                END,
               'prize_position', winners.prize_position,
               'prize_type', winners.prize_type,
               'prize_description', winners.prize_description,
@@ -2860,6 +2866,7 @@ app.get('/api/public/sorteios', async (req, res) => {
             ORDER BY COALESCE(winners.prize_position, 999), winners.coupon_number
           )
           FROM public.raffle_coupons winners
+          LEFT JOIN public.clientes customers ON customers.id = winners.customer_id
           WHERE winners.raffle_id = r.id
             AND (winners.status = 'winner' OR winners.id = r.winning_coupon_id)
         ), '[]'::json) AS winners,
