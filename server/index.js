@@ -1552,7 +1552,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Idempotency-Key'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Idempotency-Key', 'X-Branch-Id'],
   exposedHeaders: ['Content-Range', 'X-Total-Count'],
   preflightContinue: false,
   optionsSuccessStatus: 200,
