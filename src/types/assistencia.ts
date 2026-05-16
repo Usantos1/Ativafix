@@ -299,6 +299,15 @@ export interface Produto {
   // Estoque
   quantidade: number; // estoque_atual no Supabase (total; se estoque_grade existe, é a soma dos itens)
   estoque_minimo?: number;
+  estoque_unidades?: Array<{
+    branch_id: string;
+    branch_name: string;
+    quantity: number;
+    reserved_quantity: number;
+    available_quantity: number;
+    minimum_quantity: number;
+    is_active_branch?: boolean;
+  }>;
   localizacao?: string;
   unidade?: string; // Unidade, Caixa, Kit, Pcs, etc.
   motivo_ajuste_estoque?: string; // usado apenas para registrar movimentação manual

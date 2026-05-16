@@ -226,19 +226,43 @@ export function useProdutosPaginated(options: UseProdutosPaginatedOptions = {}) 
       if (activeBranchId && activeBranchId !== 'all' && rows.length > 0) {
         const productIds = rows.map((row: any) => row.id).filter(Boolean);
         const { data: stocks, error: stockError } = await dbFrom('product_stocks')
-          .select('product_id,quantity,reserved_quantity,minimum_quantity')
+          .select('product_id,branch_id,quantity,reserved_quantity,minimum_quantity')
           .in('product_id', productIds)
           .execute();
 
         if (!stockError) {
-          const stockByProduct = new Map((stocks || []).map((stock: any) => [stock.product_id, stock]));
+          const branchIds = Array.from(new Set((stocks || []).map((stock: any) => stock.branch_id).filter(Boolean)));
+          let branchNames = new Map<string, string>();
+          if (branchIds.length > 0) {
+            const { data: branches } = await dbFrom('branches')
+              .select('id,name')
+              .in('id', branchIds)
+              .execute();
+            branchNames = new Map((branches || []).map((branch: any) => [branch.id, branch.name]));
+          }
+          const stocksByProduct = new Map<string, any[]>();
+          (stocks || []).forEach((stock: any) => {
+            const current = stocksByProduct.get(stock.product_id) || [];
+            current.push(stock);
+            stocksByProduct.set(stock.product_id, current);
+          });
           rows = rows.map((row: any) => {
-            const stock = stockByProduct.get(row.id);
+            const productStocks = stocksByProduct.get(row.id) || [];
+            const stock = productStocks.find((item) => item.branch_id === activeBranchId);
             const quantity = stock ? Number(stock.quantity || 0) - Number(stock.reserved_quantity || 0) : 0;
             return {
               ...row,
               quantidade: quantity,
               estoque_minimo: stock ? Number(stock.minimum_quantity || 0) : 0,
+              estoque_unidades: productStocks.map((item) => ({
+                branch_id: item.branch_id,
+                branch_name: branchNames.get(item.branch_id) || 'Unidade',
+                quantity: Number(item.quantity || 0),
+                reserved_quantity: Number(item.reserved_quantity || 0),
+                available_quantity: Number(item.quantity || 0) - Number(item.reserved_quantity || 0),
+                minimum_quantity: Number(item.minimum_quantity || 0),
+                is_active_branch: item.branch_id === activeBranchId,
+              })),
             };
           });
         }

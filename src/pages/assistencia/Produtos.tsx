@@ -123,6 +123,16 @@ const ProdutoTableRow = memo(({
     }
   }, [produto.quantidade, produto.estoque_minimo]);
 
+  const unidadeResumo = useMemo(() => {
+    const unidades = produto.estoque_unidades || [];
+    const ativa = unidades.find((item) => item.is_active_branch) || unidades[0];
+    const outrasComEstoque = unidades.filter((item) => !item.is_active_branch && (item.available_quantity || 0) > 0);
+    return {
+      principal: ativa?.branch_name || '-',
+      outras: outrasComEstoque.length,
+    };
+  }, [produto.estoque_unidades]);
+
   // Zebra striping - MAIS VISÍVEL
   const zebraClass = index % 2 === 0 ? 'bg-card' : 'bg-muted/35';
   
@@ -158,6 +168,15 @@ const ProdutoTableRow = memo(({
           </Tooltip>
         </TooltipProvider>
         <div className="text-xs text-muted-foreground md:hidden mt-1">{infoSecundaria || '-'}</div>
+      </td>
+      {/* Unidade */}
+      <td className="text-xs py-3.5 px-3 text-left text-muted-foreground border-r border-border w-[130px] hidden lg:table-cell">
+        <div className="truncate font-medium text-foreground/80" title={unidadeResumo.principal}>
+          {unidadeResumo.principal}
+        </div>
+        {unidadeResumo.outras > 0 && (
+          <div className="text-[10px] text-emerald-700">+{unidadeResumo.outras} unidade(s)</div>
+        )}
       </td>
       {/* Localização */}
       <td className="text-sm py-3.5 px-3 text-left text-muted-foreground border-r border-border w-[140px] hidden lg:table-cell">
@@ -921,6 +940,12 @@ export default function Produtos() {
                               title="Clique para filtrar por Descrição"
                             >
                               Descrição {searchField === 'descricao' && <Search className="inline h-3 w-3 ml-1" />}
+                            </th>
+                            <th 
+                              className="h-12 px-3 text-left align-middle font-semibold border-r border-border w-[130px] hidden lg:table-cell text-xs uppercase tracking-wide text-foreground/80"
+                              title="Unidade / filial do estoque"
+                            >
+                              Unidade
                             </th>
                             <th 
                               className={`h-12 px-3 text-left align-middle font-semibold border-r border-border w-[140px] hidden lg:table-cell text-xs uppercase tracking-wide cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-500/10 transition-colors ${searchField === 'localizacao' ? 'bg-blue-200 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100' : 'text-foreground/80'}`}
