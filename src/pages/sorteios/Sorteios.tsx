@@ -152,6 +152,70 @@ const parsePromptDrawDate = (value: string) => {
   };
 };
 
+const formatDateTimeLocalInput = (value?: string | null) => {
+  if (!value) return '';
+  const valueText = String(value);
+  const match = valueText.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  const hasExplicitTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(valueText) || /(?:Z|[+-]\d{2}:?\d{2})\s*$/.test(valueText);
+  if (match && !hasExplicitTimezone) {
+    const [, year, month, day, hour, minute] = match;
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date).reduce<Record<string, string>>((acc, part) => {
+    if (part.type !== 'literal') acc[part.type] = part.value;
+    return acc;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+};
+
+const formatRaffleDrawDateTime = (value?: string | null) => {
+  if (!value) return '-';
+  const valueText = String(value);
+  const match = valueText.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  const hasExplicitTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(valueText) || /(?:Z|[+-]\d{2}:?\d{2})\s*$/.test(valueText);
+  if (match && !hasExplicitTimezone) {
+    const [, year, month, day, hour, minute] = match;
+    return `${day}/${month}/${year} às ${hour}:${minute}`;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date).replace(',', ' às');
+};
+
+const parseDateTimeLocalDrawDate = (value?: string | null) => {
+  if (!value) return null;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute] = match;
+  const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:00-03:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return {
+    iso: `${year}-${month}-${day}T${hour}:${minute}:00-03:00`,
+    dateOnly: `${year}-${month}-${day}`,
+    referenceMonth: Number(month),
+    referenceYear: Number(year),
+    drawTime: `${hour}:${minute}`,
+  };
+};
+
 const emptySettings = (companyId?: string | null): Partial<RaffleSettings> => ({
   company_id: companyId || null,
   is_active: false,
@@ -178,6 +242,25 @@ const emptySettings = (companyId?: string | null): Partial<RaffleSettings> => ({
   rounding_rule: 'complete_value',
 });
 
+const normalizeSettingsRow = (settingsData: any, companyId?: string | null): Partial<RaffleSettings> => {
+  if (!settingsData) return emptySettings(companyId);
+  return {
+    ...settingsData,
+    is_default_coupon_campaign: toBoolean(settingsData.is_default_coupon_campaign),
+    coupon_message_template: ensureCouponTrackingVariables(settingsData.coupon_message_template),
+    winner_message_template: ensureWinnerPrizeVariables(settingsData.winner_message_template),
+    seller_prize_enabled: toBoolean(settingsData.seller_prize_enabled),
+    seller_prize_value: Number(settingsData.seller_prize_value || 50),
+    seller_prize_requires_no_absence: toBoolean(settingsData.seller_prize_requires_no_absence, true),
+    ativa_crm_coupon_tag_id: Number(settingsData.ativa_crm_coupon_tag_id || 201),
+    prize_description: settingsData.prize_description || 'Vale-compra',
+    prize_value: Number(settingsData.prize_value || 100),
+    prize_validity_days: Number(settingsData.prize_validity_days || 7),
+    prize_redeem_instructions: settingsData.prize_redeem_instructions || 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
+    prize_tiers: normalizePrizeTiers(settingsData.prize_tiers),
+  };
+};
+
 export default function Sorteios() {
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
@@ -187,6 +270,7 @@ export default function Sorteios() {
   const companyId = user?.company_id || null;
   const [activeTab, setActiveTab] = useState(() => (tab && validTabs.has(tab) ? tab : 'visao-geral'));
   const [settings, setSettings] = useState<Partial<RaffleSettings>>(() => emptySettings(companyId));
+  const [settingsList, setSettingsList] = useState<RaffleSettings[]>([]);
   const [raffles, setRaffles] = useState<Raffle[]>([]);
   const [coupons, setCoupons] = useState<RaffleCoupon[]>([]);
   const [auditLogs, setAuditLogs] = useState<RaffleAuditLog[]>([]);
@@ -197,14 +281,30 @@ export default function Sorteios() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [selectedRaffleDrawDate, setSelectedRaffleDrawDate] = useState('');
   const [previewType, setPreviewType] = useState<'coupon' | 'winner'>('winner');
 
   const currentRaffle = useMemo(() => {
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
-    return raffles.find((r) => r.reference_month === month && r.reference_year === year) || raffles[0];
-  }, [raffles]);
+    const defaultSetting = settingsList.find((item) => item.is_default_coupon_campaign);
+    return (
+      (defaultSetting && raffles.find((r) => r.raffle_setting_id === defaultSetting.id && r.status === 'open')) ||
+      raffles.find((r) => r.reference_month === month && r.reference_year === year && r.status === 'open') ||
+      raffles[0]
+    );
+  }, [raffles, settingsList]);
+
+  const settingsById = useMemo(
+    () => Object.fromEntries(settingsList.map((item) => [item.id, item])) as Record<string, RaffleSettings>,
+    [settingsList],
+  );
+
+  const configuredRaffle = useMemo(
+    () => raffles.find((raffle) => settings.id && raffle.raffle_setting_id === settings.id) || null,
+    [raffles, settings.id],
+  );
 
   useEffect(() => {
     const nextTab = tab && validTabs.has(tab) ? tab : 'visao-geral';
@@ -250,13 +350,14 @@ export default function Sorteios() {
     });
   }, [clientesMap, couponSearch, coupons, vendedoresMap]);
 
-  const loadData = async () => {
+  const loadData = async (preferredSettingId?: string | null) => {
     setIsLoading(true);
     try {
-      const { data: settingsData } = await from('raffle_settings')
+      const { data: settingsRows } = await from('raffle_settings')
         .select('*')
         .eq('company_id', companyId)
-        .maybeSingle()
+        .order('is_default_coupon_campaign', { ascending: false })
+        .order('updated_at', { ascending: false })
         .execute();
 
       if (companyId) {
@@ -268,22 +369,8 @@ export default function Sorteios() {
         setCompanyName(company?.name || 'Empresa');
       }
 
-      setSettings(settingsData
-        ? {
-            ...settingsData,
-            coupon_message_template: ensureCouponTrackingVariables(settingsData.coupon_message_template),
-            winner_message_template: ensureWinnerPrizeVariables(settingsData.winner_message_template),
-            seller_prize_enabled: toBoolean(settingsData.seller_prize_enabled),
-            seller_prize_value: Number(settingsData.seller_prize_value || 50),
-            seller_prize_requires_no_absence: toBoolean(settingsData.seller_prize_requires_no_absence, true),
-            ativa_crm_coupon_tag_id: Number(settingsData.ativa_crm_coupon_tag_id || 201),
-            prize_description: settingsData.prize_description || 'Vale-compra',
-            prize_value: Number(settingsData.prize_value || 100),
-            prize_validity_days: Number(settingsData.prize_validity_days || 7),
-            prize_redeem_instructions: settingsData.prize_redeem_instructions || 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
-            prize_tiers: normalizePrizeTiers(settingsData.prize_tiers),
-          }
-        : emptySettings(companyId));
+      const normalizedSettings = ((settingsRows || []) as RaffleSettings[]).map((row) => normalizeSettingsRow(row, companyId) as RaffleSettings);
+      setSettingsList(normalizedSettings);
 
       const { data: rafflesData } = await from('raffles')
         .select('*')
@@ -292,6 +379,20 @@ export default function Sorteios() {
         .limit(24)
         .execute();
       setRaffles((rafflesData || []) as Raffle[]);
+
+      const now = new Date();
+      const selectedRaffle =
+        (preferredSettingId && (rafflesData || []).find((raffle: Raffle) => raffle.raffle_setting_id === preferredSettingId)) ||
+        (rafflesData || []).find((raffle: Raffle) =>
+          normalizedSettings.some((item) => item.is_default_coupon_campaign && item.id === raffle.raffle_setting_id && raffle.status === 'open')
+        ) ||
+        (rafflesData || []).find((raffle: Raffle) => raffle.reference_month === now.getMonth() + 1 && raffle.reference_year === now.getFullYear() && raffle.status === 'open') ||
+        (rafflesData || [])[0];
+      const selectedSettings = normalizedSettings.find((item) => item.id === selectedRaffle?.raffle_setting_id)
+        || normalizedSettings.find((item) => item.is_default_coupon_campaign)
+        || normalizedSettings[0];
+      setSettings(selectedSettings || emptySettings(companyId));
+      setSelectedRaffleDrawDate(formatDateTimeLocalInput(selectedRaffle?.draw_date));
 
       const raffleIds = (rafflesData || []).map((r: Raffle) => r.id);
       let couponsData: RaffleCoupon[] = [];
@@ -443,6 +544,11 @@ export default function Sorteios() {
     try {
       const winnerMessageTemplate = ensureWinnerPrizeVariables(settings.winner_message_template);
       const couponMessageTemplate = ensureCouponTrackingVariables(settings.coupon_message_template);
+      const parsedSelectedDrawDate = selectedRaffleDrawDate ? parseDateTimeLocalDrawDate(selectedRaffleDrawDate) : null;
+      if (selectedRaffleDrawDate && !parsedSelectedDrawDate) {
+        toast({ title: 'Data do sorteio inválida', description: 'Informe uma data e hora válidas para esta campanha.', variant: 'destructive' });
+        return;
+      }
 
       const payload = {
         company_id: companyId,
@@ -452,9 +558,10 @@ export default function Sorteios() {
         initial_number: Number(settings.initial_number || 100),
         draw_day_type: settings.draw_day_type || 'last_day_of_month',
         fixed_draw_day: settings.draw_day_type === 'fixed_day' ? Number(settings.fixed_draw_day || 1) : null,
-        draw_time: settings.draw_time || '20:00',
+        draw_time: parsedSelectedDrawDate?.drawTime || settings.draw_time || '20:00',
         auto_draw_enabled: !!settings.auto_draw_enabled,
         send_coupon_message_enabled: !!settings.send_coupon_message_enabled,
+        is_default_coupon_campaign: settings.is_default_coupon_campaign === true || settingsList.length === 0,
         ativa_crm_coupon_tag_id: settings.ativa_crm_coupon_tag_id ? Number(settings.ativa_crm_coupon_tag_id) : null,
         send_winner_message_enabled: !!settings.send_winner_message_enabled,
         seller_prize_enabled: settings.seller_prize_enabled === true,
@@ -472,6 +579,13 @@ export default function Sorteios() {
       };
 
       let savedSettings: RaffleSettings | null = null;
+
+      if (payload.is_default_coupon_campaign) {
+        await from('raffle_settings')
+          .update({ is_default_coupon_campaign: false, updated_at: new Date().toISOString() })
+          .eq('company_id', companyId)
+          .execute();
+      }
 
       if (settings.id) {
         const { error } = await from('raffle_settings').update(payload).eq('id', settings.id).execute();
@@ -492,12 +606,37 @@ export default function Sorteios() {
         new_data: payload,
       });
 
-      if (savedSettings?.is_active) {
-        await getOrCreateCurrentRaffle(savedSettings, companyId);
+      if (savedSettings) {
+        const linkedRafflesForSettings = raffles.filter((raffle) => raffle.raffle_setting_id === savedSettings?.id);
+        if (linkedRafflesForSettings.length > 0) {
+          for (const raffle of linkedRafflesForSettings) {
+            await from('raffles')
+              .update({
+                name: savedSettings.campaign_name || raffle.name,
+                ...(parsedSelectedDrawDate ? {
+                  draw_date: parsedSelectedDrawDate.iso,
+                  start_date: parsedSelectedDrawDate.dateOnly,
+                  end_date: parsedSelectedDrawDate.dateOnly,
+                  reference_month: parsedSelectedDrawDate.referenceMonth,
+                  reference_year: parsedSelectedDrawDate.referenceYear,
+                } : {}),
+                prize_description: savedSettings.prize_description || 'Vale-compra',
+                prize_value: Number(savedSettings.prize_value || 100),
+                prize_validity_days: Number(savedSettings.prize_validity_days || 7),
+                prize_redeem_instructions: savedSettings.prize_redeem_instructions || 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
+                prize_tiers: normalizePrizeTiers(savedSettings.prize_tiers),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', raffle.id)
+              .execute();
+          }
+        } else if (savedSettings.is_active) {
+          await getOrCreateCurrentRaffle(savedSettings, companyId);
+        }
       }
 
       toast({ title: 'Configurações salvas' });
-      await loadData();
+      await loadData(savedSettings?.id);
     } catch (error: any) {
       toast({ title: 'Erro ao salvar', description: error?.message || 'Tente novamente.', variant: 'destructive' });
     } finally {
@@ -581,32 +720,21 @@ export default function Sorteios() {
     }
   };
 
-  const getNextAvailableReference = (preferredDate: Date) => {
-    const usedReferences = new Set(raffles.map((raffle) => `${raffle.reference_year}-${raffle.reference_month}`));
-    const cursor = new Date(preferredDate);
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      const referenceMonth = cursor.getMonth() + 1;
-      const referenceYear = cursor.getFullYear();
-      if (!usedReferences.has(`${referenceYear}-${referenceMonth}`)) {
-        return { referenceMonth, referenceYear };
-      }
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
-    return { referenceMonth: preferredDate.getMonth() + 1, referenceYear: preferredDate.getFullYear() };
-  };
-
   const createRaffleFromBase = async (params: {
     baseRaffle?: Raffle | null;
     copyCoupons?: boolean;
   } = {}) => {
-    if (!settings.id || !companyId) {
-      toast({ title: 'Salve as configurações antes de criar sorteios', variant: 'destructive' });
+    if (!companyId) {
+      toast({ title: 'Empresa não identificada', variant: 'destructive' });
       return;
     }
 
+    const baseSettings = params.baseRaffle?.raffle_setting_id
+      ? (settingsById[params.baseRaffle.raffle_setting_id] || settings)
+      : settings;
     const baseName = params.baseRaffle
       ? `${params.baseRaffle.name} - Teste`
-      : `${settings.campaign_name || 'Sorteio Mensal'} - Teste`;
+      : `${baseSettings.campaign_name || 'Sorteio Mensal'} - Teste`;
     const name = window.prompt('Nome do novo sorteio:', baseName);
     if (name === null) return;
 
@@ -618,15 +746,49 @@ export default function Sorteios() {
       return;
     }
 
-    const { referenceMonth, referenceYear } = getNextAvailableReference(parsedDrawDate.date);
-    const normalizedTiers = normalizePrizeTiers(params.baseRaffle?.prize_tiers || settings.prize_tiers);
+    const referenceMonth = parsedDrawDate.date.getMonth() + 1;
+    const referenceYear = parsedDrawDate.date.getFullYear();
+    const normalizedTiers = normalizePrizeTiers(params.baseRaffle?.prize_tiers || baseSettings.prize_tiers);
 
     setIsSaving(true);
     try {
+      const settingsPayload = {
+        company_id: companyId,
+        is_active: toBoolean(baseSettings.is_active, true),
+        is_default_coupon_campaign: false,
+        campaign_name: name.trim() || baseName,
+        amount_per_coupon: Number(baseSettings.amount_per_coupon || 10),
+        initial_number: Number(baseSettings.initial_number || 100),
+        draw_day_type: baseSettings.draw_day_type || 'last_day_of_month',
+        fixed_draw_day: baseSettings.draw_day_type === 'fixed_day' ? Number(baseSettings.fixed_draw_day || 1) : null,
+        draw_time: baseSettings.draw_time || `${String(parsedDrawDate.date.getHours()).padStart(2, '0')}:${String(parsedDrawDate.date.getMinutes()).padStart(2, '0')}`,
+        auto_draw_enabled: !!baseSettings.auto_draw_enabled,
+        send_coupon_message_enabled: !!baseSettings.send_coupon_message_enabled,
+        ativa_crm_coupon_tag_id: baseSettings.ativa_crm_coupon_tag_id ? Number(baseSettings.ativa_crm_coupon_tag_id) : null,
+        send_winner_message_enabled: !!baseSettings.send_winner_message_enabled,
+        seller_prize_enabled: baseSettings.seller_prize_enabled === true,
+        seller_prize_value: Number(baseSettings.seller_prize_value || 50),
+        seller_prize_requires_no_absence: baseSettings.seller_prize_requires_no_absence !== false,
+        coupon_message_template: ensureCouponTrackingVariables(baseSettings.coupon_message_template),
+        winner_message_template: ensureWinnerPrizeVariables(baseSettings.winner_message_template),
+        prize_description: params.baseRaffle?.prize_description || baseSettings.prize_description || 'Vale-compra',
+        prize_value: Number(params.baseRaffle?.prize_value || baseSettings.prize_value || normalizedTiers[0]?.value || 100),
+        prize_validity_days: Number(params.baseRaffle?.prize_validity_days || baseSettings.prize_validity_days || 7),
+        prize_redeem_instructions: params.baseRaffle?.prize_redeem_instructions || baseSettings.prize_redeem_instructions || 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
+        prize_tiers: normalizedTiers,
+        rounding_rule: 'complete_value',
+        updated_at: new Date().toISOString(),
+      };
+      const { data: createdSettings, error: settingsError } = await from('raffle_settings')
+        .insert(settingsPayload)
+        .select()
+        .single();
+      if (settingsError) throw settingsError;
+
       const { data: created, error } = await from('raffles')
         .insert({
           company_id: companyId,
-          raffle_setting_id: settings.id,
+          raffle_setting_id: createdSettings.id,
           name: name.trim() || baseName,
           reference_month: referenceMonth,
           reference_year: referenceYear,
@@ -637,10 +799,10 @@ export default function Sorteios() {
           total_coupons: 0,
           total_participants: 0,
           eligible_sales_amount: 0,
-          prize_description: params.baseRaffle?.prize_description || settings.prize_description || 'Vale-compra',
-          prize_value: Number(params.baseRaffle?.prize_value || settings.prize_value || normalizedTiers[0]?.value || 100),
-          prize_validity_days: Number(params.baseRaffle?.prize_validity_days || settings.prize_validity_days || 7),
-          prize_redeem_instructions: params.baseRaffle?.prize_redeem_instructions || settings.prize_redeem_instructions || 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
+          prize_description: settingsPayload.prize_description,
+          prize_value: settingsPayload.prize_value,
+          prize_validity_days: settingsPayload.prize_validity_days,
+          prize_redeem_instructions: settingsPayload.prize_redeem_instructions,
           prize_tiers: normalizedTiers,
         })
         .select()
@@ -663,7 +825,7 @@ export default function Sorteios() {
             order_type: coupon.order_type,
             coupon_number: coupon.coupon_number,
             tracking_token: tokenByCustomer.get(tokenKey),
-            eligible_amount: Number(coupon.eligible_amount || settings.amount_per_coupon || 0),
+            eligible_amount: Number(coupon.eligible_amount || baseSettings.amount_per_coupon || 0),
             source_total_amount: Number(coupon.source_total_amount || 0),
             status: 'valid',
             generated_by_user_id: coupon.generated_by_user_id || null,
@@ -747,6 +909,252 @@ export default function Sorteios() {
       await loadData();
     } catch (error: any) {
       toast({ title: 'Erro ao inativar sorteio', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    }
+  };
+
+  const handleActivateRaffle = async (raffle: Raffle) => {
+    if (raffle.status === 'drawn') {
+      toast({ title: 'Sorteio já realizado', description: 'Sorteio sorteado não pode voltar para aberto.', variant: 'destructive' });
+      return;
+    }
+    if (raffle.status === 'open') return;
+
+    const confirm = window.confirm(`Ativar novamente o sorteio "${raffle.name}"? Ele voltará para aberto e poderá ser sorteado.`);
+    if (!confirm) return;
+
+    try {
+      const { error } = await from('raffles')
+        .update({
+          status: 'open',
+          cancelled_reason: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', raffle.id)
+        .execute();
+      if (error) throw error;
+
+      if (raffle.raffle_setting_id) {
+        await from('raffle_settings')
+          .update({
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', raffle.raffle_setting_id)
+          .execute();
+      }
+
+      await from('raffle_audit_logs').insert({
+        company_id: companyId,
+        raffle_id: raffle.id,
+        user_id: user?.id || null,
+        action: 'raffle_activated',
+        origin: 'user',
+        old_data: raffle,
+        new_data: { status: 'open' },
+      });
+
+      toast({ title: 'Sorteio ativado' });
+      await loadData(raffle.raffle_setting_id);
+    } catch (error: any) {
+      toast({ title: 'Erro ao ativar sorteio', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteRaffle = async (raffle: Raffle) => {
+    const typed = window.prompt(`Para excluir definitivamente "${raffle.name}", digite EXCLUIR:`);
+    if (typed !== 'EXCLUIR') return;
+
+    try {
+      const settingId = raffle.raffle_setting_id || null;
+      const wasDefault = !!(settingId && settingsById[settingId]?.is_default_coupon_campaign);
+
+      const { error } = await from('raffles')
+        .delete()
+        .eq('id', raffle.id)
+        .execute();
+      if (error) throw error;
+
+      if (settingId) {
+        const { data: remainingRaffles } = await from('raffles')
+          .select('id')
+          .eq('raffle_setting_id', settingId)
+          .limit(1)
+          .execute();
+
+        if (!remainingRaffles || remainingRaffles.length === 0) {
+          await from('raffle_settings')
+            .delete()
+            .eq('id', settingId)
+            .execute();
+        }
+      }
+
+      if (wasDefault && companyId) {
+        const { data: nextSettings } = await from('raffle_settings')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .execute();
+        if (nextSettings?.[0]?.id) {
+          await from('raffle_settings')
+            .update({ is_default_coupon_campaign: true, updated_at: new Date().toISOString() })
+            .eq('id', nextSettings[0].id)
+            .execute();
+        }
+      }
+
+      await from('raffle_audit_logs').insert({
+        company_id: companyId,
+        user_id: user?.id || null,
+        action: 'raffle_deleted',
+        origin: 'user',
+        old_data: raffle,
+        metadata: { raffle_id: raffle.id, raffle_setting_id: settingId },
+      });
+
+      toast({ title: 'Sorteio excluído' });
+      await loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro ao excluir sorteio', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    }
+  };
+
+  const handleConfigureRaffle = async (raffle: Raffle) => {
+    if (!companyId) {
+      toast({ title: 'Empresa não identificada', variant: 'destructive' });
+      return;
+    }
+
+    const raffleSettings = raffle.raffle_setting_id ? settingsById[raffle.raffle_setting_id] : null;
+    const baseSettings = normalizeSettingsRow(raffleSettings || settings, companyId);
+    const sharedSettingsCount = raffle.raffle_setting_id
+      ? raffles.filter((item) => item.raffle_setting_id === raffle.raffle_setting_id).length
+      : 0;
+
+    if (!raffleSettings && !settings.id) {
+      toast({ title: 'Configuração não encontrada para esta campanha', variant: 'destructive' });
+      return;
+    }
+
+    if (!raffle.raffle_setting_id || sharedSettingsCount > 1) {
+      setIsSaving(true);
+      try {
+        const clonedSettingsPayload = {
+          company_id: companyId,
+          is_active: raffle.status === 'open',
+          is_default_coupon_campaign: false,
+          campaign_name: raffle.name || baseSettings.campaign_name || 'Sorteio Mensal',
+          amount_per_coupon: Number(baseSettings.amount_per_coupon || 10),
+          initial_number: Number(baseSettings.initial_number || 100),
+          draw_day_type: baseSettings.draw_day_type || 'last_day_of_month',
+          fixed_draw_day: baseSettings.draw_day_type === 'fixed_day' ? Number(baseSettings.fixed_draw_day || 1) : null,
+          draw_time: baseSettings.draw_time || '20:00',
+          auto_draw_enabled: !!baseSettings.auto_draw_enabled,
+          send_coupon_message_enabled: !!baseSettings.send_coupon_message_enabled,
+          ativa_crm_coupon_tag_id: baseSettings.ativa_crm_coupon_tag_id ? Number(baseSettings.ativa_crm_coupon_tag_id) : null,
+          send_winner_message_enabled: !!baseSettings.send_winner_message_enabled,
+          seller_prize_enabled: baseSettings.seller_prize_enabled === true,
+          seller_prize_value: Number(baseSettings.seller_prize_value || 50),
+          seller_prize_requires_no_absence: baseSettings.seller_prize_requires_no_absence !== false,
+          coupon_message_template: ensureCouponTrackingVariables(baseSettings.coupon_message_template),
+          winner_message_template: ensureWinnerPrizeVariables(baseSettings.winner_message_template),
+          prize_description: raffle.prize_description || baseSettings.prize_description || 'Vale-compra',
+          prize_value: Number(raffle.prize_value || baseSettings.prize_value || 100),
+          prize_validity_days: Number(raffle.prize_validity_days || baseSettings.prize_validity_days || 7),
+          prize_redeem_instructions: raffle.prize_redeem_instructions || baseSettings.prize_redeem_instructions || 'Retirada presencial na loja mediante apresentação de documento e número da sorte vencedor.',
+          prize_tiers: normalizePrizeTiers(raffle.prize_tiers || baseSettings.prize_tiers),
+          rounding_rule: 'complete_value',
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: createdSettings, error: settingsError } = await from('raffle_settings')
+          .insert(clonedSettingsPayload)
+          .select()
+          .single();
+        if (settingsError) throw settingsError;
+
+        const { error: raffleError } = await from('raffles')
+          .update({
+            raffle_setting_id: createdSettings.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', raffle.id)
+          .execute();
+        if (raffleError) throw raffleError;
+
+        await from('raffle_audit_logs').insert({
+          company_id: companyId,
+          raffle_id: raffle.id,
+          user_id: user?.id || null,
+          action: 'raffle_settings_detached',
+          origin: 'user',
+          metadata: {
+            old_raffle_setting_id: raffle.raffle_setting_id || null,
+            new_raffle_setting_id: createdSettings.id,
+            shared_settings_count: sharedSettingsCount,
+          },
+        });
+
+        const normalizedCreatedSettings = normalizeSettingsRow(createdSettings, companyId);
+        setSettings(normalizedCreatedSettings);
+        setSettingsList((previous) => [...previous, normalizedCreatedSettings as RaffleSettings]);
+        setRaffles((previous) => previous.map((item) => (
+          item.id === raffle.id ? { ...item, raffle_setting_id: createdSettings.id } : item
+        )));
+        setSelectedRaffleDrawDate(formatDateTimeLocalInput(raffle.draw_date));
+        toast({ title: 'Configuração separada', description: 'Agora este sorteio tem configuração própria.' });
+      } catch (error: any) {
+        toast({ title: 'Erro ao separar configuração', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+        return;
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      setSettings(baseSettings);
+      setSelectedRaffleDrawDate(formatDateTimeLocalInput(raffle.draw_date));
+    }
+
+    setActiveTab('configuracoes');
+    navigate('/sorteios/configuracoes');
+  };
+
+  const handleSetDefaultCampaign = async (raffle: Raffle) => {
+    if (raffle.status !== 'open') {
+      toast({ title: 'Apenas campanhas abertas podem ser padrão', variant: 'destructive' });
+      return;
+    }
+    if (!raffle.raffle_setting_id || !companyId) {
+      toast({ title: 'Esta campanha não possui configuração vinculada', variant: 'destructive' });
+      return;
+    }
+    try {
+      await from('raffle_settings')
+        .update({ is_default_coupon_campaign: false, updated_at: new Date().toISOString() })
+        .eq('company_id', companyId)
+        .execute();
+      const { error } = await from('raffle_settings')
+        .update({
+          is_default_coupon_campaign: true,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', raffle.raffle_setting_id)
+        .execute();
+      if (error) throw error;
+      await from('raffle_audit_logs').insert({
+        company_id: companyId,
+        raffle_id: raffle.id,
+        user_id: user?.id || null,
+        action: 'raffle_set_default_coupon_campaign',
+        origin: 'user',
+        metadata: { raffle_setting_id: raffle.raffle_setting_id },
+      });
+      toast({ title: 'Campanha padrão atualizada', description: 'As próximas vendas/OS gerarão cupons nesta campanha.' });
+      await loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro ao definir padrão', description: error?.message || 'Tente novamente.', variant: 'destructive' });
     }
   };
 
@@ -936,7 +1344,7 @@ export default function Sorteios() {
                 <Button
                   type="button"
                   onClick={() => createRaffleFromBase()}
-                  disabled={isSaving || !settings.id}
+                  disabled={isSaving}
                   className="rounded-full bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Plus className="mr-1 h-4 w-4" />
@@ -982,12 +1390,21 @@ export default function Sorteios() {
                       .sort((a, b) => Number(a.prize_position || 99) - Number(b.prize_position || 99));
                     return (
                       <TableRow key={raffle.id}>
-                        <TableCell className="font-medium">{raffle.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col gap-1">
+                            <span>{raffle.name}</span>
+                            {raffle.raffle_setting_id && settingsById[raffle.raffle_setting_id]?.is_default_coupon_campaign && (
+                              <Badge className="w-fit rounded-full bg-emerald-600 text-[10px] text-white hover:bg-emerald-600">
+                                Campanha padrão
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell><Badge variant="outline">{raffle.status}</Badge></TableCell>
                         <TableCell>{String(raffle.reference_month).padStart(2, '0')}/{raffle.reference_year}</TableCell>
                         <TableCell>{raffle.total_coupons}</TableCell>
                         <TableCell>{raffle.total_participants}</TableCell>
-                        <TableCell>{dateFormatters.short(raffle.draw_date)}</TableCell>
+                        <TableCell>{formatRaffleDrawDateTime(raffle.draw_date)}</TableCell>
                         <TableCell>
                           {raffleWinners.length > 0
                             ? raffleWinners.map((winner) => `${winner.prize_position || 1}º #${winner.coupon_number} · ${winner.prize_type === 'product' ? (winner.prize_description || 'Produto') : currencyFormatters.brl(Number(winner.prize_value || 0))}`).join(' | ')
@@ -1002,6 +1419,24 @@ export default function Sorteios() {
                               className="rounded-full"
                             >
                               Sortear na mão
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleConfigureRaffle(raffle)}
+                              disabled={!raffle.raffle_setting_id}
+                              className="rounded-full"
+                            >
+                              Configurar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSetDefaultCampaign(raffle)}
+                              disabled={raffle.status !== 'open' || !raffle.raffle_setting_id || !!(raffle.raffle_setting_id && settingsById[raffle.raffle_setting_id]?.is_default_coupon_campaign)}
+                              className="rounded-full"
+                            >
+                              Definir padrão
                             </Button>
                             <Button
                               size="sm"
@@ -1025,11 +1460,29 @@ export default function Sorteios() {
                             <Button
                               size="sm"
                               variant="outline"
+                              onClick={() => handleActivateRaffle(raffle)}
+                              disabled={raffle.status === 'open' || raffle.status === 'drawn'}
+                              className="rounded-full"
+                            >
+                              Ativar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => handleCancelRaffle(raffle)}
                               disabled={raffle.status === 'drawn' || raffle.status === 'cancelled'}
                               className="rounded-full"
                             >
                               Cancelar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteRaffle(raffle)}
+                              className="rounded-full text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="mr-1 h-3.5 w-3.5" />
+                              Excluir
                             </Button>
                           </div>
                         </TableCell>
@@ -1054,21 +1507,48 @@ export default function Sorteios() {
           <Card className="xl:col-span-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Configurações do Sorteio</CardTitle>
-              <CardDescription>Configuração por empresa. Venda/OS só gera cupom se estiver ativo e houver cliente com telefone válido.</CardDescription>
+              <CardDescription>Configuração desta campanha. Apenas a campanha padrão gera cupons automaticamente em venda/OS.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <Label>Sistema de sorteio ativo</Label>
-                  <p className="text-xs text-muted-foreground">Quando desativado, nenhuma venda gera cupom.</p>
+                  <p className="text-xs text-muted-foreground">Quando desativado, esta campanha não gera cupom nem roda sorteio automático.</p>
                 </div>
                 <Switch checked={!!settings.is_active} onCheckedChange={(v) => setSettings((p) => ({ ...p, is_active: v }))} />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <Label>Campanha padrão para gerar cupons</Label>
+                  <p className="text-xs text-muted-foreground">
+                    As vendas/OS usam somente a campanha marcada como padrão para criar números da sorte.
+                  </p>
+                </div>
+                <Switch checked={!!settings.is_default_coupon_campaign} onCheckedChange={(v) => setSettings((p) => ({ ...p, is_default_coupon_campaign: v }))} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2 md:col-span-2">
                   <Label>Nome da campanha</Label>
                   <Input value={settings.campaign_name || ''} onChange={(e) => setSettings((p) => ({ ...p, campaign_name: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data e hora deste sorteio</Label>
+                  <Input
+                    type="datetime-local"
+                    value={selectedRaffleDrawDate}
+                    disabled={!configuredRaffle}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedRaffleDrawDate(value);
+                      const time = value.match(/T(\d{2}:\d{2})$/)?.[1];
+                      if (time) setSettings((previous) => ({ ...previous, draw_time: time }));
+                    }}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    {configuredRaffle ? 'Altera a data/hora real desta campanha.' : 'Crie ou selecione um sorteio para editar a data.'}
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>Valor base por cupom</Label>
@@ -1094,7 +1574,15 @@ export default function Sorteios() {
                 </div>
                 <div className="space-y-2">
                   <Label>Horário</Label>
-                  <Input type="time" value={settings.draw_time || '20:00'} onChange={(e) => setSettings((p) => ({ ...p, draw_time: e.target.value }))} />
+                  <Input
+                    type="time"
+                    value={settings.draw_time || '20:00'}
+                    onChange={(e) => {
+                      const time = e.target.value;
+                      setSettings((p) => ({ ...p, draw_time: time }));
+                      setSelectedRaffleDrawDate((previous) => previous ? `${previous.slice(0, 11)}${time}` : previous);
+                    }}
+                  />
                 </div>
               </div>
 

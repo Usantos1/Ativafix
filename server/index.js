@@ -2850,7 +2850,7 @@ app.get('/api/public/sorteios', async (req, res) => {
         r.total_coupons,
         co.name AS company_name
       FROM public.raffles r
-      LEFT JOIN public.raffle_settings rs ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id)
+      LEFT JOIN public.raffle_settings rs ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id AND rs.is_default_coupon_campaign = true)
       LEFT JOIN public.companies co ON co.id = r.company_id
       ORDER BY r.reference_year DESC, r.reference_month DESC, r.created_at DESC
       LIMIT 60
@@ -2950,7 +2950,7 @@ app.post('/api/public/sorteio/consultar', async (req, res) => {
         COUNT(*)::int AS total_coupons
       FROM public.raffle_coupons rc
       JOIN public.raffles r ON r.id = rc.raffle_id
-      LEFT JOIN public.raffle_settings rs ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id)
+      LEFT JOIN public.raffle_settings rs ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id AND rs.is_default_coupon_campaign = true)
       LEFT JOIN public.companies co ON co.id = rc.company_id
       WHERE rc.customer_id = ANY($1::uuid[])
         AND rc.status IN ('valid', 'winner')
@@ -3013,7 +3013,7 @@ app.get('/api/public/sorteio/:token', async (req, res) => {
         c.whatsapp AS customer_whatsapp
       FROM public.raffle_coupons rc
       JOIN public.raffles r ON r.id = rc.raffle_id
-      LEFT JOIN public.raffle_settings rs ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id)
+      LEFT JOIN public.raffle_settings rs ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id AND rs.is_default_coupon_campaign = true)
       LEFT JOIN public.clientes c ON c.id = rc.customer_id
       WHERE rc.tracking_token = $1
       LIMIT 1
@@ -10821,7 +10821,7 @@ async function executeAutomaticRaffle(raffleId) {
         co.name AS company_name
       FROM public.raffles r
       JOIN public.raffle_settings rs
-        ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id)
+        ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id AND rs.is_default_coupon_campaign = true)
       LEFT JOIN public.companies co ON co.id = r.company_id
       WHERE r.id = $1
         AND r.status = 'open'
@@ -10977,7 +10977,7 @@ async function runAutomaticRaffleWorker() {
       SELECT r.id
       FROM public.raffles r
       JOIN public.raffle_settings rs
-        ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id)
+        ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id AND rs.is_default_coupon_campaign = true)
       WHERE r.status = 'open'
         AND rs.is_active = true
         AND rs.auto_draw_enabled = true

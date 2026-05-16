@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.raffle_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES public.companies(id),
   is_active BOOLEAN NOT NULL DEFAULT false,
+  is_default_coupon_campaign BOOLEAN NOT NULL DEFAULT false,
   campaign_name TEXT NOT NULL DEFAULT 'Sorteio Mensal',
   amount_per_coupon NUMERIC(12,2) NOT NULL DEFAULT 10,
   initial_number INTEGER NOT NULL DEFAULT 100,
@@ -29,8 +30,7 @@ CREATE TABLE IF NOT EXISTS public.raffle_settings (
   prize_tiers JSONB NOT NULL DEFAULT '[{"position":1,"type":"voucher","description":"Vale-compra","value":100},{"position":2,"type":"voucher","description":"Vale-compra","value":70},{"position":3,"type":"voucher","description":"Vale-compra","value":30}]'::jsonb,
   rounding_rule TEXT NOT NULL DEFAULT 'complete_value' CHECK (rounding_rule IN ('complete_value')),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  UNIQUE(company_id)
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS public.raffles (
@@ -59,8 +59,7 @@ CREATE TABLE IF NOT EXISTS public.raffles (
   drawn_by_user_id UUID,
   cancelled_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  UNIQUE(company_id, reference_month, reference_year)
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS public.raffle_coupons (
@@ -133,6 +132,7 @@ CREATE INDEX IF NOT EXISTS idx_raffle_message_logs_raffle ON public.raffle_messa
 CREATE INDEX IF NOT EXISTS idx_raffle_audit_logs_raffle ON public.raffle_audit_logs(raffle_id);
 
 ALTER TABLE public.raffle_settings
+  ADD COLUMN IF NOT EXISTS is_default_coupon_campaign BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS prize_description TEXT NOT NULL DEFAULT 'Vale-compra',
   ADD COLUMN IF NOT EXISTS prize_value NUMERIC(12,2) NOT NULL DEFAULT 100,
   ADD COLUMN IF NOT EXISTS prize_validity_days INTEGER NOT NULL DEFAULT 7,
@@ -146,6 +146,45 @@ ALTER TABLE public.raffle_settings
 UPDATE public.raffle_settings
 SET ativa_crm_coupon_tag_id = 201
 WHERE ativa_crm_coupon_tag_id IS NULL;
+
+ALTER TABLE public.raffle_settings
+  DROP CONSTRAINT IF EXISTS raffle_settings_company_id_key;
+
+ALTER TABLE public.raffles
+  DROP CONSTRAINT IF EXISTS raffles_company_id_reference_month_reference_year_key;
+
+WITH ranked_settings AS (
+  SELECT
+    id,
+    row_number() OVER (
+      PARTITION BY company_id
+      ORDER BY is_active DESC, updated_at DESC, created_at DESC
+    ) AS rn
+  FROM public.raffle_settings
+  WHERE company_id IS NOT NULL
+)
+UPDATE public.raffle_settings rs
+SET is_default_coupon_campaign = ranked_settings.rn = 1
+FROM ranked_settings
+WHERE rs.id = ranked_settings.id
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.raffle_settings existing
+    WHERE existing.company_id = rs.company_id
+      AND existing.is_default_coupon_campaign = true
+  );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_raffle_settings_default_coupon_campaign
+  ON public.raffle_settings(company_id)
+  WHERE is_default_coupon_campaign = true;
+
+UPDATE public.raffles r
+SET raffle_setting_id = rs.id,
+    updated_at = now()
+FROM public.raffle_settings rs
+WHERE r.raffle_setting_id IS NULL
+  AND rs.company_id = r.company_id
+  AND rs.is_default_coupon_campaign = true;
 
 ALTER TABLE public.raffles
   ADD COLUMN IF NOT EXISTS prize_description TEXT,

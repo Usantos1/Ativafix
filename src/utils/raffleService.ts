@@ -162,6 +162,30 @@ const sumUniqueSourceAmounts = (coupons: Array<{
   }, 0);
 };
 
+async function getDefaultCouponCampaignSettings(companyId?: string | null): Promise<RaffleSettings | null> {
+  if (!companyId) return null;
+  const { data: defaultRows } = await from('raffle_settings')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .eq('is_default_coupon_campaign', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .execute();
+
+  if (defaultRows?.[0]) return defaultRows[0] as RaffleSettings;
+
+  const { data: activeRows } = await from('raffle_settings')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .execute();
+
+  return (activeRows?.[0] as RaffleSettings | undefined) || null;
+}
+
 export const replaceRaffleTemplateVariables = (
   template: string,
   variables: Record<string, string | number | null | undefined>,
@@ -186,11 +210,17 @@ export async function getOrCreateCurrentRaffle(settings: RaffleSettings, company
   const now = new Date();
   const { referenceMonth, referenceYear, startDate, endDate } = getMonthRange(now);
 
-  const { data: existing, error: existingError } = await from('raffles')
+  let existingQuery = from('raffles')
     .select('*')
     .eq('company_id', companyId)
     .eq('reference_month', referenceMonth)
-    .eq('reference_year', referenceYear)
+    .eq('reference_year', referenceYear);
+
+  existingQuery = settings.id
+    ? existingQuery.eq('raffle_setting_id', settings.id)
+    : existingQuery.is('raffle_setting_id', null);
+
+  const { data: existing, error: existingError } = await existingQuery
     .maybeSingle()
     .execute();
 
@@ -399,12 +429,7 @@ export async function generateRaffleCoupons(input: GenerateRaffleCouponsInput) {
       return { generated: 0, reason: 'invalid_customer' };
     }
 
-    const { data: settingsRow } = await from('raffle_settings')
-      .select('*')
-      .eq('company_id', input.companyId)
-      .maybeSingle()
-      .execute();
-    const settings = settingsRow as RaffleSettings | null;
+    const settings = await getDefaultCouponCampaignSettings(input.companyId);
     if (!settings?.is_active || Number(settings.amount_per_coupon || 0) <= 0) {
       return { generated: 0, reason: 'raffle_inactive' };
     }

@@ -13,6 +13,7 @@ export interface RaffleSettings {
   id: string;
   company_id?: string | null;
   is_active: boolean;
+  is_default_coupon_campaign?: boolean;
   campaign_name: string;
   amount_per_coupon: number;
   initial_number: number;
