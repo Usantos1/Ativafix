@@ -34,6 +34,7 @@ function mapSupabaseToAssistencia(supabaseProduto: any): Produto {
     // Estoque - usar quantidade (coluna existente)
     quantidade: Number(supabaseProduto.quantidade || 0),
     estoque_minimo: supabaseProduto.estoque_minimo ? Number(supabaseProduto.estoque_minimo) : undefined,
+    estoque_unidades: Array.isArray(supabaseProduto.estoque_unidades) ? supabaseProduto.estoque_unidades : undefined,
     localizacao: supabaseProduto.localizacao || undefined,
     unidade: supabaseProduto.unidade || undefined,
     estoque_grade: supabaseProduto.estoque_grade && typeof supabaseProduto.estoque_grade === 'object'
