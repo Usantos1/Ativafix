@@ -635,7 +635,9 @@ export default function Sorteios() {
       quantidade_cupons: 5,
       numeros_da_sorte: '100, 101, 102, 103, 104',
       data_sorteio: dateFormatters.short(currentRaffle?.draw_date || new Date().toISOString()),
-      horario_sorteio: dateFormatters.time(currentRaffle?.draw_date || new Date().toISOString()),
+      horario_sorteio: currentRaffle?.draw_date
+        ? new Date(currentRaffle.draw_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+        : dateFormatters.time(new Date().toISOString()),
       nome_sorteio: currentRaffle?.name || settings.campaign_name || 'Sorteio Mensal',
       empresa: companyName,
       numero_os: '1234',

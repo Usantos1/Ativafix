@@ -93,7 +93,9 @@ const buildDrawDate = (settings: RaffleSettings, reference = new Date()) => {
   const day = settings.draw_day_type === 'fixed_day'
     ? Math.min(Math.max(Number(settings.fixed_draw_day || lastDay.getDate()), 1), lastDay.getDate())
     : lastDay.getDate();
-  return new Date(referenceYear, referenceMonth - 1, day, Number(hour) || 20, Number(minute) || 0, 0);
+  const safeHour = String(Number(hour) || 20).padStart(2, '0');
+  const safeMinute = String(Number(minute) || 0).padStart(2, '0');
+  return `${referenceYear}-${String(referenceMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}T${safeHour}:${safeMinute}:00-03:00`;
 };
 
 const formatDateBR = (value?: string | Date | null) => {
@@ -105,7 +107,7 @@ const formatDateBR = (value?: string | Date | null) => {
 const formatTimeBR = (value?: string | Date | null) => {
   if (!value) return '';
   const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 };
 
 const formatPrize = (params: {
@@ -220,7 +222,7 @@ export async function getOrCreateCurrentRaffle(settings: RaffleSettings, company
       reference_year: referenceYear,
       start_date: startDate,
       end_date: endDate,
-      draw_date: drawDate.toISOString(),
+      draw_date: drawDate,
       prize_description: settings.prize_description || 'Vale-compra',
       prize_value: Number(settings.prize_value || 100),
       prize_validity_days: Number(settings.prize_validity_days || 7),
