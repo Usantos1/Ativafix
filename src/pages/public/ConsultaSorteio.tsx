@@ -7,6 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar, CheckCircle2, Loader2, LockKeyhole, Search, ShieldCheck, Sparkles, Ticket, Trophy, UserRound } from 'lucide-react';
 import { getApiUrl } from '@/utils/apiUrl';
+import { currencyFormatters } from '@/utils/formatters';
+
+type PublicWinner = {
+  coupon_number: number;
+  prize_position?: number | null;
+  prize_type?: string | null;
+  prize_description?: string | null;
+  prize_value?: number | null;
+};
 
 type PublicRaffle = {
   id: string;
@@ -18,6 +27,7 @@ type PublicRaffle = {
   status: string;
   total_coupons?: number | null;
   company_name: string;
+  winners?: PublicWinner[];
 };
 
 type Participation = {
@@ -115,6 +125,12 @@ const formatDrawTime = (drawDate?: string | null, drawTime?: string | null, disp
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 };
 
+const formatPrize = (winner: PublicWinner) => {
+  if (winner.prize_type === 'product') return winner.prize_description || 'Produto';
+  if (!winner.prize_description && !winner.prize_value) return null;
+  return `${winner.prize_description || 'Vale-compra'} de ${currencyFormatters.brl(Number(winner.prize_value || 0))}`;
+};
+
 export default function ConsultaSorteio() {
   const [raffles, setRaffles] = useState<PublicRaffle[]>([]);
   const [loadingRaffles, setLoadingRaffles] = useState(true);
@@ -140,6 +156,7 @@ export default function ConsultaSorteio() {
         status: participation.status,
         total_coupons: participation.total_coupons,
         company_name: participation.company_name,
+        winners: [],
       });
     });
     return Array.from(byId.values());
@@ -402,6 +419,30 @@ export default function ConsultaSorteio() {
                       <Badge variant="outline" className={`rounded-full ${statusClassNames[raffle.status] || ''}`}>{statusLabels[raffle.status] || raffle.status}</Badge>
                       <span className="text-xs font-semibold text-slate-500">{raffle.total_coupons || 0} cupons</span>
                     </div>
+                    {raffle.status === 'drawn' && (
+                      <div className="mt-4 rounded-3xl border border-amber-100 bg-amber-50 p-4">
+                        <p className="mb-3 flex items-center gap-2 text-sm font-black text-amber-900">
+                          <Trophy className="h-4 w-4" />
+                          Resultado do sorteio
+                        </p>
+                        {raffle.winners && raffle.winners.length > 0 ? (
+                          <div className="space-y-2">
+                            {raffle.winners.map((winner) => (
+                              <div key={`${raffle.id}-${winner.prize_position}-${winner.coupon_number}`} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                                <p className="font-black text-slate-950">
+                                  {winner.prize_position || 1}º prêmio: número {winner.coupon_number}
+                                </p>
+                                {formatPrize(winner) && (
+                                  <p className="mt-1 text-sm font-semibold text-slate-600">{formatPrize(winner)}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm font-semibold text-amber-800">Sorteio realizado. Resultado em processamento.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               )}

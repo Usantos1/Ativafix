@@ -2848,6 +2848,21 @@ app.get('/api/public/sorteios', async (req, res) => {
         r.draw_executed_at,
         r.status,
         r.total_coupons,
+        COALESCE((
+          SELECT json_agg(
+            json_build_object(
+              'coupon_number', winners.coupon_number,
+              'prize_position', winners.prize_position,
+              'prize_type', winners.prize_type,
+              'prize_description', winners.prize_description,
+              'prize_value', winners.prize_value
+            )
+            ORDER BY COALESCE(winners.prize_position, 999), winners.coupon_number
+          )
+          FROM public.raffle_coupons winners
+          WHERE winners.raffle_id = r.id
+            AND (winners.status = 'winner' OR winners.id = r.winning_coupon_id)
+        ), '[]'::json) AS winners,
         co.name AS company_name
       FROM public.raffles r
       LEFT JOIN public.raffle_settings rs ON rs.id = r.raffle_setting_id OR (r.raffle_setting_id IS NULL AND rs.company_id = r.company_id AND rs.is_default_coupon_campaign = true)
@@ -2866,6 +2881,7 @@ app.get('/api/public/sorteios', async (req, res) => {
         draw_executed_at: row.draw_executed_at,
         status: row.status,
         total_coupons: row.total_coupons,
+        winners: row.winners || [],
         company_name: row.company_name || 'Empresa',
       })),
     });
