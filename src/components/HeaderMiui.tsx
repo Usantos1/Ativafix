@@ -14,6 +14,7 @@ import { AppBarMiui } from "@/components/AppBarMiui";
 import { Bell, Eye, EyeOff, LogOut, Settings, User } from "lucide-react";
 import { useValuesVisibility } from "@/hooks/useValuesVisibility";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { BranchSelector } from "@/components/BranchSelector";
 
 interface HeaderMiuiProps {
   notificationCount: number;
@@ -63,6 +64,9 @@ export function HeaderMiui({
             )}
           </div>
 
+          <div className="shrink-0">
+            <BranchSelector />
+          </div>
           <div className="shrink-0">
             <ThemeToggle variant="button" size="sm" />
           </div>

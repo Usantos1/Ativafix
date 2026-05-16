@@ -53,6 +53,7 @@ import AdminInterviews from "./pages/admin/AdminInterviews";
 import InterviewEvaluation from "./pages/admin/InterviewEvaluation";
 import RecruitmentManager from "./pages/admin/RecruitmentManager";
 import PaymentMethodsConfig from "./pages/admin/PaymentMethodsConfig";
+import UnidadesFiliais from "./pages/admin/UnidadesFiliais";
 import JobApplication from "./pages/JobApplication";
 import JobApplicationSteps from "./pages/JobApplicationSteps";
 import JobSuccess from "./pages/JobSuccess";
@@ -197,6 +198,7 @@ const App = () => {
               <Route path="/admin/estrutura" element={<ProtectedRoute><EstruturaOrganizacional /></ProtectedRoute>} />
               <Route path="/admin/cadastros" element={<ProtectedRoute><CadastrosBase /></ProtectedRoute>} />
               <Route path="/admin/configuracoes" element={<PermissionRoute permission="admin.config"><Configuracoes /></PermissionRoute>} />
+              <Route path="/admin/unidades" element={<PermissionRoute permission="admin.config"><UnidadesFiliais /></PermissionRoute>} />
               <Route path="/rh" element={<PermissionRoute permission="rh.view"><RH /></PermissionRoute>} />
               
               {/* Public job application routes */}

@@ -51,6 +51,10 @@ class AuthAPIClient {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+    const activeBranchId = localStorage.getItem('active_branch_id');
+    if (activeBranchId) {
+      headers['X-Branch-Id'] = activeBranchId;
+    }
     return headers;
   }
 

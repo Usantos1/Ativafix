@@ -111,6 +111,15 @@ export default function Configuracoes() {
       permission: 'admin.view',
     }]),
     {
+      title: 'Unidades / Filiais',
+      description: 'Gerencie matriz, filiais e acessos por unidade',
+      icon: Building2,
+      color: 'from-emerald-500 to-green-500',
+      hoverColor: 'hover:from-emerald-600 hover:to-green-600',
+      path: '/admin/unidades',
+      permission: 'admin.config',
+    },
+    {
       title: 'Formas de Pagamento e Taxas',
       description: 'Configure formas de pagamento, taxas e parcelamentos',
       icon: CreditCard,

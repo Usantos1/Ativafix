@@ -132,6 +132,174 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
+const BRANCH_ALL_VALUE = 'all';
+const branchScopedTables = new Set([
+  'ordens_servico',
+  'sales',
+  'vendas',
+  'pedidos',
+  'cash_register_sessions',
+  'cash_movements',
+  'caixa_sessions',
+  'caixa_movements',
+  'payments',
+  'os_pagamentos',
+  'financial_transactions',
+  'accounts_receivable',
+  'bills_to_pay',
+  'refunds',
+  'refund_items',
+  'clientes',
+  'produto_movimentacoes',
+  'sale_items',
+  'os_items',
+  'quotes',
+  'product_stocks',
+]);
+
+const branchTableCache = new Map();
+
+function normalizeBranchSlug(value) {
+  return String(value || 'matriz')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'matriz';
+}
+
+function isCompanyAdminRole(role) {
+  const normalized = String(role || '').toLowerCase();
+  return ['admin', 'administrador', 'administrator', 'master'].includes(normalized) || normalized.includes('administrador');
+}
+
+async function publicTableExists(tableName) {
+  if (branchTableCache.has(tableName)) return branchTableCache.get(tableName);
+  const result = await pool.query(
+    `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1 LIMIT 1`,
+    [tableName]
+  );
+  const exists = result.rows.length > 0;
+  branchTableCache.set(tableName, exists);
+  return exists;
+}
+
+async function publicColumnExists(tableName, columnName) {
+  const cacheKey = `${tableName}.${columnName}`;
+  if (branchTableCache.has(cacheKey)) return branchTableCache.get(cacheKey);
+  const result = await pool.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2 LIMIT 1`,
+    [tableName, columnName]
+  );
+  const exists = result.rows.length > 0;
+  branchTableCache.set(cacheKey, exists);
+  return exists;
+}
+
+async function ensureDefaultBranch(companyId) {
+  if (!companyId || !(await publicTableExists('branches'))) return null;
+
+  const existing = await pool.query(
+    `SELECT * FROM public.branches WHERE company_id = $1 AND is_main = true ORDER BY created_at LIMIT 1`,
+    [companyId]
+  );
+  if (existing.rows[0]) return existing.rows[0];
+
+  const anyBranch = await pool.query(
+    `SELECT * FROM public.branches WHERE company_id = $1 ORDER BY created_at LIMIT 1`,
+    [companyId]
+  );
+  if (anyBranch.rows[0]) {
+    const updated = await pool.query(
+      `UPDATE public.branches SET is_main = true, type = 'matriz', updated_at = now() WHERE id = $1 RETURNING *`,
+      [anyBranch.rows[0].id]
+    );
+    return updated.rows[0] || anyBranch.rows[0];
+  }
+
+  const inserted = await pool.query(
+    `INSERT INTO public.branches (company_id, name, slug, type, is_main, is_active)
+     VALUES ($1, 'Matriz', 'matriz', 'matriz', true, true)
+     RETURNING *`,
+    [companyId]
+  );
+  return inserted.rows[0] || null;
+}
+
+async function getUserBranchContext(userId, companyId, requestedBranchId = null) {
+  if (!userId || !companyId || !(await publicTableExists('branches')) || !(await publicTableExists('user_branch_access'))) {
+    return { branches: [], activeBranch: null, canViewAll: false, scope: null };
+  }
+
+  const mainBranch = await ensureDefaultBranch(companyId);
+  const profileResult = await pool.query('SELECT role FROM profiles WHERE user_id = $1 LIMIT 1', [userId]);
+  const role = profileResult.rows[0]?.role || null;
+  const canViewAll = isCompanyAdminRole(role);
+
+  if (mainBranch) {
+    await pool.query(
+      `INSERT INTO public.user_branch_access (user_id, company_id, branch_id, role, is_default)
+       VALUES ($1, $2, $3, $4, true)
+       ON CONFLICT (user_id, branch_id) DO NOTHING`,
+      [userId, companyId, mainBranch.id, role]
+    );
+  }
+
+  let branchesResult;
+  if (canViewAll) {
+    branchesResult = await pool.query(
+      `SELECT b.*, COALESCE(uba.is_default, b.is_main) AS is_default_access
+       FROM public.branches b
+       LEFT JOIN public.user_branch_access uba ON uba.branch_id = b.id AND uba.user_id = $2
+       WHERE b.company_id = $1 AND b.is_active = true
+       ORDER BY b.is_main DESC, b.name`,
+      [companyId, userId]
+    );
+  } else {
+    branchesResult = await pool.query(
+      `SELECT b.*, uba.is_default AS is_default_access
+       FROM public.user_branch_access uba
+       INNER JOIN public.branches b ON b.id = uba.branch_id
+       WHERE uba.user_id = $1 AND uba.company_id = $2 AND b.is_active = true
+       ORDER BY uba.is_default DESC, b.is_main DESC, b.name`,
+      [userId, companyId]
+    );
+  }
+
+  const branches = branchesResult.rows || [];
+  if (requestedBranchId === BRANCH_ALL_VALUE && canViewAll) {
+    return { branches, activeBranch: null, canViewAll, scope: BRANCH_ALL_VALUE };
+  }
+
+  const requested = requestedBranchId ? branches.find((branch) => branch.id === requestedBranchId) : null;
+  const activeBranch = requested || branches.find((branch) => branch.is_default_access) || branches.find((branch) => branch.is_main) || branches[0] || mainBranch || null;
+  return { branches, activeBranch, canViewAll, scope: activeBranch?.id || null };
+}
+
+async function resolveBranchContextForRequest(req) {
+  const requestedBranchId = String(req.headers['x-branch-id'] || '').trim() || null;
+  const context = await getUserBranchContext(req.user?.id, req.companyId, requestedBranchId);
+  req.availableBranches = context.branches;
+  req.canViewAllBranches = context.canViewAll;
+  req.branchScope = context.scope;
+  req.branchId = context.activeBranch?.id || null;
+  req.activeBranch = context.activeBranch || null;
+  return context;
+}
+
+async function logBranchAudit(companyId, branchId, userId, action, entityType, entityId, metadata = {}) {
+  try {
+    if (!(await publicTableExists('branch_audit_logs'))) return;
+    await pool.query(
+      `INSERT INTO public.branch_audit_logs (company_id, branch_id, user_id, action, entity_type, entity_id, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
+      [companyId, branchId || null, userId || null, action, entityType || null, entityId || null, JSON.stringify(metadata || {})]
+    );
+  } catch (error) {
+    console.warn('[Branches] Falha ao registrar auditoria:', error.message);
+  }
+}
+
 function normalizeMetaValue(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -1490,6 +1658,14 @@ const authenticateToken = async (req, res, next) => {
         }
       } else {
         throw dbError;
+      }
+    }
+
+    if (req.companyId) {
+      try {
+        await resolveBranchContextForRequest(req);
+      } catch (branchError) {
+        console.warn('[Auth] Contexto de filial indisponível:', branchError.message);
       }
     }
     
@@ -3039,6 +3215,255 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/branches/me', authenticateToken, async (req, res) => {
+  try {
+    if (!(await publicTableExists('branches'))) {
+      return res.json({ branches: [], active_branch_id: null, can_view_all: false, scope: null, migration_required: true });
+    }
+
+    const requestedBranchId = String(req.headers['x-branch-id'] || '').trim() || null;
+    const context = await getUserBranchContext(req.user.id, req.companyId, requestedBranchId);
+    res.json({
+      branches: context.branches,
+      active_branch_id: context.activeBranch?.id || null,
+      can_view_all: context.canViewAll,
+      scope: context.scope,
+    });
+  } catch (error) {
+    console.error('[Branches] Erro ao carregar filiais do usuário:', error);
+    res.status(500).json({ error: 'Erro ao carregar unidades do usuário' });
+  }
+});
+
+app.get('/api/branches', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  try {
+    if (!(await publicTableExists('branches'))) {
+      return res.status(503).json({ error: 'Execute a migration db/migrations/manual/CRIAR_MULTIEMPRESAS_FILIAIS.sql' });
+    }
+
+    const result = await pool.query(
+      `SELECT b.*,
+              COUNT(DISTINCT uba.user_id)::int AS users_count
+       FROM public.branches b
+       LEFT JOIN public.user_branch_access uba ON uba.branch_id = b.id
+       WHERE b.company_id = $1
+       GROUP BY b.id
+       ORDER BY b.is_main DESC, b.is_active DESC, b.name`,
+      [req.companyId]
+    );
+
+    res.json({ branches: result.rows });
+  } catch (error) {
+    console.error('[Branches] Erro ao listar filiais:', error);
+    res.status(500).json({ error: 'Erro ao listar unidades' });
+  }
+});
+
+app.post('/api/branches', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  try {
+    const { name, type = 'filial', document, phone, email, address, city, state, zip_code, is_main = false, is_active = true } = req.body || {};
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: 'Nome da unidade é obrigatório' });
+    }
+    if (!['matriz', 'filial', 'laboratorio', 'deposito'].includes(type)) {
+      return res.status(400).json({ error: 'Tipo de unidade inválido' });
+    }
+
+    await ensureDefaultBranch(req.companyId);
+    const slugBase = normalizeBranchSlug(name);
+    let slug = slugBase;
+    let suffix = 2;
+    while ((await pool.query('SELECT 1 FROM public.branches WHERE company_id = $1 AND slug = $2 LIMIT 1', [req.companyId, slug])).rows.length > 0) {
+      slug = `${slugBase}-${suffix++}`;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      if (is_main) {
+        await client.query('UPDATE public.branches SET is_main = false, updated_at = now() WHERE company_id = $1', [req.companyId]);
+      }
+      const result = await client.query(
+        `INSERT INTO public.branches (company_id, name, slug, type, document, phone, email, address, city, state, zip_code, is_main, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         RETURNING *`,
+        [req.companyId, name.trim(), slug, is_main ? 'matriz' : type, document || null, phone || null, email || null, address || null, city || null, state || null, zip_code || null, !!is_main, !!is_active]
+      );
+      await client.query('COMMIT');
+      await logBranchAudit(req.companyId, result.rows[0]?.id, req.user.id, 'branch.created', 'branches', result.rows[0]?.id, { name, type });
+      res.status(201).json({ branch: result.rows[0] });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('[Branches] Erro ao criar filial:', error);
+    res.status(500).json({ error: error.message || 'Erro ao criar unidade' });
+  }
+});
+
+app.put('/api/branches/:id', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  try {
+    const branchId = req.params.id;
+    const { name, type, document, phone, email, address, city, state, zip_code, is_active } = req.body || {};
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'Nome da unidade é obrigatório' });
+    if (type && !['matriz', 'filial', 'laboratorio', 'deposito'].includes(type)) return res.status(400).json({ error: 'Tipo de unidade inválido' });
+
+    const result = await pool.query(
+      `UPDATE public.branches
+       SET name = $1,
+           type = CASE WHEN is_main THEN 'matriz' ELSE $2 END,
+           document = $3,
+           phone = $4,
+           email = $5,
+           address = $6,
+           city = $7,
+           state = $8,
+           zip_code = $9,
+           is_active = COALESCE($10, is_active),
+           updated_at = now()
+       WHERE id = $11 AND company_id = $12
+       RETURNING *`,
+      [name.trim(), type || 'filial', document || null, phone || null, email || null, address || null, city || null, state || null, zip_code || null, typeof is_active === 'boolean' ? is_active : null, branchId, req.companyId]
+    );
+
+    if (!result.rows[0]) return res.status(404).json({ error: 'Unidade não encontrada' });
+    await logBranchAudit(req.companyId, branchId, req.user.id, 'branch.updated', 'branches', branchId, req.body || {});
+    res.json({ branch: result.rows[0] });
+  } catch (error) {
+    console.error('[Branches] Erro ao atualizar filial:', error);
+    res.status(500).json({ error: 'Erro ao atualizar unidade' });
+  }
+});
+
+app.patch('/api/branches/:id/status', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  try {
+    const branchId = req.params.id;
+    const { is_active } = req.body || {};
+    if (typeof is_active !== 'boolean') return res.status(400).json({ error: 'Status inválido' });
+
+    const current = await pool.query('SELECT * FROM public.branches WHERE id = $1 AND company_id = $2', [branchId, req.companyId]);
+    const branch = current.rows[0];
+    if (!branch) return res.status(404).json({ error: 'Unidade não encontrada' });
+    if (branch.is_main && !is_active) return res.status(400).json({ error: 'A unidade principal não pode ser inativada' });
+
+    const result = await pool.query(
+      `UPDATE public.branches SET is_active = $1, updated_at = now() WHERE id = $2 AND company_id = $3 RETURNING *`,
+      [is_active, branchId, req.companyId]
+    );
+    await logBranchAudit(req.companyId, branchId, req.user.id, is_active ? 'branch.activated' : 'branch.deactivated', 'branches', branchId, {});
+    res.json({ branch: result.rows[0] });
+  } catch (error) {
+    console.error('[Branches] Erro ao alterar status da filial:', error);
+    res.status(500).json({ error: 'Erro ao alterar status da unidade' });
+  }
+});
+
+app.post('/api/branches/:id/set-main', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const branchId = req.params.id;
+    await client.query('BEGIN');
+    const branchResult = await client.query('SELECT * FROM public.branches WHERE id = $1 AND company_id = $2 AND is_active = true', [branchId, req.companyId]);
+    if (!branchResult.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Unidade ativa não encontrada' });
+    }
+    await client.query('UPDATE public.branches SET is_main = false, updated_at = now() WHERE company_id = $1', [req.companyId]);
+    const result = await client.query(
+      `UPDATE public.branches SET is_main = true, type = 'matriz', updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING *`,
+      [branchId, req.companyId]
+    );
+    await client.query('COMMIT');
+    await logBranchAudit(req.companyId, branchId, req.user.id, 'branch.set_main', 'branches', branchId, {});
+    res.json({ branch: result.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[Branches] Erro ao definir matriz:', error);
+    res.status(500).json({ error: 'Erro ao definir unidade principal' });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/api/branches/user-access', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  try {
+    if (!(await publicTableExists('user_branch_access'))) {
+      return res.status(503).json({ error: 'Execute a migration db/migrations/manual/CRIAR_MULTIEMPRESAS_FILIAIS.sql' });
+    }
+
+    await ensureDefaultBranch(req.companyId);
+    const usersResult = await pool.query(
+      `SELECT u.id, u.email, p.display_name, p.role,
+              COALESCE(
+                json_agg(
+                  json_build_object(
+                    'branch_id', uba.branch_id,
+                    'branch_name', b.name,
+                    'role', uba.role,
+                    'is_default', uba.is_default
+                  )
+                ) FILTER (WHERE uba.branch_id IS NOT NULL),
+                '[]'::json
+              ) AS branches
+       FROM public.users u
+       LEFT JOIN public.profiles p ON p.user_id = u.id
+       LEFT JOIN public.user_branch_access uba ON uba.user_id = u.id AND uba.company_id = u.company_id
+       LEFT JOIN public.branches b ON b.id = uba.branch_id
+       WHERE u.company_id = $1
+       GROUP BY u.id, u.email, p.display_name, p.role
+       ORDER BY COALESCE(p.display_name, u.email)`,
+      [req.companyId]
+    );
+    res.json({ users: usersResult.rows });
+  } catch (error) {
+    console.error('[Branches] Erro ao listar acessos:', error);
+    res.status(500).json({ error: 'Erro ao listar acessos por unidade' });
+  }
+});
+
+app.put('/api/branches/user-access/:userId', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const targetUserId = req.params.userId;
+    const { branch_ids = [], default_branch_id = null, role = null } = req.body || {};
+    const branchIds = Array.isArray(branch_ids) ? branch_ids.filter(Boolean) : [];
+    if (branchIds.length === 0) return res.status(400).json({ error: 'Selecione pelo menos uma unidade' });
+    if (default_branch_id && !branchIds.includes(default_branch_id)) return res.status(400).json({ error: 'A unidade padrão deve estar na lista de acesso' });
+
+    const userCheck = await pool.query('SELECT id FROM public.users WHERE id = $1 AND company_id = $2', [targetUserId, req.companyId]);
+    if (!userCheck.rows[0]) return res.status(404).json({ error: 'Usuário não encontrado nesta empresa' });
+
+    const validBranches = await pool.query(
+      `SELECT id FROM public.branches WHERE company_id = $1 AND is_active = true AND id = ANY($2::uuid[])`,
+      [req.companyId, branchIds]
+    );
+    if (validBranches.rows.length !== branchIds.length) return res.status(400).json({ error: 'Uma ou mais unidades são inválidas' });
+
+    const defaultBranchId = default_branch_id || branchIds[0];
+    await client.query('BEGIN');
+    await client.query('DELETE FROM public.user_branch_access WHERE user_id = $1 AND company_id = $2', [targetUserId, req.companyId]);
+    for (const branchId of branchIds) {
+      await client.query(
+        `INSERT INTO public.user_branch_access (user_id, company_id, branch_id, role, is_default)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [targetUserId, req.companyId, branchId, role || null, branchId === defaultBranchId]
+      );
+    }
+    await client.query('COMMIT');
+    await logBranchAudit(req.companyId, defaultBranchId, req.user.id, 'user_branch_access.updated', 'users', targetUserId, { branch_ids: branchIds, default_branch_id: defaultBranchId });
+    res.json({ success: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[Branches] Erro ao salvar acesso do usuário:', error);
+    res.status(500).json({ error: 'Erro ao salvar acesso do usuário' });
+  } finally {
+    client.release();
+  }
+});
+
 // Logout (apenas remove token do cliente, não precisa fazer nada no servidor)
 app.post('/api/auth/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logout realizado com sucesso' });
@@ -3667,6 +4092,7 @@ app.post('/api/query/:table', async (req, res) => {
       'cupom_config',
       'os_pagamentos', 'os_config_status',
       'raffle_settings', 'raffles', 'raffle_coupons', 'raffle_message_logs', 'raffle_audit_logs',
+      'branches', 'user_branch_access', 'branch_audit_logs', 'product_stocks',
       // Devoluções e inventário
       'refunds', 'refund_items',
       // Pedidos de compra (isolamento por empresa)
@@ -3727,6 +4153,25 @@ app.post('/api/query/:table', async (req, res) => {
         console.log(`[Query] Adicionando filtro company_id=${req.companyId} para tabela ${tableNameOnly}`);
       } else if (skipCompanyFilter) {
         console.log(`[Query] os_items por ordem_servico_id: sem filtro company_id para retornar todos os itens da OS`);
+      }
+    }
+
+    if (
+      req.user &&
+      req.companyId &&
+      req.branchId &&
+      req.branchScope !== BRANCH_ALL_VALUE &&
+      branchScopedTables.has(tableNameOnly.toLowerCase()) &&
+      await publicColumnExists(tableNameOnly, 'branch_id')
+    ) {
+      const hasBranchFilter = where && typeof where === 'object' && 'branch_id' in where;
+      if (!hasBranchFilter) {
+        const branchCondition = `${tableNameOnly}.branch_id = $${finalParams.length + 1}`;
+        finalWhereClause = finalWhereClause ? `${finalWhereClause} AND ${branchCondition}` : `WHERE ${branchCondition}`;
+        finalParams.push(req.branchId);
+        console.log(`[Query] Adicionando filtro branch_id=${req.branchId} para tabela ${tableNameOnly}`);
+      } else if (where.branch_id && where.branch_id !== req.branchId && !req.canViewAllBranches) {
+        return res.status(403).json({ error: 'Usuário não tem acesso à unidade solicitada', codigo: 'BRANCH_ACCESS_DENIED' });
       }
     }
 
@@ -3829,6 +4274,7 @@ app.post('/api/insert/:table', async (req, res) => {
       'marcas', 'modelos', 'configuracoes_empresa', 'company_settings',
       'cupom_config',
       'os_pagamentos', 'os_config_status', 'fornecedores',
+      'branches', 'user_branch_access', 'branch_audit_logs', 'product_stocks',
       'refunds', 'refund_items',
       'pedidos',
       'quotes',
@@ -3853,6 +4299,31 @@ app.post('/api/insert/:table', async (req, res) => {
         error: 'Usuário sem empresa vinculada (company_id). Vincule o usuário a uma empresa em Configurações.',
         codigo: 'COMPANY_ID_REQUIRED'
       });
+    }
+
+    if (
+      req.user &&
+      req.companyId &&
+      branchScopedTables.has(tableNameOnly.toLowerCase()) &&
+      await publicColumnExists(tableNameOnly, 'branch_id')
+    ) {
+      const context = req.branchScope ? { scope: req.branchScope, activeBranch: req.activeBranch, canViewAll: req.canViewAllBranches } : await resolveBranchContextForRequest(req);
+      const defaultBranchId = context.activeBranch?.id || req.branchId;
+      if (!defaultBranchId && context.scope !== BRANCH_ALL_VALUE) {
+        return res.status(403).json({ error: 'Nenhuma unidade ativa disponível para este usuário', codigo: 'BRANCH_REQUIRED' });
+      }
+
+      for (const row of rowsToInsert) {
+        if (!row.branch_id) {
+          if (context.scope === BRANCH_ALL_VALUE) {
+            return res.status(400).json({ error: 'Selecione uma unidade específica para criar registros operacionais', codigo: 'BRANCH_REQUIRED' });
+          }
+          row.branch_id = defaultBranchId;
+        } else if (row.branch_id !== defaultBranchId && !context.canViewAll) {
+          return res.status(403).json({ error: 'Usuário não tem acesso à unidade solicitada', codigo: 'BRANCH_ACCESS_DENIED' });
+        }
+      }
+      console.log(`[Insert] Aplicando branch_id para tabela ${tableNameOnly}`);
     }
 
     // Rede de segurança: os_config_status nunca pode ir ao INSERT sem company_id (apenas do usuário, nunca de outra empresa)
@@ -4272,6 +4743,7 @@ app.post('/api/update/:table', async (req, res) => {
       'marcas', 'modelos', 'configuracoes_empresa', 'company_settings',
       'cupom_config',
       'os_pagamentos', 'os_config_status', 'fornecedores',
+      'branches', 'user_branch_access', 'branch_audit_logs', 'product_stocks',
       'refunds', 'refund_items',
       'pedidos', 'quotes',
       'user_activity_logs', 'audit_logs', 'disc_responses',
@@ -4628,6 +5100,25 @@ app.post('/api/update/:table', async (req, res) => {
       }
     }
 
+    if (
+      req.user &&
+      req.companyId &&
+      req.branchId &&
+      req.branchScope !== BRANCH_ALL_VALUE &&
+      branchScopedTables.has(tableNameOnly.toLowerCase()) &&
+      await publicColumnExists(tableNameOnly, 'branch_id')
+    ) {
+      const hasBranchFilter = where && typeof where === 'object' && 'branch_id' in where;
+      if (!hasBranchFilter) {
+        const branchCondition = `branch_id = $${params.length + 1}`;
+        finalWhereClause = finalWhereClause ? `${finalWhereClause} AND ${branchCondition}` : `WHERE ${branchCondition}`;
+        params.push(req.branchId);
+        console.log(`[Update] Adicionando filtro branch_id=${req.branchId} para tabela ${tableNameOnly}`);
+      } else if (where.branch_id && where.branch_id !== req.branchId && !req.canViewAllBranches) {
+        return res.status(403).json({ error: 'Usuário não tem acesso à unidade solicitada', codigo: 'BRANCH_ACCESS_DENIED' });
+      }
+    }
+
     // Garantir que finalWhereClause seja válido - buildWhereClause retorna "WHERE ..." ou ""
     // Se estiver vazio e não houver filtro de company_id, não adicionar WHERE
     let sql = `UPDATE ${tableName} SET ${setClause}`;
@@ -4858,6 +5349,7 @@ app.post('/api/delete/:table', async (req, res) => {
       'marcas', 'modelos', 'configuracoes_empresa', 'company_settings',
       'cupom_config',
       'os_pagamentos', 'os_config_status', 'fornecedores',
+      'branches', 'user_branch_access', 'branch_audit_logs', 'product_stocks',
       'refunds', 'refund_items',
       'pedidos', 'quotes',
       'user_activity_logs', 'audit_logs', 'disc_responses',
@@ -4920,6 +5412,24 @@ app.post('/api/delete/:table', async (req, res) => {
         } else {
           console.log(`[Delete] Tabela ${tableNameOnly} sem coluna company_id, delete sem filtro de empresa`);
         }
+      }
+    }
+
+    if (
+      req.user &&
+      req.companyId &&
+      req.branchId &&
+      req.branchScope !== BRANCH_ALL_VALUE &&
+      branchScopedTables.has(tableNameOnly.toLowerCase()) &&
+      await publicColumnExists(tableNameOnly, 'branch_id')
+    ) {
+      const hasBranchFilter = where && typeof where === 'object' && 'branch_id' in where;
+      if (!hasBranchFilter) {
+        finalWhereClause = finalWhereClause ? `${finalWhereClause} AND branch_id = $${finalParams.length + 1}` : `WHERE branch_id = $${finalParams.length + 1}`;
+        finalParams.push(req.branchId);
+        console.log(`[Delete] Adicionando filtro branch_id=${req.branchId} para tabela ${tableNameOnly}`);
+      } else if (where.branch_id && where.branch_id !== req.branchId && !req.canViewAllBranches) {
+        return res.status(403).json({ error: 'Usuário não tem acesso à unidade solicitada', codigo: 'BRANCH_ACCESS_DENIED' });
       }
     }
 
