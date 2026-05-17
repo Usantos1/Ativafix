@@ -42,7 +42,10 @@ export interface Plan {
   max_users: number;
   max_storage_gb: number;
   max_orders_per_month: number;
-  features: any;
+  features: {
+    custom_domains?: boolean;
+    [key: string]: any;
+  } | null;
   active: boolean;
 }
 

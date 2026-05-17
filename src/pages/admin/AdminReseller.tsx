@@ -392,6 +392,16 @@ export default function AdminReseller() {
     }
   };
 
+  const updatePlanFeature = (feature: string, enabled: boolean) => {
+    setPlanFormData((prev) => ({
+      ...prev,
+      features: {
+        ...((prev.features && typeof prev.features === 'object') ? prev.features : {}),
+        [feature]: enabled,
+      },
+    }));
+  };
+
   const handleUpdatePlan = async (plan: Plan) => {
     try {
       await updatePlan(plan.id, planFormData);
@@ -1201,6 +1211,21 @@ export default function AdminReseller() {
                       />
                     </div>
                   </div>
+                  <div className="rounded-2xl border bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <Label htmlFor="plan_custom_domains" className="font-semibold">Domínio personalizado</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Libera 1 domínio próprio por empresa neste plano.
+                        </p>
+                      </div>
+                      <Switch
+                        id="plan_custom_domains"
+                        checked={planFormData.features?.custom_domains === true}
+                        onCheckedChange={(checked) => updatePlanFeature('custom_domains', checked)}
+                      />
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Button 
                       onClick={planFormData.id ? () => handleUpdatePlan(planFormData as Plan) : handleCreatePlan}
@@ -1236,6 +1261,11 @@ export default function AdminReseller() {
                             </div>
                             <div className="text-xs text-muted-foreground">
                               Máx. {plan.max_users || '∞'} usuários • {plan.active ? 'Ativo' : 'Inativo'}
+                            </div>
+                            <div className="mt-1 text-xs">
+                              <Badge variant="outline" className="rounded-full">
+                                Domínio personalizado: {plan.features?.custom_domains === true ? 'Liberado' : 'Bloqueado'}
+                              </Badge>
                             </div>
                           </div>
                           <div className="flex gap-2">

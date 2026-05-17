@@ -36,6 +36,32 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_company_domains_primary_per_company
   ON public.company_domains (company_id)
   WHERE is_primary = true AND status <> 'disabled';
 
+-- Regra comercial atual: apenas 1 domínio não desativado por empresa.
+-- Se uma empresa já tiver mais de um domínio, mantém o principal/mais recente e desativa os demais.
+WITH ranked_domains AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY company_id
+      ORDER BY is_primary DESC, activated_at DESC NULLS LAST, verified_at DESC NULLS LAST, created_at DESC
+    ) AS row_number
+  FROM public.company_domains
+  WHERE status <> 'disabled'
+)
+UPDATE public.company_domains cd
+SET status = 'disabled',
+    is_primary = false,
+    disabled_at = COALESCE(disabled_at, now()),
+    error_message = COALESCE(error_message, 'Desativado automaticamente para aplicar limite de 1 domínio por empresa.'),
+    updated_at = now()
+FROM ranked_domains rd
+WHERE cd.id = rd.id
+  AND rd.row_number > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_company_domains_one_enabled_per_company
+  ON public.company_domains (company_id)
+  WHERE status <> 'disabled';
+
 CREATE INDEX IF NOT EXISTS idx_company_domains_company
   ON public.company_domains (company_id, status);
 

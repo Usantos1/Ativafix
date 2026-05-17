@@ -296,6 +296,36 @@ async function checkDomainSsl(domain) {
   });
 }
 
+function planAllowsCustomDomains(features) {
+  if (!features) return false;
+  const parsedFeatures = typeof features === 'string'
+    ? (() => {
+        try { return JSON.parse(features); } catch { return {}; }
+      })()
+    : features;
+  return parsedFeatures?.custom_domains === true || parsedFeatures?.custom_domain === true;
+}
+
+async function getCompanyCustomDomainEntitlement(companyId) {
+  const result = await pool.query(
+    `SELECT p.features
+     FROM public.subscriptions s
+     JOIN public.plans p ON p.id = s.plan_id
+     WHERE s.company_id = $1
+       AND s.status IN ('active', 'trial')
+       AND (s.expires_at IS NULL OR s.expires_at > now())
+       AND p.active = true
+     ORDER BY s.expires_at DESC NULLS LAST, s.created_at DESC
+     LIMIT 1`,
+    [companyId]
+  );
+  const features = result.rows[0]?.features || null;
+  return {
+    allowed: planAllowsCustomDomains(features),
+    limit: 1,
+  };
+}
+
 const BRANCH_ALL_VALUE = 'all';
 const branchScopedTables = new Set([
   'ordens_servico',
@@ -3532,7 +3562,13 @@ app.get('/api/company-domains', authenticateToken, requirePermission('admin.conf
        ORDER BY is_primary DESC, created_at DESC`,
       [req.companyId]
     );
-    res.json({ domains: result.rows, cname_target: CUSTOM_DOMAIN_CNAME_TARGET });
+    const entitlement = await getCompanyCustomDomainEntitlement(req.companyId);
+    res.json({
+      domains: result.rows,
+      cname_target: CUSTOM_DOMAIN_CNAME_TARGET,
+      entitlement,
+      can_create_domain: entitlement.allowed && result.rows.filter((row) => row.status !== 'disabled').length < entitlement.limit,
+    });
   } catch (error) {
     console.error('[Domains] Erro ao listar domínios:', error);
     res.status(500).json({ error: 'Erro ao listar domínios' });
@@ -3543,6 +3579,19 @@ app.post('/api/company-domains', authenticateToken, requirePermission('admin.con
   try {
     if (!(await publicTableExists('company_domains'))) {
       return res.status(503).json({ error: 'Execute a migration db/migrations/manual/CRIAR_DOMINIOS_EMPRESAS.sql' });
+    }
+    const entitlement = await getCompanyCustomDomainEntitlement(req.companyId);
+    if (!entitlement.allowed) {
+      return res.status(403).json({ error: 'Seu plano atual não libera domínio personalizado.' });
+    }
+    const existingDomains = await pool.query(
+      `SELECT id FROM public.company_domains
+       WHERE company_id = $1 AND status <> 'disabled'
+       LIMIT 1`,
+      [req.companyId]
+    );
+    if (existingDomains.rows.length >= entitlement.limit) {
+      return res.status(409).json({ error: 'Esta empresa já possui um domínio personalizado cadastrado. Remova ou desative o domínio atual antes de cadastrar outro.' });
     }
     const domain = normalizeCompanyDomainInput(req.body?.domain);
     const verificationToken = crypto.randomUUID().replace(/-/g, '');
@@ -3656,6 +3705,67 @@ app.post('/api/company-domains/:id/set-primary', authenticateToken, requirePermi
     res.status(500).json({ error: 'Erro ao definir domínio principal' });
   } finally {
     client.release();
+  }
+});
+
+app.post('/api/company-domains/:id/enable', authenticateToken, requirePermission('admin.config'), async (req, res) => {
+  try {
+    const domainResult = await pool.query(
+      `SELECT * FROM public.company_domains
+       WHERE id = $1 AND company_id = $2
+       LIMIT 1`,
+      [req.params.id, req.companyId]
+    );
+    const domainRow = domainResult.rows[0];
+    if (!domainRow) return res.status(404).json({ error: 'Domínio não encontrado' });
+    if (domainRow.status !== 'disabled') return res.status(400).json({ error: 'Este domínio já está ativo ou em validação.' });
+
+    const entitlement = await getCompanyCustomDomainEntitlement(req.companyId);
+    if (!entitlement.allowed) {
+      return res.status(403).json({ error: 'Seu plano atual não libera domínio personalizado.' });
+    }
+
+    const existingDomains = await pool.query(
+      `SELECT id FROM public.company_domains
+       WHERE company_id = $1 AND status <> 'disabled'
+       LIMIT 1`,
+      [req.companyId]
+    );
+    if (existingDomains.rows.length >= entitlement.limit) {
+      return res.status(409).json({ error: 'Esta empresa já possui um domínio personalizado ativo. Desative o domínio atual antes de ativar outro.' });
+    }
+
+    const updated = await pool.query(
+      `UPDATE public.company_domains
+       SET status = CASE
+             WHEN verified_at IS NOT NULL AND ssl_status = 'active' THEN 'active'
+             WHEN verified_at IS NOT NULL THEN 'verified'
+             ELSE 'pending'
+           END,
+           disabled_at = NULL,
+           error_message = NULL,
+           updated_at = now()
+       WHERE id = $1 AND company_id = $2
+       RETURNING *`,
+      [domainRow.id, req.companyId]
+    );
+
+    await logCompanyDomainAudit({
+      companyId: req.companyId,
+      domainId: updated.rows[0].id,
+      domain: updated.rows[0].domain,
+      userId: req.user.id,
+      action: 'domain.enabled',
+    });
+
+    res.json({ domain: updated.rows[0] });
+  } catch (error) {
+    const duplicate = error.code === '23505';
+    const message = duplicate
+      ? 'Esta empresa já possui um domínio personalizado ativo.'
+      : 'Erro ao ativar domínio';
+    console.error('[Domains] Erro ao ativar domínio:', error);
+    res.status(duplicate ? 409 : 500).json({ error: message });
   }
 });
 

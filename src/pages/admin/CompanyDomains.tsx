@@ -30,6 +30,11 @@ type CompanyDomain = {
   error_message?: string | null;
 };
 
+type DomainEntitlement = {
+  allowed: boolean;
+  limit: number;
+};
+
 const statusLabels: Record<string, string> = {
   pending: 'Pendente',
   verified: 'Verificado',
@@ -67,6 +72,7 @@ export default function CompanyDomains() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [entitlement, setEntitlement] = useState<DomainEntitlement>({ allowed: false, limit: 1 });
 
   const headers = () => {
     const token = authAPI.getToken();
@@ -85,6 +91,7 @@ export default function CompanyDomains() {
       if (!res.ok) throw new Error(json.error || 'Erro ao carregar domínios');
       setDomains(json.domains || []);
       setCnameTarget(json.cname_target || 'custom.ativafix.com');
+      setEntitlement(json.entitlement || { allowed: false, limit: 1 });
     } catch (error: any) {
       const message = error?.message || 'Erro ao carregar domínios';
       setPageError(message);
@@ -105,6 +112,15 @@ export default function CompanyDomains() {
 
   const createDomain = async () => {
     const domain = normalizeDomainInput(newDomain);
+    const activeDomains = domains.filter((item) => item.status !== 'disabled').length;
+    if (!entitlement.allowed) {
+      toast.error('Seu plano atual não libera domínio personalizado.');
+      return;
+    }
+    if (activeDomains >= entitlement.limit) {
+      toast.error(`Esta empresa já possui o limite de ${entitlement.limit} domínio personalizado.`);
+      return;
+    }
     if (!domain) {
       toast.error('Informe o domínio');
       return;
@@ -128,7 +144,26 @@ export default function CompanyDomains() {
     }
   };
 
-  const runDomainAction = async (domain: CompanyDomain, action: 'verify' | 'set-primary' | 'disable' | 'delete') => {
+  const activeDomainsCount = domains.filter((domain) => domain.status !== 'disabled').length;
+  const canCreateDomain = entitlement.allowed && activeDomainsCount < entitlement.limit;
+  const guideDomain = domains.find((domain) => domain.status !== 'disabled')?.domain || normalizeDomainInput(newDomain) || 'app.seudominio.com.br';
+  const guideCnameName = getCnameName(guideDomain);
+  const clientGuideText = `Para configurar seu domínio no Ativa FIX:
+
+1. Acesse o painel DNS do seu domínio.
+2. Crie ou edite este registro:
+Tipo: CNAME
+Nome: ${guideCnameName}
+Destino: ${cnameTarget}
+TTL: Automático
+
+Se usar Cloudflare, deixe o registro como "Somente DNS" (nuvem cinza), não "Com proxy".
+
+Depois de salvar, aguarde a propagação do DNS e avise o suporte para verificar o domínio no Ativa FIX.
+
+Domínio escolhido: ${guideDomain}`;
+
+  const runDomainAction = async (domain: CompanyDomain, action: 'verify' | 'set-primary' | 'enable' | 'disable' | 'delete') => {
     const confirmDelete = action === 'delete' ? window.confirm(`Remover o domínio ${domain.domain}?`) : true;
     if (!confirmDelete) return;
     setBusyId(domain.id);
@@ -141,6 +176,8 @@ export default function CompanyDomains() {
       if (!res.ok) throw new Error(json.error || 'Erro ao executar ação');
       if (action === 'verify') {
         toast[json.verification?.ok ? 'success' : 'error'](json.verification?.ok ? 'Domínio verificado' : (json.verification?.errorMessage || json.domain?.error_message || 'DNS ainda não propagou'));
+      } else if (action === 'enable') {
+        toast.success('Domínio ativado');
       } else {
         toast.success('Ação realizada');
       }
@@ -150,6 +187,18 @@ export default function CompanyDomains() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  const enableDomain = (domain: CompanyDomain) => {
+    if (!entitlement.allowed) {
+      toast.error('Para ativar, primeiro libere "Domínio personalizado" no plano da empresa em Revenda > Gerenciar Planos.');
+      return;
+    }
+    if (activeDomainsCount >= entitlement.limit) {
+      toast.error(`Esta empresa já possui ${entitlement.limit} domínio personalizado ativo. Desative o atual antes de ativar outro.`);
+      return;
+    }
+    runDomainAction(domain, 'enable');
   };
 
   return (
@@ -166,6 +215,16 @@ export default function CompanyDomains() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!entitlement.allowed && (
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                Domínio personalizado não está liberado no plano atual desta empresa.
+              </div>
+            )}
+            {entitlement.allowed && activeDomainsCount >= entitlement.limit && (
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-900">
+                Limite atingido: esta empresa pode ter apenas {entitlement.limit} domínio personalizado ativo.
+              </div>
+            )}
             <div className="grid gap-3 md:grid-cols-[1fr_auto]">
               <div className="space-y-2">
                 <Label>Domínio</Label>
@@ -174,9 +233,10 @@ export default function CompanyDomains() {
                   onChange={(event) => setNewDomain(event.target.value)}
                   placeholder="sistema.seudominio.com.br"
                   className="h-11 rounded-full"
+                  disabled={!canCreateDomain}
                 />
               </div>
-              <Button onClick={createDomain} disabled={saving} className="self-end rounded-full bg-emerald-600 hover:bg-emerald-700">
+              <Button onClick={createDomain} disabled={saving || !canCreateDomain} className="self-end rounded-full bg-emerald-600 hover:bg-emerald-700">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Adicionar
               </Button>
@@ -186,12 +246,62 @@ export default function CompanyDomains() {
                 {pageError}
               </div>
             )}
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-900">
-              <p className="font-semibold">Infraestrutura SSL</p>
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+              <p className="font-semibold">HTTPS seguro</p>
               <p className="mt-1">
-                A validação DNS já fica pronta aqui. Para ativar HTTPS automático, a VPS/proxy precisa apontar domínios para o app e emitir certificados via Caddy, Traefik, Nginx+Certbot ou Cloudflare SSL for SaaS.
+                Depois que o DNS for verificado, o Ativa FIX ativa o acesso seguro do domínio.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-100">
+          <CardHeader>
+            <CardTitle>Como o cliente deve configurar o domínio</CardTitle>
+            <CardDescription>
+              Envie este passo a passo para quem cuida do DNS do cliente. O Ativa FIX aceita 1 domínio personalizado por empresa.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-2xl border bg-slate-50 p-4">
+                <p className="font-bold text-slate-900">1. Escolher o endereço</p>
+                <p className="mt-2 text-slate-600">Use um subdomínio como:</p>
+                <div className="mt-3 space-y-1 font-mono text-xs text-slate-700">
+                  <p>app.seudominio.com.br</p>
+                  <p>sistema.seudominio.com.br</p>
+                  <p>gestao.seudominio.com.br</p>
+                </div>
+              </div>
+              <div className="rounded-2xl border bg-slate-50 p-4">
+                <p className="font-bold text-slate-900">2. Criar CNAME no DNS</p>
+                <div className="mt-3 space-y-1 text-slate-700">
+                  <p>Tipo: <b>CNAME</b></p>
+                  <p>Nome: <b>{guideCnameName}</b></p>
+                  <p>Destino: <b>{cnameTarget}</b></p>
+                  <p>TTL: <b>Automático</b></p>
+                </div>
+              </div>
+              <div className="rounded-2xl border bg-slate-50 p-4">
+                <p className="font-bold text-slate-900">3. Verificar no Ativa FIX</p>
+                <p className="mt-2 text-slate-600">
+                  Depois de salvar o DNS, aguarde a propagação e clique em <b>Verificar</b> no domínio cadastrado.
+                </p>
+                <p className="mt-2 text-slate-600">
+                  No Cloudflare, deixe como <b>Somente DNS</b>, com a nuvem cinza.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-amber-900">
+              <p className="font-semibold">Importante</p>
+              <p className="mt-1">
+                Não use endereço com caminho, como app.seudominio.com.br/login. Cadastre apenas o domínio.
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full" onClick={() => copyText(clientGuideText)}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copiar instruções para enviar ao cliente
+            </Button>
           </CardContent>
         </Card>
 
@@ -278,10 +388,23 @@ export default function CompanyDomains() {
                               <Star className="mr-1 h-3.5 w-3.5" />
                               Principal
                             </Button>
-                            <Button size="sm" variant="outline" className="rounded-full" disabled={busyId === domain.id || domain.status === 'disabled'} onClick={() => runDomainAction(domain, 'disable')}>
-                              <Power className="mr-1 h-3.5 w-3.5" />
-                              Desativar
-                            </Button>
+                            {domain.status === 'disabled' ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full text-emerald-700 hover:text-emerald-800"
+                                disabled={busyId === domain.id}
+                                onClick={() => enableDomain(domain)}
+                              >
+                                <Power className="mr-1 h-3.5 w-3.5" />
+                                Ativar
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" className="rounded-full" disabled={busyId === domain.id} onClick={() => runDomainAction(domain, 'disable')}>
+                                <Power className="mr-1 h-3.5 w-3.5" />
+                                Desativar
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" className="rounded-full text-red-600 hover:text-red-700" disabled={busyId === domain.id || ['verified', 'active'].includes(domain.status)} onClick={() => runDomainAction(domain, 'delete')}>
                               <Trash2 className="mr-1 h-3.5 w-3.5" />
                               Remover

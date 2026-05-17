@@ -12,6 +12,15 @@ Domínios personalizados são uma camada adicional:
 
 O domínio resolve a empresa, mas não libera dados sozinho. O usuário ainda precisa fazer login e pertencer à mesma `company_id` resolvida pelo domínio.
 
+## Liberação Por Plano
+
+Domínio personalizado é controlado pelo plano da revenda.
+
+- Cada empresa pode ter apenas 1 domínio personalizado não desativado.
+- O plano precisa ter `features.custom_domains = true`.
+- A liberação é configurada em `Admin > Revenda > Gerenciar Planos > Domínio personalizado`.
+- Para trocar o domínio de uma empresa, desative/remova o domínio atual e cadastre o novo.
+
 ## Banco De Dados
 
 Execute:
@@ -35,6 +44,12 @@ CUSTOM_DOMAIN_ASSUME_SSL_ACTIVE=false
 Use `CUSTOM_DOMAIN_ASSUME_SSL_ACTIVE=true` somente quando a infraestrutura/proxy já estiver emitindo SSL para os domínios customizados.
 
 ## DNS Do Cliente
+
+Guia para enviar ao cliente:
+
+```text
+docs/GUIA_CLIENTE_DOMINIO_PERSONALIZADO.md
+```
 
 Para `app.primecamp.com.br`, criar:
 
