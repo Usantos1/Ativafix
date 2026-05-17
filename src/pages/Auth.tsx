@@ -210,7 +210,7 @@ const Auth = () => {
               <div className="group relative">
                 <label
                   htmlFor="signin-email"
-                  className="absolute left-4 top-0 z-10 h-auto min-h-0 min-w-0 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 h-auto min-h-0 min-w-0 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-[hsl(var(--primary))] group-focus-within:text-[hsl(var(--primary))] dark:bg-slate-900 dark:text-slate-400"
                 >
                   Email *
                 </label>
@@ -223,7 +223,7 @@ const Auth = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
-                  className="h-[44px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  className="h-[44px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-[hsl(var(--primary))] focus-visible:border-[hsl(var(--primary))] focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -231,7 +231,7 @@ const Auth = () => {
               <div className="group relative">
                 <label
                   htmlFor="signin-password"
-                  className="absolute left-4 top-0 z-10 h-auto min-h-0 min-w-0 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 h-auto min-h-0 min-w-0 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-[hsl(var(--primary))] group-focus-within:text-[hsl(var(--primary))] dark:bg-slate-900 dark:text-slate-400"
                 >
                   Senha *
                 </label>
@@ -244,7 +244,7 @@ const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   required
-                  className="h-[44px] rounded-full border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  className="h-[44px] rounded-full border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 shadow-none hover:border-[hsl(var(--primary))] focus-visible:border-[hsl(var(--primary))] focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
                 <button
                   type="button"
@@ -268,18 +268,18 @@ const Auth = () => {
                 >
                   <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors ${
                     rememberLogin
-                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      ? "border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-white"
                       : "border-slate-400 bg-white text-transparent dark:border-slate-500 dark:bg-slate-900"
                   }`}>
                     <Check className="h-3 w-3" />
                   </span>
-                  <span className="text-xs font-normal text-emerald-500">Salvar login</span>
+                  <span className="text-xs font-normal text-[hsl(var(--primary))]">Salvar login</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAuthMode("reset")}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#75c7ad] transition-colors hover:text-[#4da989] hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[hsl(var(--primary))] transition-colors hover:opacity-80 hover:underline"
                 >
                   <KeyRound className="h-4 w-4 text-amber-400" />
                   Esqueci minha senha
@@ -316,7 +316,7 @@ const Auth = () => {
               <div className="group relative">
                 <label
                   htmlFor="reset-email"
-                  className="absolute left-4 top-0 z-10 h-auto min-h-0 min-w-0 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-emerald-500 group-focus-within:text-emerald-500 dark:bg-slate-900 dark:text-slate-400"
+                  className="absolute left-4 top-0 z-10 h-auto min-h-0 min-w-0 -translate-y-1/2 bg-white px-1 text-[11px] font-medium leading-none text-slate-500 transition-colors group-hover:text-[hsl(var(--primary))] group-focus-within:text-[hsl(var(--primary))] dark:bg-slate-900 dark:text-slate-400"
                 >
                   Email *
                 </label>
@@ -329,7 +329,7 @@ const Auth = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
-                  className="h-[44px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-emerald-400 focus-visible:border-emerald-400 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  className="h-[44px] rounded-full border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-none hover:border-[hsl(var(--primary))] focus-visible:border-[hsl(var(--primary))] focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -352,7 +352,7 @@ const Auth = () => {
               <button
                 type="button"
                 onClick={() => setAuthMode("signin")}
-                className="text-sm font-semibold text-[#75c7ad] transition-colors hover:text-[#4da989] hover:underline"
+                className="text-sm font-semibold text-[hsl(var(--primary))] transition-colors hover:opacity-80 hover:underline"
               >
                 Voltar para o login
               </button>

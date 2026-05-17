@@ -69,11 +69,10 @@ export const ThemeToggle = ({
     );
   }
 
-  // Modo botão simples com ciclo: light -> dark -> system -> light
+  // Botão simples alterna direto entre claro e escuro.
+  // O modo "Sistema" continua disponível no dropdown, mas não entra no ciclo rápido.
   const cycleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
   return (

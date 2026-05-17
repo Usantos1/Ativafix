@@ -170,7 +170,7 @@ const App = () => {
   return (
   <ErrorBoundary>
     <HelmetProvider>
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
         <ThemeConfigProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>

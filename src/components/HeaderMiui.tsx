@@ -47,7 +47,7 @@ export function HeaderMiui({
   const isMobile = useIsMobile();
 
   return (
-    <header className="sticky top-0 z-40 shrink-0 border-b border-emerald-100/70 bg-background/95 backdrop-blur-xl dark:border-emerald-950/30">
+    <header className="sticky top-0 z-40 shrink-0 border-b border-[hsl(var(--sidebar-primary,var(--primary)))]/20 bg-background/95 backdrop-blur-xl">
       <div className="px-2 py-2 md:px-4 md:py-3">
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
           <div className="min-w-0 flex-1">
@@ -108,9 +108,9 @@ export function HeaderMiui({
                 className="h-9 w-9 rounded-full p-0"
                 aria-label="Abrir menu do usuário"
               >
-                <Avatar className="h-8 w-8 border border-emerald-200 shadow-sm">
+                <Avatar className="h-8 w-8 border border-[hsl(var(--sidebar-primary,var(--primary)))]/30 shadow-sm">
                   <AvatarImage src={profileAvatarUrl || undefined} alt={profileName || "Avatar do usuário"} />
-                  <AvatarFallback className="bg-emerald-500 text-white">
+                  <AvatarFallback className="bg-[hsl(var(--sidebar-primary,var(--primary)))] text-white">
                     <User className="h-5 w-5" />
                   </AvatarFallback>
                 </Avatar>

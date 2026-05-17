@@ -26,9 +26,9 @@ export function BranchSelector() {
         <Button
           variant="ghost"
           size="sm"
-          className="hidden sm:inline-flex h-8 max-w-[170px] rounded-full border border-emerald-100 bg-emerald-50/60 px-2.5 text-[11px] font-medium text-slate-700 shadow-none hover:bg-emerald-50 hover:text-slate-900"
+          className="hidden sm:inline-flex h-8 max-w-[170px] rounded-full border border-[hsl(var(--sidebar-primary,var(--primary)))]/25 bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 px-2.5 text-[11px] font-medium text-slate-700 shadow-none hover:bg-[hsl(var(--sidebar-primary,var(--primary)))]/15 hover:text-slate-900"
         >
-          <Store className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+          <Store className="mr-1.5 h-3.5 w-3.5 text-[hsl(var(--sidebar-primary,var(--primary)))]" />
           <span className="truncate">{label}</span>
           <ChevronsUpDown className="ml-1.5 h-3 w-3 text-muted-foreground" />
         </Button>

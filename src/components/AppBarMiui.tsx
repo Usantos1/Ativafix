@@ -72,7 +72,7 @@ export function AppBarMiui() {
                 'h-11 shrink-0 rounded-full border px-4 text-sm font-medium shadow-sm',
                 isActive
                   ? 'border-[hsl(var(--sidebar-primary,var(--primary)))] bg-[hsl(var(--sidebar-primary,var(--primary)))] text-white hover:opacity-95'
-                  : 'border-emerald-200/80 bg-white text-foreground hover:bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20'
+                  : 'border-[hsl(var(--sidebar-primary,var(--primary)))]/30 bg-white text-foreground hover:bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 dark:bg-slate-950'
               )}
             >
               <Icon className="mr-2 h-4 w-4" />
@@ -87,7 +87,7 @@ export function AppBarMiui() {
             type="button"
             variant="ghost"
             size="sm"
-            className="relative z-20 h-9 min-w-[86px] shrink-0 rounded-full border border-emerald-200/80 bg-white px-3 text-xs font-medium shadow-sm hover:bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20 sm:h-11 sm:min-w-[118px] sm:px-4 sm:text-sm"
+            className="relative z-20 h-9 min-w-[86px] shrink-0 rounded-full border border-[hsl(var(--sidebar-primary,var(--primary)))]/30 bg-white px-3 text-xs font-medium shadow-sm hover:bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 dark:bg-slate-950 sm:h-11 sm:min-w-[118px] sm:px-4 sm:text-sm"
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -135,18 +135,18 @@ export function AppBarMiui() {
                     }}
                     className={cn(
                       "relative flex w-full items-center rounded-2xl border-l-2 border-l-transparent px-3 py-3.5 text-left outline-none transition-colors",
-                      "hover:border-l-emerald-500 hover:bg-slate-100 focus-visible:border-l-emerald-500 focus-visible:bg-slate-100 dark:hover:bg-slate-900 dark:focus-visible:bg-slate-900",
-                      isCurrentPage && "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20"
+                      "hover:border-l-[hsl(var(--sidebar-primary,var(--primary)))] hover:bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 focus-visible:border-l-[hsl(var(--sidebar-primary,var(--primary)))] focus-visible:bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 dark:hover:bg-slate-900 dark:focus-visible:bg-slate-900",
+                      isCurrentPage && "border-l-[hsl(var(--sidebar-primary,var(--primary)))] bg-[hsl(var(--sidebar-primary,var(--primary)))]/10"
                     )}
                   >
-                    <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30">
+                    <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 text-[hsl(var(--sidebar-primary,var(--primary)))]">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <div className="flex items-center gap-2">
                         <span className="truncate text-[15px] font-semibold text-slate-900 dark:text-slate-100">{item.label}</span>
                         {isCurrentPage && (
-                          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          <span className="shrink-0 rounded-full bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--sidebar-primary,var(--primary)))]">
                             Página atual
                           </span>
                         )}
@@ -167,7 +167,7 @@ export function AppBarMiui() {
         <Button
           type="button"
           variant="ghost"
-          className="h-11 w-11 shrink-0 rounded-full border border-emerald-200/80 bg-white p-0 text-emerald-600 shadow-sm hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-slate-950 dark:hover:bg-emerald-950/20"
+          className="h-11 w-11 shrink-0 rounded-full border border-[hsl(var(--sidebar-primary,var(--primary)))]/30 bg-white p-0 text-[hsl(var(--sidebar-primary,var(--primary)))] shadow-sm hover:bg-[hsl(var(--sidebar-primary,var(--primary)))]/10 dark:bg-slate-950"
           aria-label="Busca rápida"
           title="Busca rápida (Ctrl+K)"
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}

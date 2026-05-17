@@ -74,6 +74,67 @@ const hexToHsl = (hex: string): string => {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
+const normalizeHexInput = (value: string) => {
+  const raw = value.trim().replace(/^#/, '');
+  if (!/^[0-9a-fA-F]{6}$/.test(raw)) return null;
+  return `#${raw.toLowerCase()}`;
+};
+
+function ColorControl({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [hexValue, setHexValue] = useState(hslToHex(value));
+
+  useEffect(() => {
+    setHexValue(hslToHex(value));
+  }, [value]);
+
+  const commitHex = (nextValue: string) => {
+    const normalized = normalizeHexInput(nextValue);
+    if (normalized) {
+      setHexValue(normalized);
+      onChange(hexToHsl(normalized));
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2 rounded-full border bg-white px-2 py-1.5">
+        <input
+          type="color"
+          value={hslToHex(value)}
+          onChange={(event) => commitHex(event.target.value)}
+          className="h-9 w-12 shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0"
+        />
+        <Input
+          value={hexValue}
+          onChange={(event) => setHexValue(event.target.value)}
+          onBlur={(event) => {
+            const normalized = normalizeHexInput(event.target.value);
+            if (normalized) commitHex(normalized);
+            else setHexValue(hslToHex(value));
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.currentTarget.blur();
+            }
+          }}
+          placeholder="#ff0000"
+          className="h-8 border-0 px-1 font-mono text-sm shadow-none focus-visible:ring-0"
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground">Use o seletor HTML ou informe em HEX.</p>
+    </div>
+  );
+}
+
 const readImageAsDataUrl = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
@@ -190,6 +251,9 @@ export default function CompanyBranding() {
                     <Upload className="mr-2 h-4 w-4" />
                     Enviar logo
                   </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Recomendado: PNG transparente, 600x220 px ou proporção 3:1. Máximo 2MB.
+                  </p>
                   <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], setLogo)} />
                 </div>
 
@@ -202,6 +266,9 @@ export default function CompanyBranding() {
                     <Upload className="mr-2 h-4 w-4" />
                     Enviar favicon
                   </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Recomendado: quadrado, 512x512 px. PNG, SVG ou ICO.
+                  </p>
                   <input ref={faviconInputRef} type="file" accept="image/*,.ico" className="hidden" onChange={(event) => handleImage(event.target.files?.[0], setFavicon)} />
                 </div>
               </div>
@@ -209,6 +276,9 @@ export default function CompanyBranding() {
               <div className="space-y-2">
                 <Label>Imagem de fundo do login</Label>
                 <Input value={loginBackground} onChange={(event) => setLoginBackground(event.target.value)} placeholder="URL da imagem de fundo" />
+                <p className="text-xs text-muted-foreground">
+                  Recomendado: 1920x1080 px, formato horizontal, até 2MB se for enviada como imagem.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -219,24 +289,9 @@ export default function CompanyBranding() {
               <CardDescription>Escolha as cores principais do sistema desta empresa.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3">
-              {[
-                ['Principal', primaryColor, setPrimaryColor],
-                ['Menu/Appbar', sidebarColor, setSidebarColor],
-                ['Botões', buttonColor, setButtonColor],
-              ].map(([label, value, setter]) => (
-                <div key={String(label)} className="space-y-2">
-                  <Label>{String(label)}</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={hslToHex(String(value))}
-                      onChange={(event) => (setter as (next: string) => void)(hexToHsl(event.target.value))}
-                      className="h-10 w-14 cursor-pointer rounded border"
-                    />
-                    <Input value={String(value)} onChange={(event) => (setter as (next: string) => void)(event.target.value)} />
-                  </div>
-                </div>
-              ))}
+              <ColorControl label="Principal" value={primaryColor} onChange={setPrimaryColor} />
+              <ColorControl label="Menu/Appbar" value={sidebarColor} onChange={setSidebarColor} />
+              <ColorControl label="Botões" value={buttonColor} onChange={setButtonColor} />
             </CardContent>
           </Card>
         </div>

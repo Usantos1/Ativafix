@@ -224,6 +224,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
+  const normalizeHexInput = (value: string) => {
+    const raw = value.trim().replace(/^#/, '');
+    if (!/^[0-9a-fA-F]{6}$/.test(raw)) return null;
+    return `#${raw.toLowerCase()}`;
+  };
+
+  const commitHexColor = (value: string, setter: (next: string) => void) => {
+    const hex = normalizeHexInput(value);
+    if (!hex) return false;
+    setter(hexToHsl(hex));
+    return true;
+  };
+
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -400,7 +413,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Cor Principal (AppBar)</Label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 rounded-full border bg-white px-2 py-1.5 dark:bg-slate-900">
                   <input
                     type="color"
                     value={hslToHex(primaryColor)}
@@ -410,56 +423,59 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       setSidebarColor(hexToHsl(hex));
                       setButtonColor(hexToHsl(hex));
                     }}
-                    className="h-10 w-20 rounded border cursor-pointer"
+                    className="h-9 w-12 shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0"
                   />
                   <Input
-                    value={primaryColor}
+                    value={hslToHex(primaryColor)}
                     onChange={(e) => {
-                      setPrimaryColor(e.target.value);
-                      setSidebarColor(e.target.value);
-                      setButtonColor(e.target.value);
+                      const hex = normalizeHexInput(e.target.value);
+                      if (!hex) return;
+                      const hsl = hexToHsl(hex);
+                      setPrimaryColor(hsl);
+                      setSidebarColor(hsl);
+                      setButtonColor(hsl);
                     }}
-                    placeholder="198 100% 35%"
-                    className="flex-1"
+                    placeholder="#008f5c"
+                    className="h-8 flex-1 border-0 px-1 font-mono text-sm shadow-none focus-visible:ring-0"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Formato HSL: H S% L%
+                  Use o seletor HTML ou informe em HEX.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label>Cor do Sidebar</Label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 rounded-full border bg-white px-2 py-1.5 dark:bg-slate-900">
                   <input
                     type="color"
                     value={hslToHex(sidebarColor)}
                     onChange={(e) => setSidebarColor(hexToHsl(e.target.value))}
-                    className="h-10 w-20 rounded border cursor-pointer"
+                    className="h-9 w-12 shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0"
                   />
                   <Input
-                    value={sidebarColor}
-                    onChange={(e) => setSidebarColor(e.target.value)}
-                    placeholder="198 100% 35%"
-                    className="flex-1"
+                    value={hslToHex(sidebarColor)}
+                    onChange={(e) => commitHexColor(e.target.value, setSidebarColor)}
+                    placeholder="#008f5c"
+                    className="h-8 flex-1 border-0 px-1 font-mono text-sm shadow-none focus-visible:ring-0"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Cor dos Botões</Label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 rounded-full border bg-white px-2 py-1.5 dark:bg-slate-900">
                   <input
                     type="color"
                     value={hslToHex(buttonColor)}
                     onChange={(e) => setButtonColor(hexToHsl(e.target.value))}
-                    className="h-10 w-20 rounded border cursor-pointer"
+                    className="h-9 w-12 shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0"
                   />
                   <Input
-                    value={buttonColor}
-                    onChange={(e) => setButtonColor(e.target.value)}
-                    placeholder="198 100% 35%"
-                    className="flex-1"
+                    value={hslToHex(buttonColor)}
+                    onChange={(e) => commitHexColor(e.target.value, setButtonColor)}
+                    placeholder="#008f5c"
+                    className="h-8 flex-1 border-0 px-1 font-mono text-sm shadow-none focus-visible:ring-0"
                   />
                 </div>
               </div>
