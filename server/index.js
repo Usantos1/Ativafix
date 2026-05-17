@@ -254,6 +254,48 @@ async function verifyDomainDns(domainRow) {
   };
 }
 
+async function checkDomainSsl(domain) {
+  const normalizedDomain = normalizeDomainHost(domain);
+  if (!normalizedDomain) return { ok: false, status: 'failed', errorMessage: 'Domínio inválido para checar SSL.' };
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: normalizedDomain,
+      port: 443,
+      method: 'HEAD',
+      path: '/',
+      servername: normalizedDomain,
+      timeout: 8000,
+    }, (response) => {
+      response.resume();
+      const certificate = response.socket.getPeerCertificate();
+      const validTo = certificate?.valid_to || null;
+      resolve({
+        ok: true,
+        status: 'active',
+        details: {
+          statusCode: response.statusCode,
+          subject: certificate?.subject || null,
+          issuer: certificate?.issuer || null,
+          valid_to: validTo,
+        },
+      });
+    });
+
+    req.on('timeout', () => {
+      req.destroy(new Error('Timeout ao checar HTTPS.'));
+    });
+    req.on('error', (error) => {
+      resolve({
+        ok: false,
+        status: 'failed',
+        errorMessage: error.message || 'SSL ainda não está ativo.',
+      });
+    });
+    req.end();
+  });
+}
+
 const BRANCH_ALL_VALUE = 'all';
 const branchScopedTables = new Set([
   'ordens_servico',
@@ -3546,7 +3588,10 @@ app.post('/api/company-domains/:id/verify', authenticateToken, requirePermission
 
     const verification = await verifyDomainDns(domainRow);
     const nextStatus = verification.ok ? 'verified' : 'failed';
-    const nextSslStatus = verification.ok && process.env.CUSTOM_DOMAIN_ASSUME_SSL_ACTIVE === 'true' ? 'active' : domainRow.ssl_status || 'pending';
+    const sslCheck = verification.ok ? await checkDomainSsl(domainRow.domain) : { ok: false, status: domainRow.ssl_status || 'pending' };
+    const nextSslStatus = verification.ok
+      ? (sslCheck.ok ? 'active' : (domainRow.ssl_status === 'active' ? 'active' : sslCheck.status || 'pending'))
+      : (domainRow.ssl_status || 'pending');
     const activatedAtSql = nextStatus === 'verified' && nextSslStatus === 'active' ? ', activated_at = COALESCE(activated_at, now()), status = $3' : ', status = $3';
     const statusValue = nextStatus === 'verified' && nextSslStatus === 'active' ? 'active' : nextStatus;
 
@@ -3568,11 +3613,11 @@ app.post('/api/company-domains/:id/verify', authenticateToken, requirePermission
       domain: domainRow.domain,
       userId: req.user.id,
       action: verification.ok ? 'domain.verified' : 'domain.verification_failed',
-      details: verification.details,
+      details: { dns: verification.details, ssl: sslCheck },
       errorMessage: verification.errorMessage,
     });
 
-    res.json({ domain: updated.rows[0], verification });
+    res.json({ domain: updated.rows[0], verification: { ...verification, ssl: sslCheck } });
   } catch (error) {
     console.error('[Domains] Erro ao verificar domínio:', error);
     res.status(500).json({ error: 'Erro ao verificar domínio' });
