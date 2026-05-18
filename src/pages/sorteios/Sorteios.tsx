@@ -75,7 +75,52 @@ const raffleStatusLabel: Record<string, string> = {
   cancelled: 'Cancelado',
 };
 
+const couponStatusLabel: Record<string, string> = {
+  valid: 'Válido',
+  cancelled: 'Cancelado',
+  canceled: 'Cancelado',
+  winner: 'Ganhador',
+  expired: 'Expirado',
+};
+
+const orderTypeLabel: Record<string, string> = {
+  sale: 'Venda',
+  service_order: 'Ordem de Serviço',
+};
+
+const auditActionLabel: Record<string, string> = {
+  raffle_created: 'Sorteio criado',
+  raffle_updated: 'Sorteio atualizado',
+  raffle_cancelled: 'Sorteio cancelado',
+  raffle_inactivated: 'Sorteio inativado',
+  raffle_activated: 'Sorteio ativado',
+  raffle_drawn: 'Sorteio realizado',
+  coupon_generated: 'Cupom gerado',
+  coupon_cancelled: 'Cupom cancelado',
+  coupon_cancel_blocked_winner: 'Cancelamento bloqueado: cupom vencedor',
+  coupon_skipped_invalid_customer: 'Cupom ignorado: cliente inválido',
+  winner_selected: 'Ganhador selecionado',
+  settings_updated: 'Configuração atualizada',
+};
+
+const auditOriginLabel: Record<string, string> = {
+  system: 'Sistema',
+  manual: 'Manual',
+  admin: 'Administrador',
+  public: 'Página pública',
+};
+
 const validTabs = new Set(['visao-geral', 'configuracoes', 'cupons', 'participantes', 'auditoria']);
+const TABLE_PAGE_SIZE = 50;
+
+const humanizeIdentifier = (value?: string | null) => {
+  if (!value) return '-';
+  return String(value)
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^./, (letter) => letter.toUpperCase());
+};
 
 const DEFAULT_PRIZE_TIERS: RafflePrizeTier[] = [
   { position: 1, type: 'voucher', description: 'Vale-compra', value: 100 },
@@ -112,6 +157,62 @@ const maskDocument = (value?: string | null) => {
   if (!digits) return '-';
   return `${digits.slice(0, 5)}******`;
 };
+
+function TablePagination({
+  page,
+  totalItems,
+  onPageChange,
+}: {
+  page: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / TABLE_PAGE_SIZE));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const start = totalItems === 0 ? 0 : (safePage - 1) * TABLE_PAGE_SIZE + 1;
+  const end = Math.min(safePage * TABLE_PAGE_SIZE, totalItems);
+
+  if (totalItems <= TABLE_PAGE_SIZE) {
+    return (
+      <div className="flex items-center justify-end border-t px-2 py-3 text-xs text-muted-foreground">
+        {totalItems} registro(s)
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 border-t px-2 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <span>
+        Mostrando {start}-{end} de {totalItems} registro(s)
+      </span>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-full px-3 text-xs"
+          disabled={safePage <= 1}
+          onClick={() => onPageChange(safePage - 1)}
+        >
+          Anterior
+        </Button>
+        <span className="min-w-[88px] text-center">
+          Página {safePage} de {totalPages}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-full px-3 text-xs"
+          disabled={safePage >= totalPages}
+          onClick={() => onPageChange(safePage + 1)}
+        >
+          Próxima
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 const sumUniqueSourceAmounts = (coupons: RaffleCoupon[]) => {
   const seen = new Set<string>();
@@ -283,6 +384,8 @@ export default function Sorteios() {
   const [clientesMap, setClientesMap] = useState<Record<string, any>>({});
   const [vendedoresMap, setVendedoresMap] = useState<Record<string, string>>({});
   const [couponSearch, setCouponSearch] = useState('');
+  const [couponPage, setCouponPage] = useState(1);
+  const [participantsPage, setParticipantsPage] = useState(1);
   const [companyName, setCompanyName] = useState('Empresa');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -316,6 +419,10 @@ export default function Sorteios() {
     const nextTab = tab && validTabs.has(tab) ? tab : 'visao-geral';
     setActiveTab(nextTab);
   }, [tab]);
+
+  useEffect(() => {
+    setCouponPage(1);
+  }, [couponSearch]);
 
   const validCoupons = useMemo(() => coupons.filter((c) => c.status === 'valid' || c.status === 'winner'), [coupons]);
   const eligibleAmountByRaffle = useMemo(() => {
@@ -355,6 +462,28 @@ export default function Sorteios() {
       );
     });
   }, [clientesMap, couponSearch, coupons, vendedoresMap]);
+
+  const paginatedCoupons = useMemo(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredCoupons.length / TABLE_PAGE_SIZE));
+    const safePage = Math.min(Math.max(couponPage, 1), totalPages);
+    return filteredCoupons.slice((safePage - 1) * TABLE_PAGE_SIZE, safePage * TABLE_PAGE_SIZE);
+  }, [couponPage, filteredCoupons]);
+
+  const paginatedParticipants = useMemo(() => {
+    const totalPages = Math.max(1, Math.ceil(participants.length / TABLE_PAGE_SIZE));
+    const safePage = Math.min(Math.max(participantsPage, 1), totalPages);
+    return participants.slice((safePage - 1) * TABLE_PAGE_SIZE, safePage * TABLE_PAGE_SIZE);
+  }, [participants, participantsPage]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredCoupons.length / TABLE_PAGE_SIZE));
+    if (couponPage > totalPages) setCouponPage(totalPages);
+  }, [couponPage, filteredCoupons.length]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(participants.length / TABLE_PAGE_SIZE));
+    if (participantsPage > totalPages) setParticipantsPage(totalPages);
+  }, [participants.length, participantsPage]);
 
   const loadData = async (preferredSettingId?: string | null) => {
     setIsLoading(true);
@@ -1974,7 +2103,7 @@ export default function Sorteios() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCoupons.map((coupon) => {
+                  {paginatedCoupons.map((coupon) => {
                     const cliente = coupon.customer_id ? clientesMap[coupon.customer_id] : null;
                     const vendedor = coupon.generated_by_user_id ? vendedoresMap[coupon.generated_by_user_id] : null;
                     const trackingUrl = getTrackingUrl(coupon.tracking_token);
@@ -1984,10 +2113,14 @@ export default function Sorteios() {
                         <TableCell>{cliente?.nome || '-'}</TableCell>
                         <TableCell>{valuesVisible ? (cliente?.whatsapp || cliente?.telefone || '-') : maskPhone(cliente?.whatsapp || cliente?.telefone)}</TableCell>
                         <TableCell>{vendedor || '-'}</TableCell>
-                        <TableCell>{coupon.order_type === 'service_order' ? 'Ordem de Serviço' : 'Venda'}</TableCell>
+                        <TableCell>{orderTypeLabel[coupon.order_type] || humanizeIdentifier(coupon.order_type)}</TableCell>
                         <TableCell>{valuesVisible ? currencyFormatters.brl(coupon.eligible_amount) : MASKED_VALUE}</TableCell>
                         <TableCell>{dateFormatters.short(coupon.generated_at)}</TableCell>
-                        <TableCell><Badge variant={coupon.status === 'winner' ? 'default' : 'outline'}>{coupon.status}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant={coupon.status === 'winner' ? 'default' : 'outline'}>
+                            {couponStatusLabel[coupon.status] || humanizeIdentifier(coupon.status)}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           {trackingUrl ? (
                             <div className="flex justify-end gap-2">
@@ -2033,6 +2166,7 @@ export default function Sorteios() {
                 </TableBody>
               </Table>
               </div>
+              <TablePagination page={couponPage} totalItems={filteredCoupons.length} onPageChange={setCouponPage} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -2055,7 +2189,7 @@ export default function Sorteios() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {participants.map((participant) => (
+                  {paginatedParticipants.map((participant) => (
                     <TableRow key={participant.customer_id}>
                       <TableCell>{participant.cliente?.nome || participant.customer_id}</TableCell>
                       <TableCell>{valuesVisible ? (participant.cliente?.whatsapp || participant.cliente?.telefone || '-') : maskPhone(participant.cliente?.whatsapp || participant.cliente?.telefone)}</TableCell>
@@ -2070,6 +2204,7 @@ export default function Sorteios() {
                   )}
                 </TableBody>
               </Table>
+              <TablePagination page={participantsPage} totalItems={participants.length} onPageChange={setParticipantsPage} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -2099,8 +2234,8 @@ export default function Sorteios() {
                   {auditLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>{dateFormatters.short(log.created_at)}</TableCell>
-                      <TableCell>{log.action}</TableCell>
-                      <TableCell>{log.origin}</TableCell>
+                      <TableCell>{auditActionLabel[log.action] || humanizeIdentifier(log.action)}</TableCell>
+                      <TableCell>{auditOriginLabel[log.origin] || humanizeIdentifier(log.origin)}</TableCell>
                       <TableCell>{log.sale_id || log.service_order_id || log.coupon_id || log.raffle_id || '-'}</TableCell>
                     </TableRow>
                   ))}
