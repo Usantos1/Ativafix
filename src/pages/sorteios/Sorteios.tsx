@@ -107,6 +107,12 @@ const maskPhone = (value?: string | null) => {
   return `****-${digits.slice(-4)}`;
 };
 
+const maskDocument = (value?: string | null) => {
+  const digits = String(value || '').replace(/\D+/g, '');
+  if (!digits) return '-';
+  return `${digits.slice(0, 5)}******`;
+};
+
 const sumUniqueSourceAmounts = (coupons: RaffleCoupon[]) => {
   const seen = new Set<string>();
   return coupons.reduce((sum, coupon) => {
@@ -2053,7 +2059,7 @@ export default function Sorteios() {
                     <TableRow key={participant.customer_id}>
                       <TableCell>{participant.cliente?.nome || participant.customer_id}</TableCell>
                       <TableCell>{valuesVisible ? (participant.cliente?.whatsapp || participant.cliente?.telefone || '-') : maskPhone(participant.cliente?.whatsapp || participant.cliente?.telefone)}</TableCell>
-                      <TableCell>{participant.cliente?.cpf_cnpj || '-'}</TableCell>
+                      <TableCell>{valuesVisible ? (participant.cliente?.cpf_cnpj || '-') : maskDocument(participant.cliente?.cpf_cnpj)}</TableCell>
                       <TableCell>{valuesVisible ? currencyFormatters.brl(participant.total_amount) : MASKED_VALUE}</TableCell>
                       <TableCell>{participant.total_coupons}</TableCell>
                       <TableCell className="max-w-[280px] truncate">{participant.numbers}</TableCell>
