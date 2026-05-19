@@ -384,6 +384,7 @@ export default function Sorteios() {
   const [clientesMap, setClientesMap] = useState<Record<string, any>>({});
   const [vendedoresMap, setVendedoresMap] = useState<Record<string, string>>({});
   const [couponSearch, setCouponSearch] = useState('');
+  const [participantSearch, setParticipantSearch] = useState('');
   const [couponPage, setCouponPage] = useState(1);
   const [participantsPage, setParticipantsPage] = useState(1);
   const [companyName, setCompanyName] = useState('Empresa');
@@ -424,6 +425,10 @@ export default function Sorteios() {
     setCouponPage(1);
   }, [couponSearch]);
 
+  useEffect(() => {
+    setParticipantsPage(1);
+  }, [participantSearch]);
+
   const validCoupons = useMemo(() => coupons.filter((c) => c.status === 'valid' || c.status === 'winner'), [coupons]);
   const eligibleAmountByRaffle = useMemo(() => {
     return Object.fromEntries(
@@ -434,18 +439,23 @@ export default function Sorteios() {
     ) as Record<string, number>;
   }, [validCoupons]);
   const participants = useMemo(() => {
-    const ids = new Set(validCoupons.map((c) => c.customer_id).filter(Boolean));
+    const ids = new Set(coupons.map((c) => c.customer_id).filter(Boolean));
     return Array.from(ids).map((id) => {
-      const customerCoupons = validCoupons.filter((c) => c.customer_id === id);
+      const customerCoupons = coupons.filter((c) => c.customer_id === id);
+      const activeCoupons = customerCoupons.filter((c) => c.status === 'valid' || c.status === 'winner');
+      const cancelledCoupons = customerCoupons.filter((c) => c.status === 'cancelled');
       return {
         customer_id: id as string,
         cliente: clientesMap[id as string],
         total_coupons: customerCoupons.length,
-        total_amount: sumUniqueSourceAmounts(customerCoupons),
-        numbers: customerCoupons.map((c) => c.coupon_number).join(', '),
+        active_coupons: activeCoupons.length,
+        cancelled_coupons: cancelledCoupons.length,
+        total_amount: sumUniqueSourceAmounts(activeCoupons),
+        numbers: activeCoupons.map((c) => c.coupon_number).join(', '),
+        cancelled_numbers: cancelledCoupons.map((c) => c.coupon_number).join(', '),
       };
     });
-  }, [clientesMap, validCoupons]);
+  }, [clientesMap, coupons]);
 
   const filteredCoupons = useMemo(() => {
     const term = couponSearch.trim().toLowerCase();
@@ -463,6 +473,25 @@ export default function Sorteios() {
     });
   }, [clientesMap, couponSearch, coupons, vendedoresMap]);
 
+  const filteredParticipants = useMemo(() => {
+    const term = participantSearch.trim().toLowerCase();
+    if (!term) return participants;
+    const digits = term.replace(/\D+/g, '');
+    return participants.filter((participant) => {
+      const cliente = participant.cliente;
+      const phone = String(cliente?.whatsapp || cliente?.telefone || '').replace(/\D+/g, '');
+      const document = String(cliente?.cpf_cnpj || '').replace(/\D+/g, '');
+      return (
+        String(cliente?.nome || '').toLowerCase().includes(term) ||
+        String(participant.customer_id || '').toLowerCase().includes(term) ||
+        Boolean(digits && phone.includes(digits)) ||
+        Boolean(digits && document.includes(digits)) ||
+        String(participant.numbers || '').includes(digits || term) ||
+        String(participant.cancelled_numbers || '').includes(digits || term)
+      );
+    });
+  }, [participantSearch, participants]);
+
   const paginatedCoupons = useMemo(() => {
     const totalPages = Math.max(1, Math.ceil(filteredCoupons.length / TABLE_PAGE_SIZE));
     const safePage = Math.min(Math.max(couponPage, 1), totalPages);
@@ -470,10 +499,10 @@ export default function Sorteios() {
   }, [couponPage, filteredCoupons]);
 
   const paginatedParticipants = useMemo(() => {
-    const totalPages = Math.max(1, Math.ceil(participants.length / TABLE_PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(filteredParticipants.length / TABLE_PAGE_SIZE));
     const safePage = Math.min(Math.max(participantsPage, 1), totalPages);
-    return participants.slice((safePage - 1) * TABLE_PAGE_SIZE, safePage * TABLE_PAGE_SIZE);
-  }, [participants, participantsPage]);
+    return filteredParticipants.slice((safePage - 1) * TABLE_PAGE_SIZE, safePage * TABLE_PAGE_SIZE);
+  }, [filteredParticipants, participantsPage]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(filteredCoupons.length / TABLE_PAGE_SIZE));
@@ -481,9 +510,9 @@ export default function Sorteios() {
   }, [couponPage, filteredCoupons.length]);
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(participants.length / TABLE_PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(filteredParticipants.length / TABLE_PAGE_SIZE));
     if (participantsPage > totalPages) setParticipantsPage(totalPages);
-  }, [participants.length, participantsPage]);
+  }, [filteredParticipants.length, participantsPage]);
 
   const loadData = async (preferredSettingId?: string | null) => {
     setIsLoading(true);
@@ -2176,7 +2205,19 @@ export default function Sorteios() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Clientes Participantes</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Input
+                  value={participantSearch}
+                  onChange={(e) => setParticipantSearch(e.target.value)}
+                  placeholder="Pesquisar por cliente, CPF, telefone ou número"
+                  className="max-w-md rounded-full"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {filteredParticipants.length} de {participants.length} participante(s)
+                </span>
+              </div>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -2184,8 +2225,9 @@ export default function Sorteios() {
                     <TableHead>Telefone</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Total elegível</TableHead>
-                    <TableHead>Cupons</TableHead>
-                    <TableHead>Números</TableHead>
+                    <TableHead>Cupons válidos</TableHead>
+                    <TableHead>Cancelados</TableHead>
+                    <TableHead>Números válidos</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -2195,16 +2237,20 @@ export default function Sorteios() {
                       <TableCell>{valuesVisible ? (participant.cliente?.whatsapp || participant.cliente?.telefone || '-') : maskPhone(participant.cliente?.whatsapp || participant.cliente?.telefone)}</TableCell>
                       <TableCell>{valuesVisible ? (participant.cliente?.cpf_cnpj || '-') : maskDocument(participant.cliente?.cpf_cnpj)}</TableCell>
                       <TableCell>{valuesVisible ? currencyFormatters.brl(participant.total_amount) : MASKED_VALUE}</TableCell>
-                      <TableCell>{participant.total_coupons}</TableCell>
-                      <TableCell className="max-w-[280px] truncate">{participant.numbers}</TableCell>
+                      <TableCell>{participant.active_coupons}</TableCell>
+                      <TableCell>{participant.cancelled_coupons}</TableCell>
+                      <TableCell className="max-w-[280px] truncate">
+                        {participant.numbers || (participant.cancelled_numbers ? 'Sem cupons válidos' : '-')}
+                      </TableCell>
                     </TableRow>
                   ))}
-                  {participants.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum participante.</TableCell></TableRow>
+                  {filteredParticipants.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum participante.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
-              <TablePagination page={participantsPage} totalItems={participants.length} onPageChange={setParticipantsPage} />
+              </div>
+              <TablePagination page={participantsPage} totalItems={filteredParticipants.length} onPageChange={setParticipantsPage} />
             </CardContent>
           </Card>
         </TabsContent>

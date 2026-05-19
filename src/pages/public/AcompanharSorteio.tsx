@@ -183,14 +183,17 @@ export default function AcompanharSorteio() {
   const isDrawn = data?.raffle.status === 'drawn';
   const isCancelled = data?.raffle.status === 'cancelled';
   const currentWinner = useMemo(() => data?.winners.find((winner) => winner.is_current_participant), [data?.winners]);
+  const validCoupons = useMemo(() => data?.coupons.filter((coupon) => coupon.status === 'valid' || coupon.status === 'winner') || [], [data?.coupons]);
+  const cancelledCoupons = useMemo(() => data?.coupons.filter((coupon) => coupon.status === 'cancelled') || [], [data?.coupons]);
+  const participantCouponsCancelled = Boolean(data && data.coupons.length > 0 && validCoupons.length === 0 && cancelledCoupons.length > 0);
   const effectiveDrawDate = useMemo(() => getEffectiveDrawDate(data?.raffle.draw_date, data?.raffle.draw_time), [data?.raffle.draw_date, data?.raffle.draw_time]);
   const countdownParts = getCountdownParts(effectiveDrawDate, now);
 
   useEffect(() => {
-    if (!isDrawn || rouletteFinished || rouletteRunning || !data?.winners?.length || !data?.coupons?.length) return undefined;
+    if (!isDrawn || rouletteFinished || rouletteRunning || !data?.winners?.length || !validCoupons.length) return undefined;
     setRouletteRunning(true);
 
-    const allNumbers = data.coupons.map((coupon) => Number(coupon.coupon_number)).filter(Number.isFinite);
+    const allNumbers = validCoupons.map((coupon) => Number(coupon.coupon_number)).filter(Number.isFinite);
     const finalNumber = Number(data.winners[0]?.coupon_number || allNumbers[0]);
     let ticks = 0;
     const interval = window.setInterval(() => {
@@ -208,7 +211,7 @@ export default function AcompanharSorteio() {
     }, 90);
 
     return () => window.clearInterval(interval);
-  }, [data?.coupons, data?.winners, isDrawn, rouletteFinished, rouletteRunning]);
+  }, [data?.winners, isDrawn, rouletteFinished, rouletteRunning, validCoupons]);
 
   if (loading) {
     return (
@@ -293,9 +296,14 @@ export default function AcompanharSorteio() {
             <CardContent className="space-y-6 p-6 pt-2">
               <div className="rounded-3xl bg-slate-50 p-5 text-slate-700">
                 <p className="text-base leading-relaxed">
-                  Olá, <strong className="text-slate-950">{data.participant.name}</strong>! Seus números já estão participando do nosso sorteio mensal.
+                  Olá, <strong className="text-slate-950">{data.participant.name}</strong>! {participantCouponsCancelled ? 'Os números deste atendimento foram cancelados e não participam mais deste sorteio.' : 'Seus números já estão participando do nosso sorteio mensal.'}
                 </p>
               </div>
+              {participantCouponsCancelled && (
+                <div className="rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-semibold text-red-700">
+                  Participação cancelada. Esses números ficam apenas no histórico e não entram no sorteio.
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-3 sm:flex sm:flex-wrap">
                 {data.coupons.map((coupon) => (
                   <div
@@ -303,13 +311,21 @@ export default function AcompanharSorteio() {
                     className={`flex min-h-20 items-center justify-center rounded-3xl border-2 px-5 text-2xl font-black shadow-sm ${
                       coupon.status === 'winner'
                         ? 'border-emerald-500 bg-emerald-600 text-white'
+                        : coupon.status === 'cancelled'
+                          ? 'border-red-200 bg-red-50 text-red-400 line-through opacity-70'
                         : 'border-emerald-100 bg-emerald-50 text-emerald-950'
                     }`}
+                    title={coupon.status === 'cancelled' ? 'Número cancelado' : undefined}
                   >
                     {coupon.coupon_number}
                   </div>
                 ))}
               </div>
+              {cancelledCoupons.length > 0 && validCoupons.length > 0 && (
+                <p className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                  {cancelledCoupons.length} número(s) foram cancelados e não participam do sorteio.
+                </p>
+              )}
               {!isDrawn && !isCancelled && (
                 <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-lime-50 p-5">
                   <div className="mb-4 flex items-center gap-2 font-black text-emerald-900">
