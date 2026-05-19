@@ -30,6 +30,9 @@ export function mapSupabaseToAssistencia(supabaseProduto: any): Produto {
     
     // Estoque
     quantidade: Number(supabaseProduto.quantidade || 0),
+    estoque_fisico: supabaseProduto.estoque_fisico != null ? Number(supabaseProduto.estoque_fisico || 0) : undefined,
+    estoque_reservado: supabaseProduto.estoque_reservado != null ? Number(supabaseProduto.estoque_reservado || 0) : undefined,
+    estoque_disponivel: supabaseProduto.estoque_disponivel != null ? Number(supabaseProduto.estoque_disponivel || 0) : undefined,
     estoque_minimo: supabaseProduto.estoque_minimo ? Number(supabaseProduto.estoque_minimo) : undefined,
     estoque_grade: supabaseProduto.estoque_grade && typeof supabaseProduto.estoque_grade === 'object'
       ? { tipo: supabaseProduto.estoque_grade.tipo || 'cor', itens: supabaseProduto.estoque_grade.itens || {} }
@@ -192,11 +195,11 @@ export function mapAssistenciaToSupabase(produto: Partial<Produto>): any {
 
 export function useProdutosSupabase() {
   const queryClient = useQueryClient();
-  const { user, profile } = useAuth();
+  const { user, profile, activeBranchId } = useAuth();
 
   // Buscar produtos do Supabase
   const { data: produtosData, isLoading, error } = useQuery({
-    queryKey: ['produtos-assistencia'],
+    queryKey: ['produtos-assistencia', activeBranchId],
     queryFn: async () => {
       // Buscar todos os produtos sem limite
       // Usar paginação para buscar todos
@@ -221,6 +224,87 @@ export function useProdutosSupabase() {
           hasMore = rows.length === pageSize;
         } else {
           hasMore = false;
+        }
+      }
+
+      if (activeBranchId && allData.length > 0) {
+        const productIds = allData.map((row: any) => row.id).filter(Boolean);
+        const { data: stocks, error: stockError } = await from('product_stocks')
+          .select('product_id,branch_id,quantity,reserved_quantity,minimum_quantity')
+          .in('product_id', productIds)
+          .execute();
+
+        if (!stockError && Array.isArray(stocks)) {
+          const osReservedByProductBranch = new Map<string, number>();
+          const { data: osItems, error: osItemsError } = await from('os_items')
+            .select('produto_id,tipo,quantidade,branch_id,ordem_servico_id')
+            .in('produto_id', productIds)
+            .execute();
+
+          const pendingOsItems = osItemsError
+            ? []
+            : (osItems || []).filter((item: any) => String(item.tipo || 'peca').toLowerCase() === 'peca');
+          const osIds = Array.from(new Set(pendingOsItems.map((item: any) => item.ordem_servico_id).filter(Boolean)));
+          let openOsById = new Map<string, any>();
+
+          if (osIds.length > 0) {
+            const { data: ordens } = await from('ordens_servico')
+              .select('id,status,branch_id')
+              .in('id', osIds)
+              .execute();
+            const closedStatuses = new Set(['cancelada', 'entregue', 'entregue_faturada', 'entregue_sem_reparo']);
+            openOsById = new Map(
+              (ordens || [])
+                .filter((os: any) => !closedStatuses.has(String(os.status || '').toLowerCase()))
+                .map((os: any) => [os.id, os])
+            );
+          }
+
+          pendingOsItems.forEach((item: any) => {
+            const os = openOsById.get(item.ordem_servico_id);
+            if (!os) return;
+            const branchId = item.branch_id || os.branch_id || '';
+            const key = `${item.produto_id}:${branchId}`;
+            osReservedByProductBranch.set(key, (osReservedByProductBranch.get(key) || 0) + Math.abs(Number(item.quantidade || 0)));
+          });
+
+          const stocksByProduct = new Map<string, any[]>();
+          (stocks || []).forEach((stock: any) => {
+            const current = stocksByProduct.get(stock.product_id) || [];
+            current.push(stock);
+            stocksByProduct.set(stock.product_id, current);
+          });
+
+          allData = allData.map((row: any) => {
+            const productStocks = stocksByProduct.get(row.id) || [];
+            if (productStocks.length === 0) return row;
+
+            const isAllBranches = activeBranchId === 'all';
+            const stock = isAllBranches ? null : productStocks.find((item) => item.branch_id === activeBranchId);
+            const getReservedQuantity = (item: any) => Math.max(
+              Number(item.reserved_quantity || 0),
+              osReservedByProductBranch.get(`${row.id}:${item.branch_id}`) || 0
+            );
+            const physicalQuantity = isAllBranches
+              ? productStocks.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+              : stock ? Number(stock.quantity || 0) : 0;
+            const reservedQuantity = isAllBranches
+              ? productStocks.reduce((sum, item) => sum + getReservedQuantity(item), 0)
+              : stock ? getReservedQuantity(stock) : 0;
+            const availableQuantity = Math.max(0, physicalQuantity - reservedQuantity);
+            const minimumQuantity = isAllBranches
+              ? productStocks.reduce((sum, item) => sum + Number(item.minimum_quantity || 0), 0)
+              : stock ? Number(stock.minimum_quantity || 0) : 0;
+
+            return {
+              ...row,
+              quantidade: availableQuantity,
+              estoque_fisico: physicalQuantity,
+              estoque_reservado: reservedQuantity,
+              estoque_disponivel: availableQuantity,
+              estoque_minimo: minimumQuantity,
+            };
+          });
         }
       }
 
