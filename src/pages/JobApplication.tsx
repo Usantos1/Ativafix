@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { from } from '@/integrations/db/client';
 import { apiClient } from '@/integrations/api/client';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle, Building2, MapPin, Briefcase, UserCheck, Clock, DollarSign, Eye } from 'lucide-react';
+import { Loader2, CheckCircle, Building2, MapPin, Briefcase, Clock, DollarSign, Eye } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface JobSurvey {
@@ -355,47 +355,6 @@ export default function JobApplication() {
                   Obrigado por se candidatar à vaga de {survey.position_title}. 
                   Entraremos em contato em breve.
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Teste DISC Opcional */}
-          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-            <CardHeader className="text-center">
-              <div className="flex items-center justify-center gap-2 text-primary mb-2">
-                <UserCheck className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-xl">Teste DISC Opcional</CardTitle>
-              <CardDescription>
-                Que tal fazer um teste de perfil comportamental? É rápido, gratuito e pode ajudar no seu processo seletivo!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  • Avalia seu perfil comportamental
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  • Leva apenas 5 minutos
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  • Pode destacar sua candidatura
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button 
-                  onClick={() => window.open('/disc-candidato', '_blank')}
-                  className="flex-1"
-                >
-                  Fazer Teste DISC
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.close()}
-                  className="flex-1"
-                >
-                  Agora Não
-                </Button>
               </div>
             </CardContent>
           </Card>

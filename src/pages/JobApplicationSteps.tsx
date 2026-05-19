@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   AlertCircle, CheckCircle, FileText, Send,
   Home, Building, MapPin, DollarSign, Users, Clock,
-  Mail, User, ChevronLeft, ChevronRight, Zap, Award,
+  Mail, User, ChevronLeft, ChevronRight,
   Lock, Info, AlertTriangle, Ban
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -215,6 +215,38 @@ const formatCEP = (v: string) => {
 };
 const isValidCEP = (v: string) => /^\d{5}-?\d{3}$/.test(v);
 const isValidEmail = (v: string) => /\S+@\S+\.\S+/.test(v);
+const PERSONAL_FIELD_LABELS: Record<string, string> = {
+  name: 'nome',
+  email: 'e-mail',
+  age: 'idade',
+  cep: 'CEP',
+  address: 'endereço',
+  whatsapp: 'WhatsApp',
+};
+const getPersonalDataErrors = (data: Pick<FormData, 'name' | 'email' | 'age' | 'cep' | 'address' | 'whatsapp'>) => {
+  const errors: Record<string, string> = {};
+  if (!data.name?.trim()) errors.name = 'Nome é obrigatório';
+  if (!data.email?.trim()) errors.email = 'Email é obrigatório';
+  else if (!isValidEmail(data.email)) errors.email = 'Email inválido';
+  if (!data.whatsapp?.trim()) errors.whatsapp = 'WhatsApp é obrigatório';
+  else if (!isValidWhatsApp(data.whatsapp)) errors.whatsapp = 'WhatsApp inválido';
+  if (!data.age?.trim()) {
+    errors.age = 'Idade é obrigatória';
+  } else {
+    const age = parseInt(data.age, 10);
+    if (Number.isNaN(age) || age < 16 || age > 45) errors.age = 'Idade inválida (16 a 45 anos)';
+  }
+  if (!data.cep?.trim()) errors.cep = 'CEP é obrigatório';
+  else if (!isValidCEP(data.cep)) errors.cep = 'CEP inválido (ex.: 13050-120)';
+  if (!data.address?.trim()) errors.address = 'Endereço é obrigatório';
+  return errors;
+};
+const hasRequiredPersonalData = (data: Pick<FormData, 'name' | 'email' | 'age' | 'cep' | 'address' | 'whatsapp'>) =>
+  Object.keys(getPersonalDataErrors(data)).length === 0;
+const formatMissingPersonalFields = (errors: Record<string, string>) =>
+  Object.keys(errors)
+    .map((key) => PERSONAL_FIELD_LABELS[key] || key)
+    .join(', ');
 const clampStepIndex = (step: number, totalSteps: number) => {
   const maxStep = Math.max(totalSteps - 1, 0);
   if (!Number.isFinite(step)) return 0;
@@ -273,9 +305,6 @@ export default function JobApplicationSteps() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-  const [showDiscPrompt, setShowDiscPrompt] = useState(false);
-  const [jobResponseId, setJobResponseId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -298,8 +327,6 @@ export default function JobApplicationSteps() {
   // Estado para modal de candidatura já enviada - FORÇADO para evitar tree-shaking
   const [showAlreadyAppliedModal, setShowAlreadyAppliedModal] = useState<boolean>(false);
   const [existingJobResponseId, setExistingJobResponseId] = useState<string | null>(null);
-  // Estado para modal de confirmação do teste DISC
-  const [showDiscTestModal, setShowDiscTestModal] = useState<boolean>(false);
   const [showExitIntentModal, setShowExitIntentModal] = useState(false);
 
   // Forçar referência ao estado para evitar tree-shaking do Vite
@@ -426,6 +453,9 @@ export default function JobApplicationSteps() {
         }
 
         const totalDraftSteps = (survey.questions?.length || 0) + 1;
+        const effectiveCurrentStep = hasRequiredPersonalData(formData)
+          ? clampStepIndex(currentStep, totalDraftSteps)
+          : 0;
         const payload = {
           survey_id: survey.id,
           email: emailToSave,
@@ -438,7 +468,7 @@ export default function JobApplicationSteps() {
           instagram: formData.instagram?.trim() || null,
           linkedin: formData.linkedin?.trim() || null,
           responses: formData.responses || {},
-          current_step: clampStepIndex(currentStep, totalDraftSteps),
+          current_step: effectiveCurrentStep,
           form_data: formData
         };
 
@@ -538,15 +568,30 @@ export default function JobApplicationSteps() {
             };
             
             const restoredStep = Number(backendDraft.current_step);
+            const personalErrors = getPersonalDataErrors(mergedData);
+            const safeRestoredStep = Object.keys(personalErrors).length === 0
+              ? Number.isFinite(restoredStep) ? Math.max(Math.trunc(restoredStep), 0) : 0
+              : 0;
             setFormData(mergedData);
-            setCurrentStep(Number.isFinite(restoredStep) ? Math.max(Math.trunc(restoredStep), 0) : 0);
+            setCurrentStep(safeRestoredStep);
+            if (Object.keys(personalErrors).length > 0) {
+              setErrors(personalErrors);
+            }
             setDraftId(backendDraft.id);
             setLastSaved(new Date(backendDraft.last_saved_at));
-            
-            toast({
-              title: "Dados recuperados!",
-              description: "Seus dados foram restaurados automaticamente.",
-            });
+
+            if (Object.keys(personalErrors).length > 0) {
+              toast({
+                title: "Complete os dados pessoais",
+                description: `Falta preencher ou corrigir: ${formatMissingPersonalFields(personalErrors)}.`,
+                variant: "destructive",
+              });
+            } else {
+              toast({
+                title: "Dados recuperados!",
+                description: "Seus dados foram restaurados automaticamente.",
+              });
+            }
           }
         } catch (e) {
           console.error('Erro ao carregar rascunho do backend:', e);
@@ -670,25 +715,7 @@ export default function JobApplicationSteps() {
     const newErrors: Record<string, string> = {};
 
     if (stepIndex === 0) {
-      if (!formData.name.trim()) newErrors.name = "Nome é obrigatório";
-      if (!formData.email.trim()) newErrors.email = "Email é obrigatório";
-      if (formData.email && !isValidEmail(formData.email)) newErrors.email = "Email inválido";
-      if (!formData.whatsapp.trim()) newErrors.whatsapp = "WhatsApp é obrigatório";
-      if (formData.whatsapp && !isValidWhatsApp(formData.whatsapp)) newErrors.whatsapp = "WhatsApp inválido";
-
-      if (!formData.age?.trim()) {
-        newErrors.age = "Idade é obrigatória";
-      } else {
-        const n = parseInt(formData.age, 10);
-        if (Number.isNaN(n) || n < 16 || n > 45) newErrors.age = "Idade inválida (16 a 45 anos)";
-      }
-
-      if (!formData.cep.trim()) {
-        newErrors.cep = "CEP é obrigatório";
-      } else if (!isValidCEP(formData.cep)) {
-        newErrors.cep = "CEP inválido (ex.: 13050-120)";
-      }
-      if (!formData.address.trim()) newErrors.address = "Endereço é obrigatório";
+      Object.assign(newErrors, getPersonalDataErrors(formData));
     } else {
       const questionIndex = stepIndex - 1;
       const question = survey?.questions[questionIndex];
@@ -790,8 +817,15 @@ export default function JobApplicationSteps() {
       idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     }
 
-    if (!formData.name.trim() || !formData.email.trim() || !formData.cep.trim() || !formData.address.trim() || !formData.whatsapp.trim()) {
-      toast({ title: "Erro", description: "Nome, e-mail, CEP, endereço e WhatsApp são obrigatórios.", variant: "destructive" });
+    const personalErrors = getPersonalDataErrors(formData);
+    if (Object.keys(personalErrors).length > 0) {
+      setErrors(personalErrors);
+      setCurrentStep(0);
+      toast({
+        title: "Complete os dados pessoais",
+        description: `Falta preencher ou corrigir: ${formatMissingPersonalFields(personalErrors)}.`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -886,13 +920,11 @@ export default function JobApplicationSteps() {
         job_response_id: jobResponseId || null,
         survey_id: survey.id,
       };
-      setJobResponseId(jobResponseId || null);
 
       sessionStorage.setItem('candidate_disc_info', JSON.stringify(candidateInfo));
       sessionStorage.removeItem(draftSessionKey);
 
       setSubmitted(true);
-      setShowDiscTestModal(true);
       toast({
         title: 'Candidatura enviada com sucesso! 🎉',
         description: 'Sua candidatura foi recebida com sucesso!',
@@ -922,7 +954,6 @@ export default function JobApplicationSteps() {
           });
 
           if (!aiResp.error && aiResp.data?.analysis) {
-            setAiAnalysis(aiResp.data.analysis);
             sessionStorage.setItem('candidate_ai_analysis', JSON.stringify(aiResp.data.analysis));
           }
         } catch (err) {
@@ -939,11 +970,6 @@ export default function JobApplicationSteps() {
       window.clearTimeout(timeoutId);
       setSubmitting(false);
     }
-  };
-
-  const startDiscTest = () => {
-    setShowDiscTestModal(false);
-    navigate(`/disc-externo?job_response_id=${jobResponseId || ''}&survey_id=${survey?.id || ''}`);
   };
 
   /* ---------- renderização de perguntas dinâmicas ---------- */
@@ -1049,56 +1075,6 @@ export default function JobApplicationSteps() {
     );
   };
 
-  const discTestDialog = (
-    <Dialog open={showDiscTestModal} onOpenChange={setShowDiscTestModal}>
-      <DialogContent className="sm:max-w-[500px]" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-card-border))' }}>
-        <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="rounded-full p-2" style={{ backgroundColor: 'hsl(var(--job-primary) / 0.1)' }}>
-              <Zap className="h-6 w-6" style={{ color: 'hsl(var(--job-primary))' }} />
-            </div>
-            <DialogTitle className="text-xl" style={{ color: 'hsl(var(--job-text))' }}>
-              Teste de Perfil Comportamental
-            </DialogTitle>
-          </div>
-          <DialogDescription className="text-base pt-2" style={{ color: 'hsl(var(--job-text-muted))' }}>
-            Para completar sua candidatura, vamos fazer uma avaliação do seu perfil comportamental através do teste DISC.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-3">
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'hsl(var(--job-badge))', borderColor: 'hsl(var(--job-card-border))' }}>
-            <p className="text-sm mb-2" style={{ color: 'hsl(var(--job-text))' }}>
-              <strong>O que é o teste DISC?</strong>
-            </p>
-            <p className="text-sm" style={{ color: 'hsl(var(--job-text-muted))' }}>
-              É uma avaliação rápida e simples que nos ajuda a entender melhor seu perfil profissional e como você trabalha em equipe. Leva apenas alguns minutos!
-            </p>
-          </div>
-          <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(var(--job-badge))' }}>
-            <Info className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: 'hsl(var(--job-primary))' }} />
-            <div className="text-sm space-y-1" style={{ color: 'hsl(var(--job-text-muted))' }}>
-              <p>Seus dados já foram salvos com sucesso.</p>
-              <p>Clique em &quot;Começar teste&quot; quando estiver pronto para iniciar a avaliação.</p>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setShowDiscTestModal(false)}
-            style={{ borderColor: 'hsl(var(--job-card-border))' }}
-          >
-            Fazer depois
-          </Button>
-          <Button onClick={startDiscTest} style={{ backgroundColor: 'hsl(var(--job-primary))', color: 'white' }}>
-            <Zap className="h-4 w-4 mr-2" />
-            Começar teste
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-
   /* ---------- telas de loading/erro/sucesso ---------- */
   if (loading) {
     return (
@@ -1180,7 +1156,6 @@ export default function JobApplicationSteps() {
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <style>{themeCSS}</style>
-        {discTestDialog}
         <div className="min-h-screen job-form-scroll" style={{ backgroundColor: 'hsl(var(--job-bg))' }}>
           <div className="flex items-center justify-center p-4 min-h-screen">
             <Card className="w-full max-w-lg text-center border-2 shadow-lg" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-primary))' }}>
@@ -1192,30 +1167,17 @@ export default function JobApplicationSteps() {
                   Candidatura enviada! 🎉
                 </h1>
                 <p className="mb-6 text-base sm:text-lg leading-relaxed" style={{ color: 'hsl(var(--job-text-muted))' }}>
-                  Sua candidatura foi recebida com sucesso. Você pode iniciar o teste DISC agora ou depois; também dá para fechar o aviso e ir às vagas.
+                  Sua candidatura foi recebida com sucesso. Nossa equipe vai avaliar suas informações e entrar em contato pelos dados informados.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-                  <Button
-                    type="button"
-                    onClick={() => setShowDiscTestModal(true)}
-                    className="w-full sm:w-auto"
-                    style={{ backgroundColor: 'hsl(var(--job-primary))', color: 'white' }}
-                  >
-                    <Zap className="h-4 w-4 mr-2" />
-                    Iniciar teste DISC
-                  </Button>
                   <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/vagas')}>
                     Ver outras vagas
                   </Button>
                 </div>
                 <div className="flex items-center justify-center gap-6 text-sm flex-wrap" style={{ color: 'hsl(var(--job-text-muted))' }}>
                   <div className="flex items-center gap-1">
-                    <Zap className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
-                    <span>Avaliação comportamental</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Award className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
-                    <span>Perfil profissional</span>
+                    <CheckCircle className="w-4 h-4" style={{ color: 'hsl(var(--job-primary))' }} />
+                    <span>Cadastro recebido</span>
                   </div>
                 </div>
               </CardContent>
@@ -1229,8 +1191,6 @@ export default function JobApplicationSteps() {
   /* ---------- página principal ---------- */
   return (
     <>
-      {discTestDialog}
-
       {/* Modal: Já se candidatou - Renderizado diretamente para evitar tree-shaking */}
       <Dialog open={showAlreadyAppliedModal} onOpenChange={setShowAlreadyAppliedModal}>
         <DialogContent className="sm:max-w-[500px]" style={{ backgroundColor: 'hsl(var(--job-card))', borderColor: 'hsl(var(--job-card-border))' }}>
@@ -1674,28 +1634,6 @@ export default function JobApplicationSteps() {
                 </ErrorBoundary>
               </CardContent>
         </Card>
-
-          {showDiscPrompt && (
-            <Card className="mt-4 border-dashed" style={{ backgroundColor: 'hsl(var(--job-badge))', borderColor: 'hsl(var(--job-card-border))' }}>
-              <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p className="text-base font-semibold" style={{ color: 'hsl(var(--job-text))' }}>Teste comportamental opcional</p>
-                  <p className="text-sm" style={{ color: 'hsl(var(--job-text-muted))' }}>
-                    Faça o DISC para validar o perfil inferido pela IA. Você pode pular e fazer depois.
-                  </p>
-                  {aiAnalysis && (
-                    <p className="text-sm mt-2" style={{ color: 'hsl(var(--job-text))' }}>
-                      Perfil inferido: {aiAnalysis?.disc_inferido?.dominante || 'N/A'} | Fit: {aiAnalysis?.scores?.fit ?? 0}%
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setShowDiscPrompt(false)}>Fazer depois</Button>
-                  <Button onClick={startDiscTest}>Fazer teste agora</Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
             {/* Footer fixo com progresso e navegação - Design Profissional */}
             <div 

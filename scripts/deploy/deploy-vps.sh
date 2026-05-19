@@ -6,7 +6,8 @@
 #
 # Variáveis opcionais:
 #   PROJECT_DIR=/root/primecamp-ofc
-#   NGINX_ROOT=/var/www/ativafix
+#   WEB_ROOT=/var/www/ativafix
+#   CADDY_CONFIG=/etc/caddy/Caddyfile
 #   PM2_APP=primecamp-api
 #   REMOTE=origin
 #   BRANCH=main
@@ -14,7 +15,8 @@
 set -Eeuo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-/root/primecamp-ofc}"
-NGINX_ROOT="${NGINX_ROOT:-/var/www/ativafix}"
+WEB_ROOT="${WEB_ROOT:-${NGINX_ROOT:-/var/www/ativafix}}"
+CADDY_CONFIG="${CADDY_CONFIG:-/etc/caddy/Caddyfile}"
 PM2_APP="${PM2_APP:-primecamp-api}"
 REMOTE="${REMOTE:-origin}"
 BRANCH="${BRANCH:-main}"
@@ -31,6 +33,7 @@ fail() {
 command -v git >/dev/null 2>&1 || fail "git nao encontrado"
 command -v npm >/dev/null 2>&1 || fail "npm nao encontrado"
 command -v pm2 >/dev/null 2>&1 || fail "pm2 nao encontrado"
+command -v caddy >/dev/null 2>&1 || fail "caddy nao encontrado"
 
 [ -d "$PROJECT_DIR/.git" ] || fail "Projeto nao encontrado em $PROJECT_DIR. Confira o caminho ou rode: git clone https://github.com/Usantos1/Ativafix.git $PROJECT_DIR"
 
@@ -50,17 +53,16 @@ rm -rf dist
 npm run build
 [ -f "dist/index.html" ] || fail "Build nao gerou dist/index.html"
 
-log "Publicando frontend em $NGINX_ROOT"
-sudo mkdir -p "$NGINX_ROOT"
-sudo find "$NGINX_ROOT" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-sudo cp -r dist/. "$NGINX_ROOT/"
-sudo chown -R www-data:www-data "$NGINX_ROOT"
-sudo chmod -R 755 "$NGINX_ROOT"
+log "Publicando frontend em $WEB_ROOT"
+sudo mkdir -p "$WEB_ROOT"
+sudo find "$WEB_ROOT" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+sudo cp -r dist/. "$WEB_ROOT/"
+sudo chown -R www-data:www-data "$WEB_ROOT"
+sudo chmod -R 755 "$WEB_ROOT"
 
-log "Limpando cache e recarregando Nginx"
-sudo rm -rf /var/cache/nginx/* /var/lib/nginx/cache/* 2>/dev/null || true
-sudo nginx -t
-sudo systemctl reload nginx
+log "Validando e recarregando Caddy"
+sudo caddy validate --config "$CADDY_CONFIG"
+sudo systemctl reload caddy || sudo systemctl restart caddy
 
 log "Instalando dependencias da API"
 cd "$PROJECT_DIR/server"
@@ -76,5 +78,5 @@ pm2 save
 
 log "Verificacao rapida"
 pm2 status "$PM2_APP"
-printf '\nFrontend: %s\nAPI: %s\nCommit: %s\n' "$NGINX_ROOT" "$PM2_APP" "$(git -C "$PROJECT_DIR" log -1 --oneline)"
+printf '\nFrontend: %s\nAPI: %s\nCommit: %s\n' "$WEB_ROOT" "$PM2_APP" "$(git -C "$PROJECT_DIR" log -1 --oneline)"
 printf '\nDeploy concluido!\n'
